@@ -1,0 +1,71 @@
+{
+  "module": "Talento Humano",
+  "source": "SEGURIDAD/nomina/apps/web/src/App.tsx",
+  "groups": [
+    {
+      "label": "Configuraciones",
+      "screens": [
+        { "title": "Departamentos", "path": "/general/departamentos", "description": "Áreas organizacionales disponibles para asignar a los empleados." },
+        { "title": "Cargos", "path": "/general/cargos", "description": "Cargos y funciones que pueden asociarse a una relación laboral." },
+        { "title": "Rubros", "path": "/general/rubros", "description": "Conceptos configurables de ingresos, descuentos y provisiones." },
+        { "title": "Grupos de Nómina", "path": "/general/grupos-nomina", "description": "Agrupaciones utilizadas para organizar períodos y procesos de nómina." },
+        { "title": "Tipos de Nómina", "path": "/general/tipos-nomina", "description": "Tipos de procesamiento disponibles para los períodos de nómina." },
+        { "title": "Tipos de contratos", "path": "/general/tipos-contrato", "description": "Modalidades contractuales habilitadas para la empresa." },
+        { "title": "Motivos de salida", "path": "/general/motivos-salida", "description": "Catálogo de causas utilizadas al finalizar una relación laboral." },
+        { "title": "Tipos de parentesco", "path": "/general/tipos-parentesco", "description": "Relaciones familiares permitidas para dependientes y cargas." },
+        { "title": "Tipos de Ausencia", "path": "/general/tipos-ausencia", "description": "Motivos habilitados para registrar ausencias de los empleados." },
+        { "title": "Salario Básico Unificado", "path": "/general/salario-basico-unificado", "description": "Configuración histórica del salario básico unificado aplicable a la nómina." },
+        { "title": "% IESS", "path": "/general/porcentajes-iess", "description": "Porcentajes personales y patronales utilizados en los cálculos del IESS." }
+      ]
+    },
+    {
+      "label": "Empleado",
+      "screens": [
+        { "title": "Información del Empleado", "path": "/empleado/informacion", "description": "Expedientes, datos laborales y valores vigentes de los empleados propios." },
+        { "title": "Empleados Complementarios", "path": "/empleado/complementarios", "description": "Trabajadores de proveedores externos, asignaciones y certificaciones." },
+        { "title": "Modificación Cargo Empleado", "path": "/empleado/modificacion-cargo", "description": "Registra cambios de cargo con vigencia y trazabilidad." },
+        { "title": "Modificación Historial", "path": "/empleado/modificacion-historial", "description": "Consulta y corrige datos históricos mediante solicitudes auditables." },
+        { "title": "Carga de Información de Empleados", "path": "/empleado/carga-empleados", "description": "Valida un archivo antes de incorporar información al maestro de empleados." },
+        { "title": "Carga de Sueldos Histórico de Empleados", "path": "/empleado/carga-sueldos-historicos", "description": "Importa vigencias salariales anteriores con validación y conciliación." }
+      ]
+    },
+    {
+      "label": "Administrar Nómina",
+      "screens": [
+        { "title": "Novedades", "path": "/novedades", "description": "Ingresos y descuentos activos o pendientes de aplicación." },
+        { "title": "Ausencias", "path": "/nomina/ausencias", "description": "Registro y seguimiento de ausencias del personal." },
+        { "title": "Carga de Novedades", "path": "/nomina/carga-novedades", "description": "Importación y validación masiva de novedades." },
+        { "title": "Horas Extra", "path": "/nomina/horas-extra", "description": "Registro de horas suplementarias y extraordinarias." },
+        { "title": "Carga de Horas Extra", "path": "/nomina/carga-horas-extra", "description": "Importación masiva de horas extra." }
+      ]
+    },
+    {
+      "label": "Vacaciones",
+      "screens": [
+        { "title": "Registro de Vacaciones", "path": "/vacaciones/ingreso-novedades", "description": "Solicitudes de vacaciones gozadas y pago de días adicionales por empleado." },
+        { "title": "Carga de Vacaciones Pendientes", "path": "/vacaciones/carga-vacaciones-pendientes", "description": "Importación y validación de saldos pendientes de vacaciones por empleado." },
+        { "title": "Liquidar Vacaciones", "path": "/vacaciones/liquidar-vacaciones", "description": "Preparación y cálculo de liquidaciones de vacaciones." },
+        { "title": "Reporte Días Pendientes", "path": "/vacaciones/reporte-dias-pendientes", "description": "Consulta de días de vacaciones pendientes por empleado." },
+        { "title": "Reporte Liquidación Vacaciones", "path": "/vacaciones/reporte-liquidacion", "description": "Reporte de liquidaciones de vacaciones procesadas." }
+      ]
+    },
+    {
+      "label": "Liquidación de Valores",
+      "screens": [
+        { "title": "Configuración Planilla de Rol", "path": "/liquidacion/configuracion-planilla", "description": "Define la estructura, columnas y conceptos que conforman la planilla de rol." },
+        { "title": "Períodos Habilitados", "path": "/liquidacion/periodos-habilitados", "description": "Administra los períodos disponibles para los procesos de liquidación." },
+        { "title": "Liquidación Quincena", "path": "/liquidacion/quincena", "description": "Procesa y revisa la liquidación correspondiente a la quincena." },
+        { "title": "Liquidación Fin de Mes", "path": "/liquidacion/fin-mes", "description": "Procesa la nómina mensual y revisa los valores calculados por empleado." },
+        { "title": "Liquidación Beneficios Sociales", "path": "/liquidacion/beneficios-sociales", "description": "Gestiona la liquidación de décimos, fondos de reserva y otros beneficios sociales." },
+        { "title": "Liquidación Utilidades", "path": "/liquidacion/utilidades", "description": "Prepara y revisa la distribución anual de utilidades." }
+      ]
+    },
+    {
+      "label": "Liquidación de Personal",
+      "screens": [
+        { "title": "Cálculo de Posible Liquidación", "path": "/liquidacion-personal/calculo-posible", "description": "Simula los valores de una posible liquidación laboral." },
+        { "title": "Liquidación de Personal", "path": "/liquidacion-personal/liquidacion-personal", "description": "Gestiona el cálculo definitivo de la liquidación laboral." }
+      ]
+    }
+  ]
+}

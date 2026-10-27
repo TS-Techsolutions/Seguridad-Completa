@@ -1,0 +1,3085 @@
+{
+  "version": "2.0",
+  "modulo": "Contabilidad",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-016",
+      "fila": 27,
+      "celda": "E27",
+      "nivel": 5,
+      "texto_original": "Tipo Comp. Contables",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Tipo Comp. Contables",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Configurar tipos de comprobante contable y su numeración interna, manteniendo separado el tipo de asiento del tipo de documento fiscal y permitiendo operar sin inmuebles.",
+      "diseno_visible": "Pantalla dedicada bajo la ruta original, con selector de empresa y ejercicio, tabla de tipos activos/inactivos, panel lateral de alta/edición y vista de simulación de numeración. La ficha muestra explícitamente que un tipo contable no autoriza por sí mismo un XML fiscal; incluye historial de versiones y auditoría. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada en contexto activo."
+        },
+        {
+          "nombre": "código y nombre",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Código único por empresa; nombre no vacío."
+        },
+        {
+          "nombre": "clase",
+          "tipo": "enum diario/ingreso/egreso/ajuste",
+          "obligatorio": true,
+          "validacion": "Solo valores configurados; no se mezcla con tipo fiscal."
+        },
+        {
+          "nombre": "política de numeración",
+          "tipo": "enum por ejercicio/secuencial",
+          "obligatorio": true,
+          "validacion": "Secuencia compatible con tipo y periodo."
+        },
+        {
+          "nombre": "vigencia",
+          "tipo": "rango de fechas",
+          "obligatorio": true,
+          "validacion": "Sin solape con otra versión activa."
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Inactivar no elimina históricos."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto largo",
+          "obligatorio": true,
+          "validacion": "Requerido al cambiar vigencia o inactivar."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Clase contable",
+        "Política de numeración",
+        "Vigencia",
+        "Estado",
+        "Última versión"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Nuevo tipo",
+          "resultado": "Guarda borrador de configuración; no contabiliza.",
+          "permiso": "accounting.type.create"
+        },
+        {
+          "etiqueta": "Editar borrador",
+          "resultado": "Crea versión validable sin sobrescribir históricos.",
+          "permiso": "accounting.type.update"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Impide nuevos asientos y conserva referencias.",
+          "permiso": "accounting.type.deactivate"
+        },
+        {
+          "etiqueta": "Ver auditoría",
+          "resultado": "Consulta versiones y decisiones.",
+          "permiso": "accounting.audit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y comprobar permiso.",
+        "Capturar clase, código, numeración y vigencia.",
+        "Validar unicidad, solapes y diferencia contable/fiscal.",
+        "Aprobar el cambio si la política lo exige.",
+        "Activar la versión y dejarla disponible para nuevos comprobantes.",
+        "Consultar aplicación posterior sin alterar asientos existentes."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "VERSIONED: cada cambio produce nueva versión efectiva"
+      ],
+      "impacto_datos_contables": "Solo afecta la resolución de futuros asientos y sus números; no cambia comprobantes publicados, saldos ni documentos fiscales. Los huecos de secuencia quedan justificados. No contiene campos inmobiliarios obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/journal-types",
+        "POST /api/v1/accounting/journal-types",
+        "POST /api/v1/accounting/journal-types/{id}/versions",
+        "POST /api/v1/accounting/journal-types/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "No permitir activar un tipo sin secuencia compatible o con vigencia superpuesta."
+      ],
+      "prueba_positiva": "Dado un tipo diario vigente y una empresa autorizada, cuando se guarda con numeración válida y se aprueba, entonces aparece activo para el registro y la simulación devuelve el siguiente número sin crear asiento.",
+      "prueba_negativa": "Dado un tipo con código duplicado o clase fiscal no soportada, cuando se intenta activar, entonces se rechaza con errores de campo y no se modifica la versión vigente.",
+      "dependencias_ids": [
+        "XLS-023",
+        "XLS-024"
+      ],
+      "titulo_original": "Tipo Comp. Contables",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Tipo Comp. Contables",
+      "ruta_react": "/contabilidad/financiero/configuracion/tipo-comp-contables",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Configurar tipos diario/ingreso/egreso/ajuste y su numeración; distinguir tipo contable de tipo fiscal.",
+      "pruebas_ids": [
+        "T-UI-XLS-016",
+        "T-PROC-XLS-016",
+        "T-NEG-XLS-016"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-017",
+      "fila": 28,
+      "celda": "E28",
+      "nivel": 5,
+      "texto_original": "Establecimientos",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Establecimientos",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Mantener establecimientos y puntos de emisión por empresa, ambiente y vigencia, dejando la configuración fiscal separada de la contabilización general.",
+      "diseno_visible": "Listado dedicado bajo Configuración > Establecimientos con filtros empresa, código, ambiente, vigencia y estado. El formulario separa establecimiento, punto de emisión y datos de dirección; una vista de conflictos muestra secuencias asociadas. No expone certificados ni credenciales en el navegador. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Membresía y alcance de empresa verificados."
+        },
+        {
+          "nombre": "código/nombre de establecimiento",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Código único por empresa; nombre requerido."
+        },
+        {
+          "nombre": "punto de emisión",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Formato permitido y único dentro del establecimiento."
+        },
+        {
+          "nombre": "ambiente",
+          "tipo": "enum configuración/prueba/producción",
+          "obligatorio": true,
+          "validacion": "Valor versionado por política, no inferido."
+        },
+        {
+          "nombre": "dirección fiscal",
+          "tipo": "objeto texto",
+          "obligatorio": true,
+          "validacion": "Snapshot requerido para configuración; cambios versionados."
+        },
+        {
+          "nombre": "vigencia desde/hasta",
+          "tipo": "fechas",
+          "obligatorio": true,
+          "validacion": "No solape con la misma combinación."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "enum activo/inactivo",
+          "obligatorio": true,
+          "validacion": "No inactivar si hay uso incompatible sin advertencia."
+        }
+      ],
+      "columnas": [
+        "Establecimiento",
+        "Punto",
+        "Ambiente",
+        "Dirección resumida",
+        "Vigencia",
+        "Estado",
+        "Secuencia vinculada"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Registrar",
+          "resultado": "Crea configuración pendiente; no emite por sí sola.",
+          "permiso": "fiscal.establishment.create"
+        },
+        {
+          "etiqueta": "Validar vigencia",
+          "resultado": "Detecta solapes y dependencias.",
+          "permiso": "fiscal.establishment.validate"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Bloquea nuevas reservas y conserva históricos.",
+          "permiso": "fiscal.establishment.deactivate"
+        },
+        {
+          "etiqueta": "Consultar historial",
+          "resultado": "Muestra snapshots y auditoría.",
+          "permiso": "fiscal.audit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y cargar establecimientos autorizados.",
+        "Capturar establecimiento, punto, ambiente y vigencia.",
+        "Validar unicidad, solapes y permisos.",
+        "Aprobar y asociar una secuencia terminal compatible.",
+        "Publicar configuración para documentos futuros.",
+        "Consultar vínculos sin alterar documentos históricos."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "EFFECTIVE: configuración vigente para reservas futuras"
+      ],
+      "impacto_datos_contables": "Afecta únicamente la selección de emisor y reserva de numeración futura. No publica XML, no contabiliza y no cambia datos fiscales congelados de documentos existentes. Opera sin inmuebles.",
+      "api_propuesta": [
+        "GET /api/v1/fiscal/establishments",
+        "POST /api/v1/fiscal/establishments",
+        "POST /api/v1/fiscal/establishments/{id}/validate",
+        "POST /api/v1/fiscal/establishments/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Impedir una combinación establecimiento/punto/ambiente sin secuencia o con vigencia incompatible."
+      ],
+      "prueba_positiva": "Dado un establecimiento activo con punto y ambiente sin solape, cuando se aprueba, entonces puede ser seleccionado por una secuencia terminal futura.",
+      "prueba_negativa": "Dado un punto repetido en el mismo establecimiento y ambiente, cuando se guarda, entonces se muestra conflicto y no se crea una segunda configuración.",
+      "dependencias_ids": [
+        "XLS-023",
+        "XLS-020",
+        "XLS-021"
+      ],
+      "titulo_original": "Establecimientos",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Establecimientos",
+      "ruta_react": "/contabilidad/financiero/configuracion/establecimientos",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Configurar establecimientos y puntos de emisión por empresa, ambiente y vigencia.",
+      "pruebas_ids": [
+        "T-UI-XLS-017",
+        "T-PROC-XLS-017",
+        "T-NEG-XLS-017"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-018",
+      "fila": 30,
+      "celda": "F30",
+      "nivel": 6,
+      "texto_original": "Tipos de C. Costos",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Centro de Costos > Tipos de C. Costos",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Administrar tipos de centro de costo y permitir inactivarlos sin borrar ni invalidar registros históricos.",
+      "diseno_visible": "Pantalla de mantenimiento independiente en Configuración > Centro de Costos > Tipos de C. Costos. Incluye filtro por empresa/estado, tabla con cantidad de centros dependientes y formulario modal con previsualización de impacto. El estado histórico se conserva visible, pero no puede usarse para nuevos centros. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "código",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Único por empresa; no reutilizable tras uso histórico."
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Requerido y descriptivo."
+        },
+        {
+          "nombre": "descripción",
+          "tipo": "texto largo",
+          "obligatorio": false,
+          "validacion": "Longitud máxima y texto seguro."
+        },
+        {
+          "nombre": "vigencia",
+          "tipo": "fechas",
+          "obligatorio": true,
+          "validacion": "No solapa si se versiona."
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "La inactivación es lógica."
+        },
+        {
+          "nombre": "motivo de inactivación",
+          "tipo": "texto largo",
+          "obligatorio": false,
+          "validacion": "Obligatorio si existen dependencias."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Centros dependientes",
+        "Vigencia",
+        "Estado",
+        "Actualizado por"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear tipo",
+          "resultado": "Deja tipo validado para clasificar centros.",
+          "permiso": "cost_center_type.create"
+        },
+        {
+          "etiqueta": "Editar",
+          "resultado": "Actualiza solo atributos permitidos o crea versión.",
+          "permiso": "cost_center_type.update"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Bloquea nuevos centros; conserva historial.",
+          "permiso": "cost_center_type.deactivate"
+        },
+        {
+          "etiqueta": "Ver dependencias",
+          "resultado": "Lista centros y asientos vinculados.",
+          "permiso": "cost_center_type.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y consultar tipos.",
+        "Capturar código, nombre y vigencia.",
+        "Validar unicidad y revisar dependencias.",
+        "Aprobar cambio si la segregación aplica.",
+        "Activar o inactivar lógicamente.",
+        "Consultar centros y asientos históricos."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "INACTIVE: no seleccionable en nuevas altas"
+      ],
+      "impacto_datos_contables": "No altera líneas de asientos ni saldos. Al inactivar, los centros existentes siguen trazables y los reportes históricos los incluyen; solo se impide asignarlos en nuevas operaciones. No requiere dimensión inmobiliaria.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/cost-center-types",
+        "POST /api/v1/accounting/cost-center-types",
+        "PATCH /api/v1/accounting/cost-center-types/{id}",
+        "POST /api/v1/accounting/cost-center-types/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "No permitir inactivar sin advertir el número de centros y reglas que quedarán no seleccionables."
+      ],
+      "prueba_positiva": "Dado un tipo activo sin código repetido, cuando se registra y aprueba, entonces aparece disponible para crear centros y no cambia asientos previos.",
+      "prueba_negativa": "Dado un código usado por la empresa, cuando se intenta crear otro tipo, entonces se rechaza con conflicto de unicidad y sin pérdida de datos.",
+      "dependencias_ids": [],
+      "titulo_original": "Tipos de C. Costos",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Centro de Costos > Tipos de C. Costos",
+      "ruta_react": "/contabilidad/financiero/configuracion/centro-de-costos/tipos-de-c-costos",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mantener tipos de centro de costo y permitir inactivar sin perder registros históricos.",
+      "pruebas_ids": [
+        "T-UI-XLS-018",
+        "T-PROC-XLS-018",
+        "T-NEG-XLS-018"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-019",
+      "fila": 31,
+      "celda": "F31",
+      "nivel": 6,
+      "texto_original": "Ingreso C. Costos",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Centro de Costos > Ingreso C. Costos",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Crear centros de costo jerárquicos por empresa y controlar si son obligatorios en líneas de asiento, sin acoplarlos a inmuebles.",
+      "diseno_visible": "Pantalla dedicada en Configuración > Centro de Costos > Ingreso C. Costos, con árbol expandible, búsqueda, filtro por tipo/estado, formulario de alta y panel de reglas de obligatoriedad. La selección de padre se limita a la empresa activa; la vista de uso enlaza a líneas publicadas y borradores. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Membresía de empresa validada."
+        },
+        {
+          "nombre": "tipo de centro",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Tipo activo de XLS-018."
+        },
+        {
+          "nombre": "código",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Único por empresa; formato aprobado."
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "No vacío."
+        },
+        {
+          "nombre": "centro padre",
+          "tipo": "selector jerárquico",
+          "obligatorio": false,
+          "validacion": "Debe ser de misma empresa; sin ciclos."
+        },
+        {
+          "nombre": "imputable",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Solo centros imputables reciben líneas."
+        },
+        {
+          "nombre": "obligatorio en línea",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Aplicado por regla de tipo/operación."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "enum activo/inactivo",
+          "obligatorio": true,
+          "validacion": "Inactivación lógica."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Padre",
+        "Tipo",
+        "Imputable",
+        "Obligatorio",
+        "Estado",
+        "Uso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear centro",
+          "resultado": "Añade nodo y regla sin contabilizar.",
+          "permiso": "cost_center.create"
+        },
+        {
+          "etiqueta": "Mover/editar borrador",
+          "resultado": "Actualiza jerarquía si no rompe históricos.",
+          "permiso": "cost_center.update"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Evita nuevas asignaciones y preserva reportes.",
+          "permiso": "cost_center.deactivate"
+        },
+        {
+          "etiqueta": "Ver líneas",
+          "resultado": "Navega a asientos de origen.",
+          "permiso": "cost_center.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y tipo activo.",
+        "Capturar código, nombre, padre y reglas.",
+        "Validar padre, ciclos, imputabilidad y obligatoriedad.",
+        "Aprobar configuración cuando la política lo exija.",
+        "Publicar para formularios y plantillas futuras.",
+        "Consultar su impacto en reportes y asientos."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "POSTABLE/NON_POSTABLE: controla asignación a líneas"
+      ],
+      "impacto_datos_contables": "Define dimensiones para futuros asientos y reportes; no crea movimientos ni modifica saldos. Una línea publicada conserva su centro aunque este se inactive. El campo inmobiliario no es obligatorio y no aparece en el contrato del núcleo.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/cost-centers/tree",
+        "POST /api/v1/accounting/cost-centers",
+        "PATCH /api/v1/accounting/cost-centers/{id}",
+        "POST /api/v1/accounting/cost-centers/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ciclo jerárquico, padre de otra empresa o centro no imputable usado en una línea."
+      ],
+      "prueba_positiva": "Dado un centro activo imputable cuyo padre pertenece a la misma empresa, cuando se aprueba, entonces aparece en el selector de líneas y en reportes por centro.",
+      "prueba_negativa": "Dado un centro no imputable seleccionado en un asiento, cuando se valida la línea, entonces se rechaza antes de publicar y no se genera asiento.",
+      "dependencias_ids": [
+        "XLS-018",
+        "XLS-025",
+        "XLS-027"
+      ],
+      "titulo_original": "Ingreso C. Costos",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Centro de Costos > Ingreso C. Costos",
+      "ruta_react": "/contabilidad/financiero/configuracion/centro-de-costos/ingreso-c-costos",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Crear centros jerárquicos por empresa y asignarlos a líneas de asientos con validación de obligatoriedad.",
+      "pruebas_ids": [
+        "T-UI-XLS-019",
+        "T-PROC-XLS-019",
+        "T-NEG-XLS-019"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-020",
+      "fila": 33,
+      "celda": "F33",
+      "nivel": 6,
+      "texto_original": "Tipos Imp. Renta",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Retenciones > Tipos Imp. Renta",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Versionar códigos y porcentajes de retención de renta por vigencia, con fuente y aprobador, sin fijar tasas en código.",
+      "diseno_visible": "Pantalla dedicada para Tipos Imp. Renta, bajo la ruta original, con selector de empresa, vigencia y estado; tabla de versiones y formulario de catálogo. La tasa se muestra como dato versionado con fundamento, fecha de fuente y aprobación. Un banner recuerda que el catálogo configura operaciones futuras y no reescribe documentos históricos. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada y perfil tributario visible."
+        },
+        {
+          "nombre": "código",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Único dentro del catálogo y vigencia."
+        },
+        {
+          "nombre": "descripción",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Debe identificar el concepto."
+        },
+        {
+          "nombre": "porcentaje",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "Decimal positivo o cero según catálogo aprobado; no constante."
+        },
+        {
+          "nombre": "vigencia desde/hasta",
+          "tipo": "fechas",
+          "obligatorio": true,
+          "validacion": "Sin solapamiento del mismo código."
+        },
+        {
+          "nombre": "fuente/fundamento",
+          "tipo": "texto/archivo",
+          "obligatorio": true,
+          "validacion": "Referencia documental y hash si existe."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Segregación; no autoaprobación si está prohibida."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "enum borrador/aprobado/inactivo",
+          "obligatorio": true,
+          "validacion": "Solo aprobado se puede aplicar."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Descripción",
+        "Porcentaje vigente",
+        "Vigencia",
+        "Fuente",
+        "Aprobador",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear versión",
+          "resultado": "Guarda catálogo pendiente sin aplicar tasa.",
+          "permiso": "tax.catalog.create"
+        },
+        {
+          "etiqueta": "Validar",
+          "resultado": "Comprueba solapes, formato y fuente.",
+          "permiso": "tax.catalog.validate"
+        },
+        {
+          "etiqueta": "Aprobar/publicar",
+          "resultado": "Deja versión disponible para cálculos nuevos.",
+          "permiso": "tax.catalog.approve"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Impide uso futuro y conserva snapshots.",
+          "permiso": "tax.catalog.deactivate"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y catálogo.",
+        "Capturar código, porcentaje, vigencia y fundamento.",
+        "Validar formato, solapes y fuente.",
+        "Solicitar y obtener aprobación segregada.",
+        "Publicar la versión para nuevas retenciones.",
+        "Consultar snapshot usado por cada documento."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "PUBLISHED: versión aplicable dentro de su vigencia"
+      ],
+      "impacto_datos_contables": "No contabiliza por sí mismo. La versión elegida se congela en el detalle de futuras retenciones y puede producir obligación fiscal según la operación; cambiarla no modifica documentos o asientos ya publicados. No se exige inmueble.",
+      "api_propuesta": [
+        "GET /api/v1/tax/withholding-catalogs/renta",
+        "POST /api/v1/tax/withholding-catalogs/renta",
+        "POST /api/v1/tax/withholding-catalogs/renta/{id}/approve",
+        "POST /api/v1/tax/withholding-catalogs/renta/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "No permitir porcentaje sin vigencia, fuente y aprobador; no inferir la tasa solo por tipo de tercero."
+      ],
+      "prueba_positiva": "Dado un código de renta con porcentaje, vigencia y fuente aprobados, cuando se consulta una operación dentro del rango, entonces devuelve esa versión y su snapshot.",
+      "prueba_negativa": "Dado un nuevo porcentaje con solape o sin aprobador, cuando se intenta publicar, entonces se rechaza y la versión anterior permanece vigente.",
+      "dependencias_ids": [
+        "XLS-027",
+        "XLS-029"
+      ],
+      "titulo_original": "Tipos Imp. Renta",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Retenciones > Tipos Imp. Renta",
+      "ruta_react": "/contabilidad/financiero/configuracion/retenciones/tipos-imp-renta",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Versionar códigos y porcentajes de retención renta por vigencia, con fuente y aprobador.",
+      "pruebas_ids": [
+        "T-UI-XLS-020",
+        "T-PROC-XLS-020",
+        "T-NEG-XLS-020"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-021",
+      "fila": 34,
+      "celda": "F34",
+      "nivel": 6,
+      "texto_original": "Tipos Ret. IVA",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Retenciones > Tipos Ret. IVA",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Versionar códigos y porcentajes de retención de IVA por vigencia, con fuente y aprobador, sin fijar tasas en código.",
+      "diseno_visible": "Pantalla dedicada para Tipos Ret. IVA, bajo la ruta original, con selector de empresa, vigencia y estado; tabla de versiones y formulario de catálogo. La tasa se muestra como dato versionado con fundamento, fecha de fuente y aprobación. Un banner recuerda que el catálogo configura operaciones futuras y no reescribe documentos históricos. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada y perfil tributario visible."
+        },
+        {
+          "nombre": "código",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Único dentro del catálogo y vigencia."
+        },
+        {
+          "nombre": "descripción",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Debe identificar el concepto."
+        },
+        {
+          "nombre": "porcentaje",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "Decimal positivo o cero según catálogo aprobado; no constante."
+        },
+        {
+          "nombre": "vigencia desde/hasta",
+          "tipo": "fechas",
+          "obligatorio": true,
+          "validacion": "Sin solapamiento del mismo código."
+        },
+        {
+          "nombre": "fuente/fundamento",
+          "tipo": "texto/archivo",
+          "obligatorio": true,
+          "validacion": "Referencia documental y hash si existe."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Segregación; no autoaprobación si está prohibida."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "enum borrador/aprobado/inactivo",
+          "obligatorio": true,
+          "validacion": "Solo aprobado se puede aplicar."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Descripción",
+        "Porcentaje vigente",
+        "Vigencia",
+        "Fuente",
+        "Aprobador",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear versión",
+          "resultado": "Guarda catálogo pendiente sin aplicar tasa.",
+          "permiso": "tax.catalog.create"
+        },
+        {
+          "etiqueta": "Validar",
+          "resultado": "Comprueba solapes, formato y fuente.",
+          "permiso": "tax.catalog.validate"
+        },
+        {
+          "etiqueta": "Aprobar/publicar",
+          "resultado": "Deja versión disponible para cálculos nuevos.",
+          "permiso": "tax.catalog.approve"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Impide uso futuro y conserva snapshots.",
+          "permiso": "tax.catalog.deactivate"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y catálogo.",
+        "Capturar código, porcentaje, vigencia y fundamento.",
+        "Validar formato, solapes y fuente.",
+        "Solicitar y obtener aprobación segregada.",
+        "Publicar la versión para nuevas retenciones.",
+        "Consultar snapshot usado por cada documento."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "PUBLISHED: versión aplicable dentro de su vigencia"
+      ],
+      "impacto_datos_contables": "No contabiliza por sí mismo. La versión elegida se congela en el detalle de futuras retenciones y puede producir obligación fiscal según la operación; cambiarla no modifica documentos o asientos ya publicados. No se exige inmueble.",
+      "api_propuesta": [
+        "GET /api/v1/tax/withholding-catalogs/iva",
+        "POST /api/v1/tax/withholding-catalogs/iva",
+        "POST /api/v1/tax/withholding-catalogs/iva/{id}/approve",
+        "POST /api/v1/tax/withholding-catalogs/iva/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "No permitir porcentaje sin vigencia, fuente y aprobador; no inferir la tasa solo por tipo de tercero."
+      ],
+      "prueba_positiva": "Dado un código de IVA con porcentaje, vigencia y fuente aprobados, cuando se consulta una operación dentro del rango, entonces devuelve esa versión y su snapshot.",
+      "prueba_negativa": "Dado un nuevo porcentaje con solape o sin aprobador, cuando se intenta publicar, entonces se rechaza y la versión anterior permanece vigente.",
+      "dependencias_ids": [
+        "XLS-027",
+        "XLS-029"
+      ],
+      "titulo_original": "Tipos Ret. IVA",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Retenciones > Tipos Ret. IVA",
+      "ruta_react": "/contabilidad/financiero/configuracion/retenciones/tipos-ret-iva",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Versionar códigos y porcentajes de retención IVA por vigencia, con fuente y aprobador.",
+      "pruebas_ids": [
+        "T-UI-XLS-021",
+        "T-PROC-XLS-021",
+        "T-NEG-XLS-021"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-022",
+      "fila": 36,
+      "celda": "F36",
+      "nivel": 6,
+      "texto_original": "Expensas",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Secuencia de Documentos > Expensas",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "objetivo": "Configurar la secuencia interna de expensas como capacidad opcional de PROPERTY_MANAGEMENT, sin confundirla con autorización fiscal y conservando lectura histórica.",
+      "diseno_visible": "Pantalla dedicada bajo la ruta original. Si el módulo inmobiliario está habilitado, muestra empresa, condominio, serie y vista previa del siguiente secuencial; si está deshabilitado, permite solo consulta histórica y explica MODULE_DISABLED para alta/cambio. No presenta una promesa de autorización externa. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "condominio",
+          "tipo": "selector opcional",
+          "obligatorio": false,
+          "validacion": "Requerido solo si PROPERTY_MANAGEMENT está ENABLED."
+        },
+        {
+          "nombre": "serie interna",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Única por empresa/condominio y tipo de expensa."
+        },
+        {
+          "nombre": "tipo de expensa",
+          "tipo": "enum ordinaria/extraordinaria",
+          "obligatorio": true,
+          "validacion": "Regla de extensión; no es tipo fiscal."
+        },
+        {
+          "nombre": "siguiente número",
+          "tipo": "entero",
+          "obligatorio": true,
+          "validacion": "Reservado atómicamente; nunca retrocede."
+        },
+        {
+          "nombre": "vigencia",
+          "tipo": "fechas",
+          "obligatorio": true,
+          "validacion": "No solape de serie activa."
+        },
+        {
+          "nombre": "estado del módulo",
+          "tipo": "solo lectura",
+          "obligatorio": true,
+          "validacion": "ENABLED/READ_ONLY/DISABLED desde contexto backend."
+        }
+      ],
+      "columnas": [
+        "Empresa",
+        "Condominio",
+        "Serie",
+        "Tipo",
+        "Siguiente número",
+        "Vigencia",
+        "Estado",
+        "Módulo"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear serie",
+          "resultado": "Configura secuencia vertical si el módulo está habilitado.",
+          "permiso": "property.expense_sequence.create"
+        },
+        {
+          "etiqueta": "Reservar número",
+          "resultado": "Entrega un número atómico a un documento interno.",
+          "permiso": "property.expense_sequence.reserve"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Cierra nuevas reservas sin borrar históricos.",
+          "permiso": "property.expense_sequence.deactivate"
+        },
+        {
+          "etiqueta": "Consultar histórico",
+          "resultado": "Lee series y documentos emitidos previamente.",
+          "permiso": "property.expense_sequence.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Comprobar módulo y empresa en backend.",
+        "Capturar serie, tipo, alcance y vigencia.",
+        "Validar unicidad y disponibilidad.",
+        "Aprobar configuración vertical.",
+        "Reservar el número dentro de una transacción.",
+        "Consultar el vínculo con el cargo sin crear deuda doble."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "MODULE_DISABLED: escrituras verticales rechazadas; lectura histórica permitida",
+        "RESERVED: número consumido y trazable"
+      ],
+      "impacto_datos_contables": "La reserva es un identificador interno de expensa; no crea por sí sola asiento, deuda, factura ni autorización fiscal. La generación posterior del cargo usa el núcleo y un enlace vertical opcional. Con módulo apagado no hay nuevas escrituras.",
+      "api_propuesta": [
+        "GET /api/v1/property/expense-sequences",
+        "POST /api/v1/property/expense-sequences",
+        "POST /api/v1/property/expense-sequences/{id}/reserve",
+        "POST /api/v1/property/expense-sequences/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Devolver 403 MODULE_DISABLED al crear/cambiar si el módulo no está ENABLED; reserva atómica bajo lock."
+      ],
+      "prueba_positiva": "Dado un módulo habilitado y una serie vigente, cuando dos solicitudes reservan simultáneamente, entonces reciben números distintos y consecutivos justificados.",
+      "prueba_negativa": "Dado un módulo deshabilitado, cuando se intenta crear o modificar una serie, entonces se devuelve MODULE_DISABLED sin escribir; la consulta histórica sigue disponible.",
+      "dependencias_ids": [
+        "XLS-023",
+        "XLS-027"
+      ],
+      "titulo_original": "Expensas",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Secuencia de Documentos > Expensas",
+      "ruta_react": "/contabilidad/financiero/configuracion/secuencia-de-documentos/expensas",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Asignar secuencial interno por serie de expensas de forma atómica; no confundir con autorización SRI.",
+      "pruebas_ids": [
+        "T-UI-XLS-022",
+        "T-PROC-XLS-022",
+        "T-NEG-XLS-022"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-023",
+      "fila": 37,
+      "celda": "F37",
+      "nivel": 6,
+      "texto_original": "Secuencia Terminales",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Secuencia de Documentos > Secuencia Terminales",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Definir secuencias de terminales por establecimiento, punto, tipo y ambiente, reservando números sin duplicidad bajo concurrencia.",
+      "diseno_visible": "Pantalla de configuración dedicada con filtros por empresa, establecimiento, punto, tipo y ambiente. La tabla muestra siguiente número, última reserva y huecos justificados; el formulario incluye botón de simulación que no consume numeración. Se advierte que reservar no equivale a emitir ni contabilizar. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa y autorizada."
+        },
+        {
+          "nombre": "establecimiento/punto",
+          "tipo": "selectores",
+          "obligatorio": true,
+          "validacion": "Combinación vigente de XLS-017."
+        },
+        {
+          "nombre": "tipo de documento",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Tipo interno/fiscal configurado, con separación."
+        },
+        {
+          "nombre": "ambiente",
+          "tipo": "enum",
+          "obligatorio": true,
+          "validacion": "Debe coincidir con establecimiento."
+        },
+        {
+          "nombre": "prefijo/serie",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Formato y unicidad por combinación."
+        },
+        {
+          "nombre": "siguiente secuencial",
+          "tipo": "entero",
+          "obligatorio": true,
+          "validacion": "Positivo; incremento transaccional."
+        },
+        {
+          "nombre": "justificación de hueco",
+          "tipo": "texto largo",
+          "obligatorio": false,
+          "validacion": "Obligatorio al registrar incidencia."
+        }
+      ],
+      "columnas": [
+        "Establecimiento",
+        "Punto",
+        "Tipo",
+        "Ambiente",
+        "Serie",
+        "Siguiente",
+        "Última reserva",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Configurar",
+          "resultado": "Crea o versiona una combinación de secuencia.",
+          "permiso": "fiscal.sequence.create"
+        },
+        {
+          "etiqueta": "Simular siguiente",
+          "resultado": "Muestra valor sin consumirlo.",
+          "permiso": "fiscal.sequence.read"
+        },
+        {
+          "etiqueta": "Reservar",
+          "resultado": "Consume atómicamente un número para el caso autorizado.",
+          "permiso": "fiscal.sequence.reserve"
+        },
+        {
+          "etiqueta": "Justificar hueco",
+          "resultado": "Registra motivo y auditoría; no compacta.",
+          "permiso": "fiscal.sequence.justify_gap"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y emisor vigente.",
+        "Capturar tipo, ambiente, serie y punto de inicio.",
+        "Validar unicidad y compatibilidad.",
+        "Aprobar o activar configuración.",
+        "Reservar el número con lock e idempotencia.",
+        "Consultar documento y asiento que consumieron el número."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "RESERVED: número consumido",
+        "GAP_JUSTIFIED: hueco documentado, no reutilizable"
+      ],
+      "impacto_datos_contables": "Consume numeración futura y deja trazabilidad del actor y correlación; no publica documento, no genera asiento y no cambia impuestos. Los números consumidos nunca se reutilizan. No requiere inmuebles.",
+      "api_propuesta": [
+        "GET /api/v1/fiscal/terminal-sequences",
+        "POST /api/v1/fiscal/terminal-sequences",
+        "POST /api/v1/fiscal/terminal-sequences/{id}/reserve",
+        "POST /api/v1/fiscal/terminal-sequences/{id}/justify-gap"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Usar lock/serialización; rechazar combinación inexistente, ambiente contradictorio o reuso de número."
+      ],
+      "prueba_positiva": "Dada una secuencia activa, cuando dos usuarios reservan el siguiente número con claves distintas, entonces cada uno obtiene un número único y queda una auditoría consultable.",
+      "prueba_negativa": "Dado un punto de emisión inactivo o una clave idempotente reutilizada con otro cuerpo, cuando se reserva, entonces se rechaza sin duplicar ni alterar la secuencia.",
+      "dependencias_ids": [
+        "XLS-017",
+        "XLS-016",
+        "XLS-024"
+      ],
+      "titulo_original": "Secuencia Terminales",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Secuencia de Documentos > Secuencia Terminales",
+      "ruta_react": "/contabilidad/financiero/configuracion/secuencia-de-documentos/secuencia-terminales",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Asignar serie establecimiento/punto/tipo/ambiente y reservar secuenciales sin duplicar en concurrencia.",
+      "pruebas_ids": [
+        "T-UI-XLS-023",
+        "T-PROC-XLS-023",
+        "T-NEG-XLS-023"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-024",
+      "fila": 38,
+      "celda": "F38",
+      "nivel": 6,
+      "texto_original": "Comprobantes Contables",
+      "ruta_original": "Contabilidad > Financiero > Configuración > Secuencia de Documentos > Comprobantes Contables",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Numerar comprobantes contables por empresa, tipo y ejercicio, justificando huecos y conservando trazabilidad de cada número consumido.",
+      "diseno_visible": "Pantalla dedicada para administrar numeración de comprobantes contables. Incluye filtros de empresa, ejercicio, tipo y estado; tabla de rangos usados/libres/huecos justificados; detalle con asiento, actor, fecha y motivo. La acción de reintento es idempotente y no permite compactar números. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "ejercicio/periodo",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Periodo existente y estado compatible."
+        },
+        {
+          "nombre": "tipo contable",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Tipo activo de XLS-016."
+        },
+        {
+          "nombre": "siguiente número",
+          "tipo": "entero",
+          "obligatorio": true,
+          "validacion": "Monotónico y positivo."
+        },
+        {
+          "nombre": "reserva",
+          "tipo": "objeto",
+          "obligatorio": true,
+          "validacion": "Actor, timestamp y correlación."
+        },
+        {
+          "nombre": "motivo de hueco",
+          "tipo": "texto largo",
+          "obligatorio": false,
+          "validacion": "Requerido para documentar salto."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "enum disponible/reservado/consumido",
+          "obligatorio": true,
+          "validacion": "Transiciones server-side."
+        }
+      ],
+      "columnas": [
+        "Empresa",
+        "Ejercicio",
+        "Tipo",
+        "Número actual",
+        "Última reserva",
+        "Huecos",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Configurar rango",
+          "resultado": "Activa una definición por empresa/tipo/ejercicio.",
+          "permiso": "accounting.sequence.create"
+        },
+        {
+          "etiqueta": "Reservar",
+          "resultado": "Aparta número dentro de transacción.",
+          "permiso": "accounting.sequence.reserve"
+        },
+        {
+          "etiqueta": "Justificar hueco",
+          "resultado": "Registra explicación sin reuso.",
+          "permiso": "accounting.sequence.justify_gap"
+        },
+        {
+          "etiqueta": "Ver comprobante",
+          "resultado": "Navega al origen contable.",
+          "permiso": "accounting.journal.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, ejercicio y tipo.",
+        "Capturar política y siguiente número.",
+        "Validar unicidad y periodo.",
+        "Aprobar configuración.",
+        "Reservar al publicar el comprobante.",
+        "Consultar el asiento y su auditoría."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "CONSUMED: asignado a comprobante; no reutilizable"
+      ],
+      "impacto_datos_contables": "La numeración acompaña el asiento y no tiene efecto contable independiente. Un fallo posterior deja hueco justificado; nunca se reutiliza. La reimpresión consulta la misma versión y no reserva otro número. Opera sin inmuebles.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/journal-sequences",
+        "POST /api/v1/accounting/journal-sequences",
+        "POST /api/v1/accounting/journal-sequences/{id}/reserve",
+        "POST /api/v1/accounting/journal-sequences/{id}/justify-gap"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Bloquear la reserva con tipo, empresa y periodo; impedir publicación con secuencia agotada o periodo cerrado."
+      ],
+      "prueba_positiva": "Dado un tipo con secuencia vigente, cuando se publica un asiento balanceado, entonces se asigna un número único y el comprobante lo conserva para consulta y reimpresión.",
+      "prueba_negativa": "Dado un periodo cerrado o una reserva ya consumida, cuando se intenta publicar, entonces se devuelve conflicto de estado y no se crea un segundo asiento.",
+      "dependencias_ids": [
+        "XLS-016",
+        "XLS-027",
+        "XLS-028"
+      ],
+      "titulo_original": "Comprobantes Contables",
+      "ruta_menu_original": "Contabilidad > Financiero > Configuración > Secuencia de Documentos > Comprobantes Contables",
+      "ruta_react": "/contabilidad/financiero/configuracion/secuencia-de-documentos/comprobantes-contables",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Numerar asientos por empresa, tipo y ejercicio; conservar huecos justificados y trazabilidad.",
+      "pruebas_ids": [
+        "T-UI-XLS-024",
+        "T-PROC-XLS-024",
+        "T-NEG-XLS-024"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-025",
+      "fila": 40,
+      "celda": "E40",
+      "nivel": 5,
+      "texto_original": "Plan Contable",
+      "ruta_original": "Contabilidad > Financiero > Plan Contable > Plan Contable",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Mantener un plan contable jerárquico con cuentas imputables, bloqueando movimientos en grupos o cuentas inactivas.",
+      "diseno_visible": "Pantalla dedicada en Plan Contable > Plan Contable con árbol jerárquico, búsqueda por código/nombre, filtros de naturaleza y estado, detalle de cuenta y panel de uso. La UI distingue cuentas grupo de cuentas imputables y muestra advertencias si una inactivación tiene dependencias históricas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "código",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Único por empresa; jerarquía consistente."
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Requerido."
+        },
+        {
+          "nombre": "padre",
+          "tipo": "selector árbol",
+          "obligatorio": false,
+          "validacion": "Misma empresa y sin ciclos."
+        },
+        {
+          "nombre": "naturaleza/tipo",
+          "tipo": "enum configurable",
+          "obligatorio": true,
+          "validacion": "Compatible con mapeos y plantilla."
+        },
+        {
+          "nombre": "imputable",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Solo imputables aceptan líneas."
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Inactivación lógica."
+        },
+        {
+          "nombre": "vigencia",
+          "tipo": "rango",
+          "obligatorio": true,
+          "validacion": "Versionado sin alterar históricos."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Padre",
+        "Naturaleza",
+        "Imputable",
+        "Uso en plantillas",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear cuenta",
+          "resultado": "Agrega cuenta al árbol sin movimiento.",
+          "permiso": "chart_of_accounts.create"
+        },
+        {
+          "etiqueta": "Editar borrador",
+          "resultado": "Actualiza atributos no históricos.",
+          "permiso": "chart_of_accounts.update"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "Bloquea nuevos postings y conserva referencias.",
+          "permiso": "chart_of_accounts.deactivate"
+        },
+        {
+          "etiqueta": "Ver movimientos",
+          "resultado": "Navega a líneas publicadas.",
+          "permiso": "chart_of_accounts.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y versión de plan.",
+        "Capturar cuenta, padre, naturaleza y atributos.",
+        "Validar ciclo, código, imputabilidad y dependencias.",
+        "Aprobar la versión o cambio.",
+        "Publicar para selección en plantillas/asientos.",
+        "Consultar movimientos y reportes vinculados."
+      ],
+      "estados": [
+        "DRAFT: captura editable sin efecto contable",
+        "VALIDATED: validación de estructura, empresa, vigencia y permisos superada",
+        "APPROVED: aprobación segregada cuando corresponda",
+        "INACTIVE/CLOSED: no recibe nuevos datos; conserva consulta histórica",
+        "GROUP/POSTABLE: grupo no recibe movimiento; imputable sí",
+        "INACTIVE: no seleccionable en nuevos asientos"
+      ],
+      "impacto_datos_contables": "Cambia el catálogo disponible para futuras líneas y mapeos; no reescribe líneas ni saldos. Una cuenta usada históricamente queda consultable. No obliga a enlazar inmueble y funciona en empresa sin extensión.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/chart-of-accounts/tree",
+        "POST /api/v1/accounting/chart-of-accounts/accounts",
+        "PATCH /api/v1/accounting/chart-of-accounts/accounts/{id}",
+        "POST /api/v1/accounting/chart-of-accounts/accounts/{id}/deactivate"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Bloquear publicación de líneas en cuentas grupo, inactivas o de otra empresa; validar padre antes de commit."
+      ],
+      "prueba_positiva": "Dada una cuenta imputable activa con padre válido, cuando se publica, entonces aparece en el selector de registro y acepta una línea balanceada.",
+      "prueba_negativa": "Dada una cuenta grupo o inactiva, cuando se intenta usarla en un asiento, entonces la API rechaza la línea y el asiento queda sin publicar.",
+      "dependencias_ids": [
+        "XLS-026",
+        "XLS-027",
+        "XLS-031",
+        "XLS-032",
+        "XLS-035"
+      ],
+      "titulo_original": "Plan Contable",
+      "ruta_menu_original": "Contabilidad > Financiero > Plan Contable > Plan Contable",
+      "ruta_react": "/contabilidad/financiero/plan-contable/plan-contable",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mantener plan jerárquico y cuentas imputables; bloquear movimiento en cuentas de grupo o inactivas.",
+      "pruebas_ids": [
+        "T-UI-XLS-025",
+        "T-PROC-XLS-025",
+        "T-NEG-XLS-025"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-026",
+      "fila": 41,
+      "celda": "E41",
+      "nivel": 5,
+      "texto_original": "Migrar Plan Contable",
+      "ruta_original": "Contabilidad > Financiero > Plan Contable > Migrar Plan Contable",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Importar un plan contable mediante plantilla con validación de padres, ciclos, códigos y naturaleza, mostrando errores por fila y permitiendo corrección y reintento.",
+      "diseno_visible": "Pantalla importadora dedicada con descarga de plantilla versionada, carga de archivo, resumen de filas, tabla de errores con número de fila/campo/valor/mensaje, vista previa de árbol y confirmación explícita. El reintento usa el mismo lote y no duplica cuentas; se muestran diferencias contra el plan actual. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "versión de plantilla",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Formato compatible y visible."
+        },
+        {
+          "nombre": "archivo",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Extensión/tamaño/hash permitidos."
+        },
+        {
+          "nombre": "modo",
+          "tipo": "enum validar/crear/actualizar explícito",
+          "obligatorio": true,
+          "validacion": "Actualizar exige confirmación y reglas."
+        },
+        {
+          "nombre": "fila original",
+          "tipo": "entero",
+          "obligatorio": true,
+          "validacion": "Conservada para cada error."
+        },
+        {
+          "nombre": "mapeo de padre",
+          "tipo": "texto/código",
+          "obligatorio": true,
+          "validacion": "Padre existente o incluido sin ciclo."
+        },
+        {
+          "nombre": "confirmación",
+          "tipo": "checkbox",
+          "obligatorio": true,
+          "validacion": "Requerida para aplicar filas válidas."
+        }
+      ],
+      "columnas": [
+        "Fila",
+        "Código",
+        "Nombre",
+        "Padre",
+        "Naturaleza",
+        "Resultado",
+        "Error",
+        "ID creado/mapeado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Descargar plantilla",
+          "resultado": "Entrega columnas y ejemplo no productivo.",
+          "permiso": "chart_of_accounts.import_template"
+        },
+        {
+          "etiqueta": "Prevalidar",
+          "resultado": "Crea lote con errores por fila; no escribe plan.",
+          "permiso": "chart_of_accounts.import_validate"
+        },
+        {
+          "etiqueta": "Confirmar válidas",
+          "resultado": "Crea/mapea solo filas aprobadas y guarda reconciliación.",
+          "permiso": "chart_of_accounts.import_confirm"
+        },
+        {
+          "etiqueta": "Reintentar",
+          "resultado": "Reprocesa correcciones sin duplicar lote.",
+          "permiso": "chart_of_accounts.import_retry"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y descargar plantilla.",
+        "Cargar archivo y generar hash/lote.",
+        "Prevalidar códigos, padres, ciclos y naturaleza.",
+        "Corregir errores por fila o excluir filas inválidas.",
+        "Confirmar explícitamente filas válidas.",
+        "Consultar reconciliación y reintentar pendientes."
+      ],
+      "estados": [
+        "UPLOADED: archivo recibido",
+        "PREVALIDATED: errores y válidas separadas",
+        "CONFIRMED: filas válidas aplicadas",
+        "PARTIAL: quedan errores documentados",
+        "REJECTED: lote no aplicable"
+      ],
+      "impacto_datos_contables": "La prevalidación no genera asientos. La confirmación crea o mapea cuentas y puede cambiar el catálogo futuro; nunca edita movimientos históricos. El lote guarda mapa entre IDs originales y nuevos. No requiere inmueble.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/chart-of-accounts/import-templates",
+        "POST /api/v1/accounting/chart-of-accounts/imports",
+        "GET /api/v1/imports/{id}",
+        "POST /api/v1/imports/{id}/confirm",
+        "POST /api/v1/imports/{id}/retry"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Detectar archivo malicioso, duplicados internos, ciclo, padre ausente, código inválido y actualización no autorizada."
+      ],
+      "prueba_positiva": "Dado un archivo con diez filas válidas y dos con padre inexistente, cuando se prevalida, entonces las dos filas muestran error y al confirmar solo se aplican las diez válidas, con mapa persistido.",
+      "prueba_negativa": "Dado un lote confirmado reintentado con la misma clave, cuando se procesa, entonces devuelve el resultado original sin crear cuentas duplicadas.",
+      "dependencias_ids": [
+        "XLS-025"
+      ],
+      "titulo_original": "Migrar Plan Contable",
+      "ruta_menu_original": "Contabilidad > Financiero > Plan Contable > Migrar Plan Contable",
+      "ruta_react": "/contabilidad/financiero/plan-contable/migrar-plan-contable",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Importar plan con validación de padres, ciclos, códigos y naturaleza; emitir informe de errores.",
+      "pruebas_ids": [
+        "T-UI-XLS-026",
+        "T-PROC-XLS-026",
+        "T-NEG-XLS-026"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-027",
+      "fila": 43,
+      "celda": "E43",
+      "nivel": 5,
+      "texto_original": "Registro Comp. Contable",
+      "ruta_original": "Contabilidad > Financiero > Comprobantes Contables > Registro Comp. Contable",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Registrar y aprobar un comprobante contable balanceado, rechazando empresa ajena, periodo cerrado, cuenta inválida o dimensiones inconsistentes.",
+      "diseno_visible": "Pantalla transaccional dedicada para Registro Comp. Contable: cabecera, líneas editables, búsqueda de cuentas/terceros/centros, adjuntos, vista previa de débitos/créditos y estados separados de negocio, contabilidad y tributación. Registro y aprobación son acciones distintas; el asiento publicado queda inmutable. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa verificada."
+        },
+        {
+          "nombre": "fecha/periodo",
+          "tipo": "fecha/selector",
+          "obligatorio": true,
+          "validacion": "Periodo abierto y coincidente."
+        },
+        {
+          "nombre": "tipo contable",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Tipo activo y secuencia disponible."
+        },
+        {
+          "nombre": "descripción",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Motivo claro."
+        },
+        {
+          "nombre": "líneas",
+          "tipo": "array objetos",
+          "obligatorio": true,
+          "validacion": "Cuenta imputable, débito o crédito, centro si obligatorio."
+        },
+        {
+          "nombre": "soporte",
+          "tipo": "archivo múltiple",
+          "obligatorio": false,
+          "validacion": "Hash, tipo y permiso."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": false,
+          "validacion": "Segregación según política."
+        }
+      ],
+      "columnas": [
+        "Número",
+        "Fecha",
+        "Descripción",
+        "Débitos",
+        "Créditos",
+        "Diferencia",
+        "Estado negocio",
+        "Estado contable",
+        "Estado fiscal"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar borrador",
+          "resultado": "Conserva captura sin posting.",
+          "permiso": "journal.create"
+        },
+        {
+          "etiqueta": "Validar",
+          "resultado": "Comprueba balance, cuentas, periodo y permisos.",
+          "permiso": "journal.validate"
+        },
+        {
+          "etiqueta": "Aprobar/publicar",
+          "resultado": "Asigna número y crea asiento atómico.",
+          "permiso": "journal.post"
+        },
+        {
+          "etiqueta": "Consultar asiento",
+          "resultado": "Navega a líneas, soporte y auditoría.",
+          "permiso": "journal.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, fecha y tipo.",
+        "Capturar líneas y soportes.",
+        "Validar balance, cuentas, periodo y centro.",
+        "Solicitar/aplicar aprobación segregada.",
+        "Reservar número y publicar de forma atómica.",
+        "Consultar asiento, saldos y eventos posteriores."
+      ],
+      "estados": [
+        "DRAFT",
+        "VALIDATED",
+        "APPROVED",
+        "POSTED: publicado e inmutable",
+        "REJECTED",
+        "REVERSED: solo por reverso"
+      ],
+      "impacto_datos_contables": "Publicar crea un asiento con al menos dos líneas, débito igual a crédito y referencia de origen; afecta saldos y reportes al corte. Estados de negocio, contabilidad y tributación permanecen separados. Todos los campos inmobiliarios son opcionales/no aplicables en core.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/journal-entries",
+        "POST /api/v1/accounting/journal-entries",
+        "POST /api/v1/accounting/journal-entries/{id}/validate",
+        "POST /api/v1/accounting/journal-entries/{id}/post"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Débitos/créditos exactos, cuenta imputable activa, periodo abierto, misma empresa, centro obligatorio cuando aplique y sin doble publicación."
+      ],
+      "prueba_positiva": "Dado un borrador balanceado en periodo abierto con cuentas imputables, cuando el aprobador publica, entonces se crea un asiento numerado, POSTED, con débitos iguales a créditos y aparece en mayor.",
+      "prueba_negativa": "Dado un asiento con diferencia, cuenta de otra empresa o periodo cerrado, cuando se intenta publicar, entonces retorna error determinista y no crea líneas publicadas ni saldo.",
+      "dependencias_ids": [
+        "XLS-016",
+        "XLS-019",
+        "XLS-024",
+        "XLS-025",
+        "XLS-029",
+        "XLS-030"
+      ],
+      "titulo_original": "Registro Comp. Contable",
+      "ruta_menu_original": "Contabilidad > Financiero > Comprobantes Contables > Registro Comp. Contable",
+      "ruta_react": "/contabilidad/financiero/comprobantes-contables/registro-comp-contable",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar y aprobar asiento balanceado; rechazar empresa ajena, periodo cerrado o cuentas inválidas.",
+      "pruebas_ids": [
+        "T-UI-XLS-027",
+        "T-PROC-XLS-027",
+        "T-NEG-XLS-027"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-028",
+      "fila": 44,
+      "celda": "E44",
+      "nivel": 5,
+      "texto_original": "Reimpresión Comp. Contable",
+      "ruta_original": "Contabilidad > Financiero > Comprobantes Contables > Reimpresión Comp. Contable",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Reimprimir un comprobante contabilizado conservando identificador, estado y la misma versión histórica, sin volver a contabilizar ni reservar numeración.",
+      "diseno_visible": "Pantalla dedicada de consulta/reimpresión con filtros por empresa, número, tipo, fecha, estado y origen. El detalle muestra snapshot inmutable del comprobante, estados separados, hash de documento, historial de impresiones y botón de descarga/reimpresión claramente marcado como no contable. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "número/identificador",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "Búsqueda exacta o parcial."
+        },
+        {
+          "nombre": "tipo",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "Filtra comprobantes."
+        },
+        {
+          "nombre": "fecha desde/hasta",
+          "tipo": "fechas",
+          "obligatorio": false,
+          "validacion": "Rango permitido."
+        },
+        {
+          "nombre": "estado contable",
+          "tipo": "enum",
+          "obligatorio": false,
+          "validacion": "Debe ser POSTED/REVERSED para reimpresión histórica."
+        },
+        {
+          "nombre": "formato",
+          "tipo": "enum PDF/HTML",
+          "obligatorio": true,
+          "validacion": "Render de snapshot guardado."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Audita reimpresión."
+        }
+      ],
+      "columnas": [
+        "Número",
+        "Tipo",
+        "Fecha",
+        "Estado negocio",
+        "Estado contable",
+        "Estado fiscal",
+        "Versión/hash",
+        "Última impresión"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Buscar",
+          "resultado": "Lista comprobantes visibles por empresa.",
+          "permiso": "journal.read"
+        },
+        {
+          "etiqueta": "Ver detalle",
+          "resultado": "Muestra exactamente snapshot y trazabilidad.",
+          "permiso": "journal.read"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "Genera copia del mismo comprobante; no crea asiento.",
+          "permiso": "journal.reprint"
+        },
+        {
+          "etiqueta": "Descargar historial",
+          "resultado": "Entrega artefacto autorizado y auditado.",
+          "permiso": "journal.export"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y filtros.",
+        "Abrir comprobante contabilizado.",
+        "Verificar snapshot, hash y estados.",
+        "Solicitar permiso de reimpresión y motivo.",
+        "Generar representación sin mutar contabilidad.",
+        "Registrar intento y navegar al asiento original."
+      ],
+      "estados": [
+        "AVAILABLE: localizado",
+        "REPRINTED: copia generada",
+        "POSTED/REVERSED: estados contables conservados",
+        "NOT_FOUND/NO_ACCESS: sin revelar otra empresa"
+      ],
+      "impacto_datos_contables": "No modifica saldos, estados ni número. La salida usa la misma versión histórica y enlaza al asiento original; reimprimir nunca contabiliza otra vez, no reserva secuencia y no genera evento fiscal nuevo.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/journal-entries",
+        "GET /api/v1/accounting/journal-entries/{id}/snapshot",
+        "POST /api/v1/accounting/journal-entries/{id}/reprints"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "No permitir editar campos del snapshot; denegar acceso cruzado entre empresas y auditar cada descarga."
+      ],
+      "prueba_positiva": "Dado un comprobante POSTED visible, cuando el usuario con permiso solicita reimpresión, entonces obtiene la misma versión/hash, queda una auditoría y el saldo permanece idéntico.",
+      "prueba_negativa": "Dado un comprobante de otra empresa o inexistente, cuando se busca, entonces no se revela información y no se genera artefacto.",
+      "dependencias_ids": [
+        "XLS-027",
+        "XLS-024"
+      ],
+      "titulo_original": "Reimpresión Comp. Contable",
+      "ruta_menu_original": "Contabilidad > Financiero > Comprobantes Contables > Reimpresión Comp. Contable",
+      "ruta_react": "/contabilidad/financiero/comprobantes-contables/reimpresion-comp-contable",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reimprimir comprobante contabilizado con identificador, estado y la misma versión histórica.",
+      "pruebas_ids": [
+        "T-UI-XLS-028",
+        "T-PROC-XLS-028",
+        "T-NEG-XLS-028"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-029",
+      "fila": 45,
+      "celda": "E45",
+      "nivel": 5,
+      "texto_original": "Modificación Comp. Contable",
+      "ruta_original": "Contabilidad > Financiero > Comprobantes Contables > Modificación Comp. Contable",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Editar solo comprobantes en borrador y corregir comprobantes contabilizados mediante reverso y reemplazo vinculados, nunca sobrescribiendo el original.",
+      "diseno_visible": "Pantalla transaccional independiente de modificación con selector de comprobante, comparación lado a lado antes/después, motivo obligatorio, soportes y vista previa de impacto. Para POSTED, los campos originales son solo lectura y la UI ofrece flujo reverso/reemplazo; cada documento conserva enlace bidireccional. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "comprobante origen",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Mismo contexto y estado permitido."
+        },
+        {
+          "nombre": "cambios",
+          "tipo": "array de líneas/cabecera",
+          "obligatorio": true,
+          "validacion": "Editable solo en DRAFT; reemplazo para POSTED."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto largo",
+          "obligatorio": true,
+          "validacion": "Explica corrección."
+        },
+        {
+          "nombre": "soportes",
+          "tipo": "archivos",
+          "obligatorio": false,
+          "validacion": "Evidencia hashada."
+        },
+        {
+          "nombre": "periodo destino",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Abierto y permitido."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Segregación para reverso/reemplazo."
+        }
+      ],
+      "columnas": [
+        "Origen",
+        "Estado origen",
+        "Tipo de cambio",
+        "Diferencia",
+        "Reversa vinculada",
+        "Reemplazo",
+        "Estado del flujo"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Editar borrador",
+          "resultado": "Actualiza captura sin publicar.",
+          "permiso": "journal.draft_update"
+        },
+        {
+          "etiqueta": "Previsualizar reverso",
+          "resultado": "Calcula efecto sin contabilizar aún.",
+          "permiso": "journal.reverse_preview"
+        },
+        {
+          "etiqueta": "Aprobar reverso/reemplazo",
+          "resultado": "Publica operaciones vinculadas.",
+          "permiso": "journal.correct"
+        },
+        {
+          "etiqueta": "Ver cadena",
+          "resultado": "Navega original, reversa y sustituto.",
+          "permiso": "journal.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar comprobante y validar estado.",
+        "Capturar cambio o propuesta de reemplazo.",
+        "Previsualizar diferencias y balance.",
+        "Obtener aprobación y verificar periodo abierto.",
+        "Publicar reverso y reemplazo atómicos.",
+        "Consultar cadena y reportes actualizados."
+      ],
+      "estados": [
+        "DRAFT: editable",
+        "CHANGE_REQUESTED: propuesta",
+        "REVERSED: original conserva historia",
+        "REPLACEMENT_POSTED: nuevo asiento vinculado",
+        "REJECTED"
+      ],
+      "impacto_datos_contables": "En borrador no hay efecto. En POSTED, la reversa invierte el efecto y el reemplazo crea un asiento nuevo; el original permanece inmutable y ambos quedan trazables. No se exige inmueble ni se permite editar un publicado.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "POST /api/v1/accounting/journal-entries/{id}/change-requests",
+        "POST /api/v1/accounting/journal-corrections/{id}/preview",
+        "POST /api/v1/accounting/journal-corrections/{id}/approve"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Bloquear modificación directa de POSTED, exigir motivo/aprobación, periodo abierto, balance e idempotencia de la corrección."
+      ],
+      "prueba_positiva": "Dado un POSTED con error y un periodo abierto, cuando se aprueba la corrección, entonces se publica reversa y reemplazo vinculados; el original sigue visible y el saldo neto refleja la corrección.",
+      "prueba_negativa": "Dado un POSTED editado directamente o una reversa en periodo cerrado, cuando se envía, entonces retorna INVALID_STATE_TRANSITION o PERIOD_CLOSED y no altera el original.",
+      "dependencias_ids": [
+        "XLS-027",
+        "XLS-030",
+        "XLS-038"
+      ],
+      "titulo_original": "Modificación Comp. Contable",
+      "ruta_menu_original": "Contabilidad > Financiero > Comprobantes Contables > Modificación Comp. Contable",
+      "ruta_react": "/contabilidad/financiero/comprobantes-contables/modificacion-comp-contable",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Editar borradores; corregir contabilizados mediante reverso y reemplazo vinculados, nunca sobrescribir.",
+      "pruebas_ids": [
+        "T-UI-XLS-029",
+        "T-PROC-XLS-029",
+        "T-NEG-XLS-029"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-030",
+      "fila": 46,
+      "celda": "E46",
+      "nivel": 5,
+      "texto_original": "Anulación Comp. Contable",
+      "ruta_original": "Contabilidad > Financiero > Comprobantes Contables > Anulación Comp. Contable",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Anular borradores o reversar comprobantes contabilizados en periodo abierto, con motivo y aprobación, manteniendo siempre el documento original.",
+      "diseno_visible": "Pantalla dedicada de anulación con búsqueda por número/origen, explicación de diferencia entre cancelar borrador y reversar publicado, vista previa de asiento reverso y confirmación reforzada. Los estados de negocio, contabilidad y tributación se ven en columnas separadas; la anulación fiscal no se asume ni se ejecuta aquí. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Contexto verificado."
+        },
+        {
+          "nombre": "comprobante",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Debe pertenecer a empresa."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto largo",
+          "obligatorio": true,
+          "validacion": "No vacío y auditable."
+        },
+        {
+          "nombre": "fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Periodo abierto y permitido."
+        },
+        {
+          "nombre": "evidencia",
+          "tipo": "archivos",
+          "obligatorio": false,
+          "validacion": "Soporte requerido por política."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Segregación y MFA si aplica."
+        },
+        {
+          "nombre": "confirmación impacto",
+          "tipo": "checkbox",
+          "obligatorio": true,
+          "validacion": "Reconoce reverso contable separado de fiscal."
+        }
+      ],
+      "columnas": [
+        "Número",
+        "Fecha",
+        "Estado negocio",
+        "Estado contable",
+        "Estado fiscal",
+        "Motivo",
+        "Reversa relacionada",
+        "Aprobación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Anular borrador",
+          "resultado": "Marca cancelado sin posting.",
+          "permiso": "journal.cancel_draft"
+        },
+        {
+          "etiqueta": "Previsualizar reversa",
+          "resultado": "Muestra líneas inversas y efecto.",
+          "permiso": "journal.reverse_preview"
+        },
+        {
+          "etiqueta": "Aprobar reversa",
+          "resultado": "Publica reverso y mantiene original.",
+          "permiso": "journal.reverse_approve"
+        },
+        {
+          "etiqueta": "Consultar historial",
+          "resultado": "Navega a origen y eventos.",
+          "permiso": "journal.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Localizar comprobante y verificar estados.",
+        "Capturar motivo, fecha y evidencia.",
+        "Validar periodo abierto y dependencias.",
+        "Obtener aprobación segregada.",
+        "Cancelar borrador o publicar reverso atómico.",
+        "Consultar original, reversa y reportes."
+      ],
+      "estados": [
+        "DRAFT",
+        "CANCELLED: borrador anulado",
+        "VOID_REQUESTED: pendiente de aprobación",
+        "REVERSED: efecto contable invertido",
+        "POSTED: original inmutable"
+      ],
+      "impacto_datos_contables": "Un borrador cancelado no afecta libros. Un publicado se revierte en asiento separado; no se elimina ni se edita. La condición fiscal queda independiente y puede permanecer pendiente, rechazada o autorizada según otro proceso; esta pantalla no inventa canal fiscal.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "POST /api/v1/accounting/journal-entries/{id}/void-preview",
+        "POST /api/v1/accounting/journal-entries/{id}/void",
+        "GET /api/v1/accounting/journal-entries/{id}/audit"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar periodo cerrado, doble reversa, falta de motivo/aprobación o dependencia que exige corrección de origen."
+      ],
+      "prueba_positiva": "Dado un asiento POSTED en periodo abierto, cuando el aprobador confirma el reverso, entonces se publica asiento inverso enlazado, el original queda visible y el saldo se compensa al corte.",
+      "prueba_negativa": "Dado un asiento ya REVERSED o periodo cerrado, cuando se solicita anulación, entonces se rechaza sin crear otro reverso ni borrar el histórico.",
+      "dependencias_ids": [
+        "XLS-027",
+        "XLS-029",
+        "XLS-038"
+      ],
+      "titulo_original": "Anulación Comp. Contable",
+      "ruta_menu_original": "Contabilidad > Financiero > Comprobantes Contables > Anulación Comp. Contable",
+      "ruta_react": "/contabilidad/financiero/comprobantes-contables/anulacion-comp-contable",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Anular borrador o reversar contabilizado en periodo abierto, con motivo y aprobación; mantener original.",
+      "pruebas_ids": [
+        "T-UI-XLS-030",
+        "T-PROC-XLS-030",
+        "T-NEG-XLS-030"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-031",
+      "fila": 48,
+      "celda": "E48",
+      "nivel": 5,
+      "texto_original": "Libro Mayor",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Libro Mayor",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Generar el Libro Mayor al corte con saldo inicial, débitos, créditos y saldo final, trazable hasta cada asiento publicado.",
+      "diseno_visible": "Pantalla de reporte dedicada Libro Mayor bajo la ruta original. Encabezado con empresa, corte y versión de consulta; panel de filtros, tabla paginada, fila de totales conciliables, exportación con los mismos filtros y enlaces profundos al asiento/documento de origen. Muestra estados de carga, vacío, error y advertencia de cuentas no clasificadas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "cuenta",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "centro de costo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "periodo desde/hasta",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "as_of",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "solo publicados",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        }
+      ],
+      "columnas": [
+        "Cuenta",
+        "Nombre",
+        "Saldo inicial",
+        "Débitos",
+        "Créditos",
+        "Saldo final",
+        "Último asiento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula snapshot reproducible solo con movimientos publicados y reversos efectivos.",
+          "permiso": "report.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo asíncrono con idénticos filtros y permisos.",
+          "permiso": "report.export"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "Navega a asiento/documento sin cambiar el reporte.",
+          "permiso": "report.drilldown"
+        },
+        {
+          "etiqueta": "Guardar vista",
+          "resultado": "Conserva filtros personales sin ampliar alcance de empresa.",
+          "permiso": "report.save_view"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y fecha de corte o intervalo.",
+        "Aplicar filtros permitidos y versión de mapeo.",
+        "Validar que no haya periodo ambiguo ni datos de otra empresa.",
+        "Calcular snapshot con débitos, créditos, saldos y totales.",
+        "Revisar diferencias/no clasificados y aprobar exportación si aplica.",
+        "Consultar origen de una fila o descargar el mismo resultado."
+      ],
+      "estados": [
+        "READY: filtros válidos",
+        "CALCULATING: consulta en proceso",
+        "AVAILABLE: resultado visible",
+        "EXPORTED: artefacto generado",
+        "ERROR: filtros o fuente inválidos"
+      ],
+      "impacto_datos_contables": "Es solo lectura: no contabiliza, no corrige saldos y no altera estados. Usa movimientos publicados, reversos efectivos y reglas de corte; las cifras deben reconciliar con el mayor. Los centros de costo son opcionales según la vista y los datos inmobiliarios nunca son obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/reports/libro-mayor",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "GET /api/v1/reports/{report_code}/drilldowns"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ausencia de corte, SQL/expresiones arbitrarias, exportación con otros filtros y acceso entre empresas.",
+        "Mostrar cuentas no clasificadas como preparación pendiente, no ocultarlas.",
+        "Verificar que totales de pantalla y exportación usen el mismo snapshot."
+      ],
+      "prueba_positiva": "Dado un periodo y empresa con asientos publicados, cuando se ejecuta Libro Mayor, entonces los totales se calculan, coinciden con mayor al corte y cada fila navegable abre su asiento origen.",
+      "prueba_negativa": "Dado un filtro sin fecha/corte, una cuenta no autorizada o datos de otra empresa, cuando se consulta/exporta Libro Mayor, entonces la API rechaza la solicitud y no expone resultados.",
+      "dependencias_ids": [
+        "XLS-025",
+        "XLS-027",
+        "XLS-038"
+      ],
+      "titulo_original": "Libro Mayor",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Libro Mayor",
+      "ruta_react": "/contabilidad/financiero/libros-contables/libro-mayor",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Generar mayor con saldo inicial, débitos, créditos y saldo final al corte, trazable al asiento.",
+      "pruebas_ids": [
+        "T-UI-XLS-031",
+        "T-PROC-XLS-031",
+        "T-NEG-XLS-031"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-032",
+      "fila": 50,
+      "celda": "F50",
+      "nivel": 6,
+      "texto_original": "Balance General Vertical",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Balance General > Balance General Vertical",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Presentar el estado de situación financiera vertical con cuentas mapeadas y comprobación de igualdad patrimonial.",
+      "diseno_visible": "Pantalla de reporte dedicada Balance General Vertical bajo la ruta original. Encabezado con empresa, corte y versión de consulta; panel de filtros, tabla paginada, fila de totales conciliables, exportación con los mismos filtros y enlaces profundos al asiento/documento de origen. Muestra estados de carga, vacío, error y advertencia de cuentas no clasificadas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "as_of",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "marco/versión de mapeo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "nivel de detalle",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "incluir no clasificadas",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Cuenta",
+        "Clasificación",
+        "Saldo",
+        "Comparativo",
+        "Estado de mapeo"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula snapshot reproducible solo con movimientos publicados y reversos efectivos.",
+          "permiso": "report.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo asíncrono con idénticos filtros y permisos.",
+          "permiso": "report.export"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "Navega a asiento/documento sin cambiar el reporte.",
+          "permiso": "report.drilldown"
+        },
+        {
+          "etiqueta": "Guardar vista",
+          "resultado": "Conserva filtros personales sin ampliar alcance de empresa.",
+          "permiso": "report.save_view"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y fecha de corte o intervalo.",
+        "Aplicar filtros permitidos y versión de mapeo.",
+        "Validar que no haya periodo ambiguo ni datos de otra empresa.",
+        "Calcular snapshot con débitos, créditos, saldos y totales.",
+        "Revisar diferencias/no clasificados y aprobar exportación si aplica.",
+        "Consultar origen de una fila o descargar el mismo resultado."
+      ],
+      "estados": [
+        "READY: filtros válidos",
+        "CALCULATING: consulta en proceso",
+        "AVAILABLE: resultado visible",
+        "EXPORTED: artefacto generado",
+        "ERROR: filtros o fuente inválidos"
+      ],
+      "impacto_datos_contables": "Es solo lectura: no contabiliza, no corrige saldos y no altera estados. Usa movimientos publicados, reversos efectivos y reglas de corte; las cifras deben reconciliar con el mayor. Los centros de costo son opcionales según la vista y los datos inmobiliarios nunca son obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/reports/balance-general-vertical",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "GET /api/v1/reports/{report_code}/drilldowns"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ausencia de corte, SQL/expresiones arbitrarias, exportación con otros filtros y acceso entre empresas.",
+        "Mostrar cuentas no clasificadas como preparación pendiente, no ocultarlas.",
+        "Verificar que totales de pantalla y exportación usen el mismo snapshot."
+      ],
+      "prueba_positiva": "Dado un periodo y empresa con asientos publicados, cuando se ejecuta Balance General Vertical, entonces los totales se calculan, coinciden con mayor al corte y cada fila navegable abre su asiento origen.",
+      "prueba_negativa": "Dado un filtro sin fecha/corte, una cuenta no autorizada o datos de otra empresa, cuando se consulta/exporta Balance General Vertical, entonces la API rechaza la solicitud y no expone resultados.",
+      "dependencias_ids": [
+        "XLS-025",
+        "XLS-038"
+      ],
+      "titulo_original": "Balance General Vertical",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Balance General > Balance General Vertical",
+      "ruta_react": "/contabilidad/financiero/libros-contables/balance-general/balance-general-vertical",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Presentar estado de situación financiera vertical con cuentas mapeadas y igualdad patrimonial.",
+      "pruebas_ids": [
+        "T-UI-XLS-032",
+        "T-PROC-XLS-032",
+        "T-NEG-XLS-032"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-033",
+      "fila": 51,
+      "celda": "F51",
+      "nivel": 6,
+      "texto_original": "Análisis de Saldos",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Balance General > Análisis de Saldos",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Analizar saldos por cuenta, tercero y centro con desglose hasta documento, excluyendo borradores y manteniendo navegación al origen.",
+      "diseno_visible": "Pantalla de reporte dedicada Análisis de Saldos bajo la ruta original. Encabezado con empresa, corte y versión de consulta; panel de filtros, tabla paginada, fila de totales conciliables, exportación con los mismos filtros y enlaces profundos al asiento/documento de origen. Muestra estados de carga, vacío, error y advertencia de cuentas no clasificadas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "as_of",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "cuenta",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "centro de costo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "origen",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        }
+      ],
+      "columnas": [
+        "Cuenta",
+        "Tercero",
+        "Centro",
+        "Saldo inicial",
+        "Movimientos",
+        "Saldo final",
+        "Documento origen"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula snapshot reproducible solo con movimientos publicados y reversos efectivos.",
+          "permiso": "report.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo asíncrono con idénticos filtros y permisos.",
+          "permiso": "report.export"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "Navega a asiento/documento sin cambiar el reporte.",
+          "permiso": "report.drilldown"
+        },
+        {
+          "etiqueta": "Guardar vista",
+          "resultado": "Conserva filtros personales sin ampliar alcance de empresa.",
+          "permiso": "report.save_view"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y fecha de corte o intervalo.",
+        "Aplicar filtros permitidos y versión de mapeo.",
+        "Validar que no haya periodo ambiguo ni datos de otra empresa.",
+        "Calcular snapshot con débitos, créditos, saldos y totales.",
+        "Revisar diferencias/no clasificados y aprobar exportación si aplica.",
+        "Consultar origen de una fila o descargar el mismo resultado."
+      ],
+      "estados": [
+        "READY: filtros válidos",
+        "CALCULATING: consulta en proceso",
+        "AVAILABLE: resultado visible",
+        "EXPORTED: artefacto generado",
+        "ERROR: filtros o fuente inválidos"
+      ],
+      "impacto_datos_contables": "Es solo lectura: no contabiliza, no corrige saldos y no altera estados. Usa movimientos publicados, reversos efectivos y reglas de corte; las cifras deben reconciliar con el mayor. Los centros de costo son opcionales según la vista y los datos inmobiliarios nunca son obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/reports/análisis-de-saldos",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "GET /api/v1/reports/{report_code}/drilldowns"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ausencia de corte, SQL/expresiones arbitrarias, exportación con otros filtros y acceso entre empresas.",
+        "Mostrar cuentas no clasificadas como preparación pendiente, no ocultarlas.",
+        "Verificar que totales de pantalla y exportación usen el mismo snapshot."
+      ],
+      "prueba_positiva": "Dado un periodo y empresa con asientos publicados, cuando se ejecuta Análisis de Saldos, entonces los totales se calculan, coinciden con mayor al corte y cada fila navegable abre su asiento origen.",
+      "prueba_negativa": "Dado un filtro sin fecha/corte, una cuenta no autorizada o datos de otra empresa, cuando se consulta/exporta Análisis de Saldos, entonces la API rechaza la solicitud y no expone resultados.",
+      "dependencias_ids": [
+        "XLS-025",
+        "XLS-027",
+        "XLS-031"
+      ],
+      "titulo_original": "Análisis de Saldos",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Balance General > Análisis de Saldos",
+      "ruta_react": "/contabilidad/financiero/libros-contables/balance-general/analisis-de-saldos",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Analizar saldo por cuenta/tercero/centro con desglose hasta documento sin incluir borradores.",
+      "pruebas_ids": [
+        "T-UI-XLS-033",
+        "T-PROC-XLS-033",
+        "T-NEG-XLS-033"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-034",
+      "fila": 52,
+      "celda": "F52",
+      "nivel": 6,
+      "texto_original": "Balance Horizontal Acumulado",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Balance General > Balance Horizontal Acumulado",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Comparar balance acumulado entre cortes o periodos, especificando agregación y variaciones.",
+      "diseno_visible": "Pantalla de reporte dedicada Balance Horizontal Acumulado bajo la ruta original. Encabezado con empresa, corte y versión de consulta; panel de filtros, tabla paginada, fila de totales conciliables, exportación con los mismos filtros y enlaces profundos al asiento/documento de origen. Muestra estados de carga, vacío, error y advertencia de cuentas no clasificadas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "periodos/cortes",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "cuentas",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "nivel",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "criterio de acumulación",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        }
+      ],
+      "columnas": [
+        "Cuenta",
+        "Clasificación",
+        "Corte A",
+        "Corte B",
+        "Variación absoluta",
+        "Variación %"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula snapshot reproducible solo con movimientos publicados y reversos efectivos.",
+          "permiso": "report.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo asíncrono con idénticos filtros y permisos.",
+          "permiso": "report.export"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "Navega a asiento/documento sin cambiar el reporte.",
+          "permiso": "report.drilldown"
+        },
+        {
+          "etiqueta": "Guardar vista",
+          "resultado": "Conserva filtros personales sin ampliar alcance de empresa.",
+          "permiso": "report.save_view"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y fecha de corte o intervalo.",
+        "Aplicar filtros permitidos y versión de mapeo.",
+        "Validar que no haya periodo ambiguo ni datos de otra empresa.",
+        "Calcular snapshot con débitos, créditos, saldos y totales.",
+        "Revisar diferencias/no clasificados y aprobar exportación si aplica.",
+        "Consultar origen de una fila o descargar el mismo resultado."
+      ],
+      "estados": [
+        "READY: filtros válidos",
+        "CALCULATING: consulta en proceso",
+        "AVAILABLE: resultado visible",
+        "EXPORTED: artefacto generado",
+        "ERROR: filtros o fuente inválidos"
+      ],
+      "impacto_datos_contables": "Es solo lectura: no contabiliza, no corrige saldos y no altera estados. Usa movimientos publicados, reversos efectivos y reglas de corte; las cifras deben reconciliar con el mayor. Los centros de costo son opcionales según la vista y los datos inmobiliarios nunca son obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/reports/balance-horizontal-acumulado",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "GET /api/v1/reports/{report_code}/drilldowns"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ausencia de corte, SQL/expresiones arbitrarias, exportación con otros filtros y acceso entre empresas.",
+        "Mostrar cuentas no clasificadas como preparación pendiente, no ocultarlas.",
+        "Verificar que totales de pantalla y exportación usen el mismo snapshot."
+      ],
+      "prueba_positiva": "Dado un periodo y empresa con asientos publicados, cuando se ejecuta Balance Horizontal Acumulado, entonces los totales se calculan, coinciden con mayor al corte y cada fila navegable abre su asiento origen.",
+      "prueba_negativa": "Dado un filtro sin fecha/corte, una cuenta no autorizada o datos de otra empresa, cuando se consulta/exporta Balance Horizontal Acumulado, entonces la API rechaza la solicitud y no expone resultados.",
+      "dependencias_ids": [
+        "XLS-031",
+        "XLS-032",
+        "XLS-038"
+      ],
+      "titulo_original": "Balance Horizontal Acumulado",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Balance General > Balance Horizontal Acumulado",
+      "ruta_react": "/contabilidad/financiero/libros-contables/balance-general/balance-horizontal-acumulado",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Comparar balance acumulado por periodos, especificando cortes y criterios de agregación.",
+      "pruebas_ids": [
+        "T-UI-XLS-034",
+        "T-PROC-XLS-034",
+        "T-NEG-XLS-034"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-035",
+      "fila": 53,
+      "celda": "E53",
+      "nivel": 5,
+      "texto_original": "Estado de Resultados",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Estado de Resultados",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Generar estado de resultados por periodo y acumulado mediante mapeo aprobado de ingresos y gastos.",
+      "diseno_visible": "Pantalla de reporte dedicada Estado de Resultados bajo la ruta original. Encabezado con empresa, corte y versión de consulta; panel de filtros, tabla paginada, fila de totales conciliables, exportación con los mismos filtros y enlaces profundos al asiento/documento de origen. Muestra estados de carga, vacío, error y advertencia de cuentas no clasificadas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "desde/hasta",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "as_of",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "versión de mapeo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "comparativo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "incluir no clasificados",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        }
+      ],
+      "columnas": [
+        "Cuenta/agrupación",
+        "Ingresos",
+        "Gastos",
+        "Resultado del periodo",
+        "Acumulado",
+        "Estado de mapeo"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula snapshot reproducible solo con movimientos publicados y reversos efectivos.",
+          "permiso": "report.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo asíncrono con idénticos filtros y permisos.",
+          "permiso": "report.export"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "Navega a asiento/documento sin cambiar el reporte.",
+          "permiso": "report.drilldown"
+        },
+        {
+          "etiqueta": "Guardar vista",
+          "resultado": "Conserva filtros personales sin ampliar alcance de empresa.",
+          "permiso": "report.save_view"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y fecha de corte o intervalo.",
+        "Aplicar filtros permitidos y versión de mapeo.",
+        "Validar que no haya periodo ambiguo ni datos de otra empresa.",
+        "Calcular snapshot con débitos, créditos, saldos y totales.",
+        "Revisar diferencias/no clasificados y aprobar exportación si aplica.",
+        "Consultar origen de una fila o descargar el mismo resultado."
+      ],
+      "estados": [
+        "READY: filtros válidos",
+        "CALCULATING: consulta en proceso",
+        "AVAILABLE: resultado visible",
+        "EXPORTED: artefacto generado",
+        "ERROR: filtros o fuente inválidos"
+      ],
+      "impacto_datos_contables": "Es solo lectura: no contabiliza, no corrige saldos y no altera estados. Usa movimientos publicados, reversos efectivos y reglas de corte; las cifras deben reconciliar con el mayor. Los centros de costo son opcionales según la vista y los datos inmobiliarios nunca son obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/reports/estado-de-resultados",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "GET /api/v1/reports/{report_code}/drilldowns"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ausencia de corte, SQL/expresiones arbitrarias, exportación con otros filtros y acceso entre empresas.",
+        "Mostrar cuentas no clasificadas como preparación pendiente, no ocultarlas.",
+        "Verificar que totales de pantalla y exportación usen el mismo snapshot."
+      ],
+      "prueba_positiva": "Dado un periodo y empresa con asientos publicados, cuando se ejecuta Estado de Resultados, entonces los totales se calculan, coinciden con mayor al corte y cada fila navegable abre su asiento origen.",
+      "prueba_negativa": "Dado un filtro sin fecha/corte, una cuenta no autorizada o datos de otra empresa, cuando se consulta/exporta Estado de Resultados, entonces la API rechaza la solicitud y no expone resultados.",
+      "dependencias_ids": [
+        "XLS-025",
+        "XLS-027",
+        "XLS-038"
+      ],
+      "titulo_original": "Estado de Resultados",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Estado de Resultados",
+      "ruta_react": "/contabilidad/financiero/libros-contables/estado-de-resultados",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Generar estado de resultados por periodo y acumulado con mapeo de ingresos/gastos aprobado.",
+      "pruebas_ids": [
+        "T-UI-XLS-035",
+        "T-PROC-XLS-035",
+        "T-NEG-XLS-035"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-036",
+      "fila": 57,
+      "celda": "F57",
+      "nivel": 6,
+      "texto_original": "Saldos Mensuales",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Gastos x C.C. > Saldos Mensuales",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Mostrar gastos mensuales por centro de costo, conciliables con el mayor y usando filtros compatibles.",
+      "diseno_visible": "Pantalla de reporte dedicada Saldos Mensuales bajo la ruta original. Encabezado con empresa, corte y versión de consulta; panel de filtros, tabla paginada, fila de totales conciliables, exportación con los mismos filtros y enlaces profundos al asiento/documento de origen. Muestra estados de carga, vacío, error y advertencia de cuentas no clasificadas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "ejercicio",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "meses",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "centro de costo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "cuentas",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "as_of",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        }
+      ],
+      "columnas": [
+        "Mes",
+        "Centro",
+        "Cuenta",
+        "Débitos",
+        "Créditos",
+        "Neto",
+        "Saldo acumulado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula snapshot reproducible solo con movimientos publicados y reversos efectivos.",
+          "permiso": "report.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo asíncrono con idénticos filtros y permisos.",
+          "permiso": "report.export"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "Navega a asiento/documento sin cambiar el reporte.",
+          "permiso": "report.drilldown"
+        },
+        {
+          "etiqueta": "Guardar vista",
+          "resultado": "Conserva filtros personales sin ampliar alcance de empresa.",
+          "permiso": "report.save_view"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y fecha de corte o intervalo.",
+        "Aplicar filtros permitidos y versión de mapeo.",
+        "Validar que no haya periodo ambiguo ni datos de otra empresa.",
+        "Calcular snapshot con débitos, créditos, saldos y totales.",
+        "Revisar diferencias/no clasificados y aprobar exportación si aplica.",
+        "Consultar origen de una fila o descargar el mismo resultado."
+      ],
+      "estados": [
+        "READY: filtros válidos",
+        "CALCULATING: consulta en proceso",
+        "AVAILABLE: resultado visible",
+        "EXPORTED: artefacto generado",
+        "ERROR: filtros o fuente inválidos"
+      ],
+      "impacto_datos_contables": "Es solo lectura: no contabiliza, no corrige saldos y no altera estados. Usa movimientos publicados, reversos efectivos y reglas de corte; las cifras deben reconciliar con el mayor. Los centros de costo son opcionales según la vista y los datos inmobiliarios nunca son obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/reports/saldos-mensuales",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "GET /api/v1/reports/{report_code}/drilldowns"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ausencia de corte, SQL/expresiones arbitrarias, exportación con otros filtros y acceso entre empresas.",
+        "Mostrar cuentas no clasificadas como preparación pendiente, no ocultarlas.",
+        "Verificar que totales de pantalla y exportación usen el mismo snapshot."
+      ],
+      "prueba_positiva": "Dado un periodo y empresa con asientos publicados, cuando se ejecuta Saldos Mensuales, entonces los totales se calculan, coinciden con mayor al corte y cada fila navegable abre su asiento origen.",
+      "prueba_negativa": "Dado un filtro sin fecha/corte, una cuenta no autorizada o datos de otra empresa, cuando se consulta/exporta Saldos Mensuales, entonces la API rechaza la solicitud y no expone resultados.",
+      "dependencias_ids": [
+        "XLS-019",
+        "XLS-031",
+        "XLS-038"
+      ],
+      "titulo_original": "Saldos Mensuales",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Gastos x C.C. > Saldos Mensuales",
+      "ruta_react": "/contabilidad/financiero/libros-contables/gastos-x-c-c/saldos-mensuales",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar gastos mensuales por centro de costo, conciliables con mayor y filtros idénticos.",
+      "pruebas_ids": [
+        "T-UI-XLS-036",
+        "T-PROC-XLS-036",
+        "T-NEG-XLS-036"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-037",
+      "fila": 58,
+      "celda": "F58",
+      "nivel": 6,
+      "texto_original": "Acumulados",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Gastos x C.C. > Acumulados",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Mostrar gastos acumulados por centro de costo distinguiendo mes de corte y ejercicio.",
+      "diseno_visible": "Pantalla de reporte dedicada Acumulados bajo la ruta original. Encabezado con empresa, corte y versión de consulta; panel de filtros, tabla paginada, fila de totales conciliables, exportación con los mismos filtros y enlaces profundos al asiento/documento de origen. Muestra estados de carga, vacío, error y advertencia de cuentas no clasificadas. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "ejercicio",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "mes de corte",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": true,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "centro de costo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "cuentas",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        },
+        {
+          "nombre": "comparativo",
+          "tipo": "selector/fecha/enum según filtro",
+          "obligatorio": false,
+          "validacion": "Valor permitido, empresa autorizada y corte explícito; no incluir borradores."
+        }
+      ],
+      "columnas": [
+        "Ejercicio",
+        "Mes corte",
+        "Centro",
+        "Cuenta",
+        "Acumulado",
+        "Comparativo",
+        "Variación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula snapshot reproducible solo con movimientos publicados y reversos efectivos.",
+          "permiso": "report.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo asíncrono con idénticos filtros y permisos.",
+          "permiso": "report.export"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "Navega a asiento/documento sin cambiar el reporte.",
+          "permiso": "report.drilldown"
+        },
+        {
+          "etiqueta": "Guardar vista",
+          "resultado": "Conserva filtros personales sin ampliar alcance de empresa.",
+          "permiso": "report.save_view"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y fecha de corte o intervalo.",
+        "Aplicar filtros permitidos y versión de mapeo.",
+        "Validar que no haya periodo ambiguo ni datos de otra empresa.",
+        "Calcular snapshot con débitos, créditos, saldos y totales.",
+        "Revisar diferencias/no clasificados y aprobar exportación si aplica.",
+        "Consultar origen de una fila o descargar el mismo resultado."
+      ],
+      "estados": [
+        "READY: filtros válidos",
+        "CALCULATING: consulta en proceso",
+        "AVAILABLE: resultado visible",
+        "EXPORTED: artefacto generado",
+        "ERROR: filtros o fuente inválidos"
+      ],
+      "impacto_datos_contables": "Es solo lectura: no contabiliza, no corrige saldos y no altera estados. Usa movimientos publicados, reversos efectivos y reglas de corte; las cifras deben reconciliar con el mayor. Los centros de costo son opcionales según la vista y los datos inmobiliarios nunca son obligatorios.",
+      "api_propuesta": [
+        "GET /api/v1/reports/acumulados",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/accounting/journal-entries/{id}",
+        "GET /api/v1/reports/{report_code}/drilldowns"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Rechazar ausencia de corte, SQL/expresiones arbitrarias, exportación con otros filtros y acceso entre empresas.",
+        "Mostrar cuentas no clasificadas como preparación pendiente, no ocultarlas.",
+        "Verificar que totales de pantalla y exportación usen el mismo snapshot."
+      ],
+      "prueba_positiva": "Dado un periodo y empresa con asientos publicados, cuando se ejecuta Acumulados, entonces los totales se calculan, coinciden con mayor al corte y cada fila navegable abre su asiento origen.",
+      "prueba_negativa": "Dado un filtro sin fecha/corte, una cuenta no autorizada o datos de otra empresa, cuando se consulta/exporta Acumulados, entonces la API rechaza la solicitud y no expone resultados.",
+      "dependencias_ids": [
+        "XLS-019",
+        "XLS-031",
+        "XLS-036"
+      ],
+      "titulo_original": "Acumulados",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Gastos x C.C. > Acumulados",
+      "ruta_react": "/contabilidad/financiero/libros-contables/gastos-x-c-c/acumulados",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar gastos acumulados por centro de costo, distinguiendo mes de corte y ejercicio.",
+      "pruebas_ids": [
+        "T-UI-XLS-037",
+        "T-PROC-XLS-037",
+        "T-NEG-XLS-037"
+      ],
+      "modulo": "Contabilidad"
+    },
+    {
+      "id": "XLS-038",
+      "fila": 60,
+      "celda": "F60",
+      "nivel": 6,
+      "texto_original": "Registro de Cierres",
+      "ruta_original": "Contabilidad > Financiero > Libros Contables > Cierres > Registro de Cierres",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Ejecutar conciliaciones de cierre, bloquear el periodo y generar cierre anual con aprobación y reapertura auditada.",
+      "diseno_visible": "Pantalla transaccional dedicada en Cierres con asistente por fases: checklist de saldos, impuestos configurados, reportes, pendientes y diferencias; panel de bloqueos, aprobaciones y botón de cierre/reapertura. La UI muestra concurrencia y advierte que una publicación simultánea debe ganar antes del lock o ser rechazada, nunca quedar intermedia. La pantalla contempla estados de carga, vacío, validación, conflicto, éxito y error; los trabajos largos devuelven identificador de seguimiento. Usa foco, teclado, etiquetas accesibles y confirmación informativa para reservar, publicar, reversar, cerrar o inactivar. El listado conserva paginación y orden solo por columnas autorizadas, sin consultas arbitrarias.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "periodo/año",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Periodo abierto o cerrado según acción."
+        },
+        {
+          "nombre": "checklist",
+          "tipo": "array de controles",
+          "obligatorio": true,
+          "validacion": "Cada control tiene resultado, evidencia y responsable."
+        },
+        {
+          "nombre": "diferencias",
+          "tipo": "tabla Decimal",
+          "obligatorio": true,
+          "validacion": "Debe estar explicada o aprobada."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Segregación; reapertura exige segundo aprobador."
+        },
+        {
+          "nombre": "motivo reapertura",
+          "tipo": "texto largo",
+          "obligatorio": false,
+          "validacion": "Obligatorio solo para reabrir."
+        },
+        {
+          "nombre": "alcance reapertura",
+          "tipo": "selector limitado",
+          "obligatorio": false,
+          "validacion": "Periodo y duración restringidos."
+        }
+      ],
+      "columnas": [
+        "Periodo",
+        "Fase",
+        "Control",
+        "Resultado",
+        "Diferencia",
+        "Aprobador",
+        "Estado cierre",
+        "Último evento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Ejecutar checklist",
+          "resultado": "Calcula controles y pendientes sin cerrar.",
+          "permiso": "close.validate"
+        },
+        {
+          "etiqueta": "Aprobar cierre",
+          "resultado": "Bloquea posting y consolida cierre aprobado.",
+          "permiso": "close.approve"
+        },
+        {
+          "etiqueta": "Generar cierre anual",
+          "resultado": "Produce operaciones definidas por política y trazabilidad.",
+          "permiso": "close.annual_post"
+        },
+        {
+          "etiqueta": "Reabrir auditado",
+          "resultado": "Reabre periodo limitado con doble aprobación.",
+          "permiso": "close.reopen"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y periodo.",
+        "Ejecutar conciliaciones y capturar evidencias.",
+        "Resolver o aprobar diferencias.",
+        "Solicitar aprobación segregada.",
+        "Bloquear periodo y crear cierre/anualización si aplica.",
+        "Consultar reportes y auditar reapertura si fuese necesaria."
+      ],
+      "estados": [
+        "OPEN: recibe postings",
+        "CHECKING: checklist en proceso",
+        "READY_TO_CLOSE: sin bloqueos pendientes",
+        "CLOSED: nuevos postings bloqueados",
+        "REOPEN_REQUESTED",
+        "REOPENED: alcance limitado y auditado"
+      ],
+      "impacto_datos_contables": "El cierre bloquea nuevos postings al periodo; el cierre anual genera cancelaciones/resultados solo según política aprobada. No elimina ni edita asientos. Reapertura no altera históricos y exige motivo, alcance y aprobación dual. Opera sin inmuebles; cualquier deuda vertical histórica se consulta aparte.",
+      "api_propuesta": [
+        "GET /api/v1/accounting/period-closes",
+        "POST /api/v1/accounting/period-closes/{id}/checklist",
+        "POST /api/v1/accounting/period-closes/{id}/approve",
+        "POST /api/v1/accounting/period-closes/{id}/reopen",
+        "GET /api/v1/accounting/period-closes/{id}/audit"
+      ],
+      "validaciones": [
+        "Contexto tenant/empresa y permiso por acción; la empresa activa se verifica en backend.",
+        "Idempotencia mediante Idempotency-Key y detección de conflicto de versión.",
+        "Auditoría de actor, fecha UTC, motivo, antes/después y correlación.",
+        "Importes Decimal/numeric; nunca se calcula el saldo canónico únicamente en React.",
+        "No exigir condominium_id, property_unit_id, propietario ni alícuota en el núcleo; si Expensas está deshabilitado, las escrituras verticales devuelven MODULE_DISABLED.",
+        "Bloquear con lock de periodo; exigir checklist completo, diferencias explicadas, aprobación y reintento seguro; impedir reapertura amplia o autoaprobada."
+      ],
+      "prueba_positiva": "Dado un periodo con checklist completo y diferencias conciliadas, cuando el aprobador cierra, entonces nuevos postings son rechazados, reportes reproducen el corte y la auditoría registra aprobación.",
+      "prueba_negativa": "Dado un posting concurrente que llega después del lock o una reapertura sin segundo aprobador, cuando se procesa, entonces se rechaza de forma determinista y no queda asiento parcial.",
+      "dependencias_ids": [
+        "XLS-027",
+        "XLS-031",
+        "XLS-032",
+        "XLS-035",
+        "XLS-036",
+        "XLS-037"
+      ],
+      "titulo_original": "Registro de Cierres",
+      "ruta_menu_original": "Contabilidad > Financiero > Libros Contables > Cierres > Registro de Cierres",
+      "ruta_react": "/contabilidad/financiero/libros-contables/cierres/registro-de-cierres",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Ejecutar lista de conciliaciones, bloquear periodo y generar cierre anual con aprobación y reapertura auditada.",
+      "pruebas_ids": [
+        "T-UI-XLS-038",
+        "T-PROC-XLS-038",
+        "T-NEG-XLS-038"
+      ],
+      "modulo": "Contabilidad"
+    }
+  ]
+}

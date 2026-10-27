@@ -1,0 +1,55 @@
+.closure-state-editor {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid #dce3ea;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.closure-state-editor label {
+  display: grid;
+  gap: 7px;
+  min-width: 260px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.closure-state-editor select {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+}
+
+.closure-state-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.closure-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.closure-state--abierto { background: #e7f7ee; color: #167647; }
+.closure-state--mayorizado { background: #fff2cc; color: #8a5a00; }
+.closure-state--cerrado { background: #e8edf3; color: #475467; }
+
+@media (max-width: 720px) {
+  .closure-state-editor { align-items: stretch; flex-direction: column; }
+  .closure-state-editor label { min-width: 0; }
+  .closure-state-actions { justify-content: flex-end; }
+}

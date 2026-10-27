@@ -1,0 +1,612 @@
+{
+  "version": "2.0",
+  "modulo": "Tributación",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-096",
+      "celda": "D143",
+      "texto_original": "Generación de Conciliación",
+      "ruta_original": "Tributación > Conciliación Compras > Generación de Conciliación",
+      "objetivo": "Conciliar, para una empresa y corte fiscal, compras registradas, documentos XML o soportes, retenciones y movimientos publicados del mayor. La pantalla debe explicar diferencias por documento, base, tributo, retención, fecha, cuenta o ausencia de soporte y permitir que un responsable las clasifique y un aprobador cierre la conciliación sin alterar datos históricos.",
+      "diseno_visible": "Encabezado con empresa, periodo y versión de corte; tarjetas de totales de compras, XML, retenciones, mayor y diferencias. Debajo, pestañas Coincidencias, Diferencias, Soportes y Aprobación, con tabla paginada, selección múltiple, panel lateral de detalle, vista previa de impacto y bitácora. Las acciones de publicación o reverso se ejecutan en el origen, no desde una edición libre de la conciliación. No exige condominio, inmueble ni alícuota.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector_empresa",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada y activa en el contexto del usuario."
+        },
+        {
+          "nombre": "periodo_desde",
+          "tipo": "date",
+          "obligatorio": true,
+          "validacion": "Fecha válida y no posterior a periodo_hasta; periodo existente."
+        },
+        {
+          "nombre": "periodo_hasta",
+          "tipo": "date",
+          "obligatorio": true,
+          "validacion": "Corte permitido y coherente con el ejercicio fiscal."
+        },
+        {
+          "nombre": "estado_diferencia",
+          "tipo": "multiselect",
+          "obligatorio": false,
+          "validacion": "Valores permitidos: pendiente, explicada, ajustable, aprobada, excluida_con_motivo."
+        },
+        {
+          "nombre": "soporte",
+          "tipo": "select",
+          "obligatorio": false,
+          "validacion": "Filtra con_xml, sin_xml, soporte_no_electronico o inválido."
+        },
+        {
+          "nombre": "tercero_o_clave",
+          "tipo": "text",
+          "obligatorio": false,
+          "validacion": "Búsqueda acotada a empresa; clave y RUC con formato permitido."
+        }
+      ],
+      "columnas": [
+        "fecha_documento",
+        "proveedor",
+        "tipo_documento",
+        "serie_secuencial",
+        "clave_acceso",
+        "base_imponible",
+        "tributos",
+        "retencion",
+        "total",
+        "mayor_publicado",
+        "diferencia",
+        "clasificacion",
+        "estado_contable",
+        "estado_fiscal",
+        "soporte"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear corte de conciliación",
+          "resultado": "Genera snapshot versionado e idempotente del periodo; no contabiliza.",
+          "permiso": "tax.reconciliation.create"
+        },
+        {
+          "etiqueta": "Validar diferencias",
+          "resultado": "Clasifica filas con motivo, evidencia y versión; conserva importes originales.",
+          "permiso": "tax.reconciliation.validate"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Envía el snapshot inmutable al flujo de aprobación.",
+          "permiso": "tax.reconciliation.submit"
+        },
+        {
+          "etiqueta": "Aprobar conciliación",
+          "resultado": "Cierra el corte y deja ajustes pendientes dirigidos al documento de origen.",
+          "permiso": "tax.reconciliation.approve"
+        },
+        {
+          "etiqueta": "Exportar detalle",
+          "resultado": "Descarga el mismo snapshot y filtros visibles; no crea asiento ni documento fiscal.",
+          "permiso": "tax.reconciliation.export"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, rango fiscal y fuentes habilitadas; el backend verifica permisos y toma una versión de corte.",
+        "Capturar criterios opcionales de soporte, tercero y clasificación, y cargar o vincular XML/soportes ya recibidos.",
+        "Validar identidad, duplicados, bases, tributos, retenciones, clave y correspondencia con compras y mayor publicado.",
+        "Revisar cada diferencia, registrar clasificación, motivo, evidencia y propuesta de corrección sin modificar el origen.",
+        "Enviar el snapshot a aprobación segregada; el aprobador acepta, devuelve o solicita corrección con bitácora.",
+        "Aplicar, si corresponde, una operación aprobada en el origen mediante reverso o ajuste; cerrar el corte y consultar resultados."
+      ],
+      "estados": [
+        "borrador",
+        "validando",
+        "con_diferencias",
+        "pendiente_aprobacion",
+        "aprobada",
+        "cerrada",
+        "devuelta",
+        "cancelada"
+      ],
+      "impacto_datos_contables": "La conciliación es una vista y snapshot de control: no duplica compras, retenciones ni asientos. Una diferencia aprobada genera una tarea o ajuste en el documento fuente y, si se publica, un asiento relacionado y reversible. El mayor consultado solo incluye movimientos publicados al corte. El estado de negocio de la compra, el estado contable del asiento y el estado fiscal del comprobante permanecen separados. No se modifican ni eliminan publicados.",
+      "api_propuesta": [
+        "POST /api/v1/tax/reconciliations",
+        "GET /api/v1/tax/reconciliations/{id}",
+        "POST /api/v1/tax/reconciliations/{id}/validate",
+        "POST /api/v1/tax/reconciliations/{id}/submit-approval",
+        "POST /api/v1/tax/reconciliations/{id}/approve",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Empresa y periodo pertenecen al usuario y no cruzan tenant.",
+        "La clave de acceso se valida con formato y unicidad contextual sin sustituir verificación fiscal.",
+        "XML, hash, XSD y respuesta conservan versión; ZIP/XML malicioso o inválido queda rechazado con motivo.",
+        "La suma de compras, retenciones y mayor muestra tolerancia explícita y diferencia explicada; nunca se redondea silenciosamente.",
+        "Toda exclusión requiere motivo y evidencia; una nueva ejecución del mismo snapshot es idempotente.",
+        "Correcciones contables solo se ejecutan desde el origen con aprobación y reverso relacionado."
+      ],
+      "prueba_positiva": {
+        "dado": "Una empresa tiene compras registradas, XML válidos, retenciones y mayor publicado del mes, con una diferencia documentada.",
+        "cuando": "El usuario valida la diferencia, adjunta soporte, solicita aprobación y el aprobador cierra el snapshot.",
+        "entonces": "La conciliación queda cerrada con totales reproducibles, diferencia explicada, auditoría y navegación al origen, sin asiento duplicado."
+      },
+      "prueba_negativa": {
+        "dado": "El usuario intenta incluir una compra de otra empresa o un XML duplicado y modificar un asiento publicado.",
+        "cuando": "Ejecuta la validación o intenta guardar el cambio.",
+        "entonces": "La API rechaza por alcance o duplicidad, conserva evidencia del intento y obliga a usar el flujo de reverso/origen."
+      },
+      "dependencias_ids": [
+        "XLS-097",
+        "XLS-099"
+      ],
+      "titulo_original": "Generación de Conciliación",
+      "ruta_menu_original": "Tributación > Conciliación Compras > Generación de Conciliación",
+      "ruta_react": "/tributacion/conciliacion-compras/generacion-de-conciliacion",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Conciliar compras registradas, XML/soportes, retenciones y mayor; clasificar diferencias y aprobación.",
+      "pruebas_ids": [
+        "T-UI-XLS-096",
+        "T-PROC-XLS-096",
+        "T-NEG-XLS-096"
+      ],
+      "modulo": "Tributación",
+      "fila": 143,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-097",
+      "celda": "D144",
+      "texto_original": "Compras Mensuales",
+      "ruta_original": "Tributación > Conciliación Compras > Compras Mensuales",
+      "objetivo": "Mostrar el universo mensual de compras de una empresa con bases, tributos, retenciones, documentos incluidos o excluidos y rectificaciones justificadas. El reporte debe ser reproducible al corte, distinguir estados de negocio, contabilidad y fiscalidad, y permitir navegación hacia la compra, soporte, retención, asiento y conciliación sin convertir la consulta en una segunda contabilización.",
+      "diseno_visible": "Barra de filtros con empresa, mes fiscal, fechas, proveedor, código tributario, estado y motivo de exclusión. Resumen superior con número de documentos, base, tributos, retenciones, total y diferencias; tabla paginada con agrupación opcional por proveedor o código. Cada fila abre un panel de origen y una pestaña de rectificaciones. Acciones de exportación conservan exactamente filtros, columnas y snapshot mostrado. Los campos inmobiliarios no aparecen ni son obligatorios.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector_empresa",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada y con perfil tributario vigente para el corte."
+        },
+        {
+          "nombre": "mes_fiscal",
+          "tipo": "month",
+          "obligatorio": true,
+          "validacion": "Mes válido dentro de un ejercicio abierto o consultable."
+        },
+        {
+          "nombre": "proveedor",
+          "tipo": "autocomplete_tercero",
+          "obligatorio": false,
+          "validacion": "Tercero activo o histórico de la empresa seleccionada."
+        },
+        {
+          "nombre": "codigo_tributario",
+          "tipo": "multiselect",
+          "obligatorio": false,
+          "validacion": "Códigos existentes en el catálogo versionado del periodo."
+        },
+        {
+          "nombre": "estado_documento",
+          "tipo": "multiselect",
+          "obligatorio": false,
+          "validacion": "Estados de negocio, contable y fiscal independientes."
+        },
+        {
+          "nombre": "incluir_excluidos",
+          "tipo": "boolean",
+          "obligatorio": false,
+          "validacion": "Si es verdadero exige mostrar motivo y usuario de exclusión."
+        }
+      ],
+      "columnas": [
+        "fecha",
+        "proveedor",
+        "identificacion",
+        "tipo",
+        "serie_secuencial",
+        "clave_acceso",
+        "base",
+        "tributo_por_codigo",
+        "retencion",
+        "total",
+        "estado_negocio",
+        "estado_contable",
+        "estado_fiscal",
+        "rectificacion",
+        "motivo_exclusion",
+        "asiento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar detalle",
+          "resultado": "Abre origen, soportes, aplicaciones y asiento; no permite editar publicados.",
+          "permiso": "tax.purchases.read"
+        },
+        {
+          "etiqueta": "Registrar rectificación",
+          "resultado": "Crea una propuesta versionada vinculada al documento; requiere aprobación antes de efecto.",
+          "permiso": "tax.purchases.rectify"
+        },
+        {
+          "etiqueta": "Marcar exclusión justificada",
+          "resultado": "Excluye solo del snapshot indicado con motivo, soporte y auditoría.",
+          "permiso": "tax.purchases.exclude"
+        },
+        {
+          "etiqueta": "Exportar reporte",
+          "resultado": "Genera archivo con filtros, columnas, totales y snapshot; no contabiliza.",
+          "permiso": "tax.purchases.export"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, mes fiscal y filtros; el backend fija corte, perfil tributario y versión de catálogos.",
+        "Capturar, si aplica, proveedor, códigos y criterio de inclusión de excluidos; mostrar advertencia sobre rectificaciones.",
+        "Validar que cada fila provenga de una compra o soporte trazable y calcular bases, tributos y retenciones con configuración vigente.",
+        "Revisar totales y abrir navegación al documento, soporte, retención, asiento y conciliación relacionada.",
+        "Solicitar aprobación para una rectificación o exclusión con motivo y evidencia; no aplicar cambios silenciosos.",
+        "Consultar o exportar el snapshot final y, si se aprobó una corrección, mostrar su efecto contable/fiscal separado."
+      ],
+      "estados": [
+        "consultable",
+        "snapshot_generado",
+        "con_rectificaciones",
+        "pendiente_aprobacion",
+        "rectificado",
+        "excluido_con_motivo",
+        "error_validacion"
+      ],
+      "impacto_datos_contables": "La pantalla lee compras, retenciones y asientos publicados y no genera un segundo gasto, impuesto o pasivo. Una rectificación aprobada se ejecuta en el documento de origen mediante documento relacionado, ajuste o reverso según corresponda; el reporte conserva ambas versiones y su fecha efectiva. El total contable no se altera por exportar o reconsultar. La clasificación fiscal se muestra con vigencia; no se hardcodean tarifas o porcentajes.",
+      "api_propuesta": [
+        "GET /api/v1/tax/purchases-monthly",
+        "GET /api/v1/tax/purchases-monthly/{snapshot_id}",
+        "POST /api/v1/tax/purchases/{purchase_id}/rectifications",
+        "POST /api/v1/tax/purchases/{purchase_id}/exclusions",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "El rango pertenece a una única empresa y usa fecha fiscal explícita.",
+        "Bases y tributos se calculan desde matriz versionada por vigencia, concepto, régimen y operación; no desde constantes de interfaz.",
+        "Cada excluido tiene motivo, usuario, fecha y soporte; una compra anulada o rectificada mantiene su historial.",
+        "Los totales de pantalla y exportación usan el mismo snapshot y precisión decimal.",
+        "No se permite editar o borrar documentos o asientos publicados; se redirige a reverso, ajuste o documento relacionado.",
+        "La exportación bloquea fórmulas peligrosas y respeta permisos, tenant y filtros."
+      ],
+      "prueba_positiva": {
+        "dado": "Existe un mes con compras gravadas, tarifa cero, retenciones y una rectificación aprobada.",
+        "cuando": "El usuario filtra el mes, incluye excluidos justificados y exporta el reporte.",
+        "entonces": "El reporte muestra bases, tributos, retenciones, rectificación, motivo y totales conciliables, con enlaces al origen y sin duplicar asientos."
+      },
+      "prueba_negativa": {
+        "dado": "El usuario selecciona un código inexistente, un periodo de otra empresa o intenta cambiar una compra publicada desde la tabla.",
+        "cuando": "Solicita consulta o guardado.",
+        "entonces": "La API rechaza el filtro/cambio, no expone datos y ofrece únicamente el flujo autorizado de rectificación o reverso."
+      },
+      "dependencias_ids": [
+        "XLS-096",
+        "XLS-098",
+        "XLS-099"
+      ],
+      "titulo_original": "Compras Mensuales",
+      "ruta_menu_original": "Tributación > Conciliación Compras > Compras Mensuales",
+      "ruta_react": "/tributacion/conciliacion-compras/compras-mensuales",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar compras por periodo fiscal con bases y tributos, rectificaciones y documentos excluidos justificados.",
+      "pruebas_ids": [
+        "T-UI-XLS-097",
+        "T-PROC-XLS-097",
+        "T-NEG-XLS-097"
+      ],
+      "modulo": "Tributación",
+      "fila": 144,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-098",
+      "celda": "D146",
+      "texto_original": "Anexo Transaccional RDEP",
+      "ruta_original": "Tributación > Generación de Archivos XML > Anexo Transaccional RDEP",
+      "objetivo": "Conservar el título original y ofrecer una pantalla dedicada con dos pestañas separadas: ATS para transacciones y RDEP para relación de dependencia. Cada pestaña usa su propio esquema, catálogo, fuentes, validaciones y snapshot. RDEP permite importar detalle laboral anual cuando no existe nómina integrada; no deduce rubros laborales desde compras. Generar XML no equivale a presentarlo.",
+      "diseno_visible": "Encabezado con empresa, ambiente interno, periodo/año y versión de esquema. Pestañas ATS y RDEP visibles simultáneamente, nunca fusionadas: ATS muestra compras, ventas, retenciones y exclusiones; RDEP muestra importación laboral, empleados, rubros y errores por fila. Ambas tienen resumen de validación, descarga de plantilla, vista previa XML, hash, historial de intentos y registro de presentación manual o canal aprobado. No se muestran tasas fijas ni se llama a una API SRI inventada.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector_empresa",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada y perfil tributario visible."
+        },
+        {
+          "nombre": "pestana",
+          "tipo": "tabs_enum",
+          "obligatorio": true,
+          "validacion": "Solo ATS o RDEP; cada uno activa esquema y campos propios."
+        },
+        {
+          "nombre": "periodo_o_anio",
+          "tipo": "period_or_year",
+          "obligatorio": true,
+          "validacion": "ATS usa periodo permitido; RDEP usa año fiscal válido."
+        },
+        {
+          "nombre": "version_esquema",
+          "tipo": "select_version",
+          "obligatorio": true,
+          "validacion": "Versión compatible con periodo, catálogo y ficha aprobada."
+        },
+        {
+          "nombre": "archivo_laboral",
+          "tipo": "file",
+          "obligatorio": false,
+          "validacion": "Obligatorio para RDEP si no existe fuente laboral integrada; plantilla y tamaño permitidos."
+        },
+        {
+          "nombre": "snapshot_origen",
+          "tipo": "selector_snapshot",
+          "obligatorio": true,
+          "validacion": "Snapshot reconciliado, vigente, de la empresa y pestaña seleccionada."
+        }
+      ],
+      "columnas": [
+        "tipo_anexo",
+        "periodo_anio",
+        "fuente",
+        "identificador",
+        "base_o_rubro",
+        "tributo_o_valor",
+        "estado_validacion",
+        "error_fila",
+        "version_esquema",
+        "hash_xml",
+        "estado_presentacion"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Descargar plantilla",
+          "resultado": "Entrega plantilla versionada ATS o RDEP con instrucciones y columnas permitidas.",
+          "permiso": "tax.annex.template"
+        },
+        {
+          "etiqueta": "Importar detalle laboral",
+          "resultado": "Crea lote RDEP con filas válidas, errores por fila y reintento selectivo; no calcula nómina.",
+          "permiso": "tax.rdep.import"
+        },
+        {
+          "etiqueta": "Generar vista previa XML",
+          "resultado": "Valida snapshot, esquema, catálogos, totales y estructura; no presenta al SRI.",
+          "permiso": "tax.annex.generate"
+        },
+        {
+          "etiqueta": "Descargar XML",
+          "resultado": "Entrega artefacto con hash, versión y auditoría, sujeto a permiso.",
+          "permiso": "tax.annex.download"
+        },
+        {
+          "etiqueta": "Registrar presentación",
+          "resultado": "Registra canal, comprobante, fecha, respuesta y evidencia aportados por operador; no simula aceptación.",
+          "permiso": "tax.annex.record_submission"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar la pestaña ATS o RDEP, empresa, periodo/año, versión de esquema y snapshot; el backend verifica compatibilidad.",
+        "Capturar fuentes y exclusiones ATS o cargar plantilla laboral RDEP, mostrando errores por fila y permitiendo corregir y reintentar sin duplicar lote.",
+        "Validar identidad, duplicados, catálogos, campos obligatorios, totales, permisos de datos laborales y consistencia con el snapshot.",
+        "Revisar la vista previa, errores bloqueantes, hash, versión y separación entre estado del anexo y estado contable/fiscal de origen.",
+        "Aprobar la generación y crear el XML real firmado o artefacto requerido según configuración aprobada; conservar intentos y respuestas, sin mock de producción.",
+        "Descargar o registrar presentación por canal permitido, adjuntar talón/evidencia y consultar estado sin asumir una API pública de anulación o envío."
+      ],
+      "estados": [
+        "borrador",
+        "importando",
+        "errores_por_fila",
+        "validado",
+        "pendiente_aprobacion",
+        "xml_generado",
+        "presentacion_registrada",
+        "rechazado",
+        "resultado_desconocido"
+      ],
+      "impacto_datos_contables": "ATS y RDEP leen snapshots y fuentes existentes; generar, descargar o reintentar no crea compras, ventas, retenciones, nómina ni asientos. Una corrección de origen se realiza en su módulo y queda enlazada a una nueva versión. RDEP almacena datos laborales protegidos y no habilita nómina completa. El estado contable del origen, el estado fiscal del comprobante y el estado del archivo/presentación se mantienen independientes. La transmisión o presentación externa requiere canal real, evidencia y aprobación separada.",
+      "api_propuesta": [
+        "POST /api/v1/tax/returns/ats",
+        "POST /api/v1/tax/returns/rdep",
+        "POST /api/v1/tax/rdep/imports",
+        "GET /api/v1/tax/returns/{id}",
+        "POST /api/v1/tax/returns/{id}/approve",
+        "POST /api/v1/tax/returns/{id}/record-submission"
+      ],
+      "validaciones": [
+        "ATS y RDEP tienen modelos, campos, catálogos y esquemas separados aunque compartan pantalla.",
+        "La versión de XSD/ficha/catálogo se guarda con hash, fecha y usuario; se rechazan combinaciones incompatibles.",
+        "La importación reporta error por fila, conserva archivo original y permite reintento idempotente sin duplicar empleados o lotes.",
+        "Los datos laborales requieren permiso específico, cifrado y trazabilidad; no se derivan de compras.",
+        "El XML se valida estructuralmente y, cuando corresponda, firma/certificado se manejan en backend cifrado; no se expone secreto al navegador.",
+        "No se afirma aceptación fiscal por generar archivo; resultado desconocido queda pendiente de conciliación y no se reenvía a ciegas."
+      ],
+      "prueba_positiva": {
+        "dado": "Existe un snapshot ATS conciliado y un archivo laboral RDEP con una fila corregida antes de confirmar.",
+        "cuando": "El usuario valida cada pestaña, corrige el error, genera los XML y registra evidencia de presentación por canal permitido.",
+        "entonces": "Se producen dos artefactos separados, con hashes, versiones, auditoría y estados independientes, sin generar asientos ni presentar un mock."
+      },
+      "prueba_negativa": {
+        "dado": "El usuario intenta generar RDEP con esquema ATS, datos laborales incompletos o volver a enviar tras un timeout sin consultar estado.",
+        "cuando": "Confirma la generación o presentación.",
+        "entonces": "La operación se bloquea con errores por campo o estado incierto, no duplica lote ni envío y exige corregir o conciliar la respuesta."
+      },
+      "dependencias_ids": [
+        "XLS-096",
+        "XLS-097",
+        "XLS-099"
+      ],
+      "titulo_original": "Anexo Transaccional RDEP",
+      "ruta_menu_original": "Tributación > Generación de Archivos XML > Anexo Transaccional RDEP",
+      "ruta_react": "/tributacion/generacion-de-archivos-xml/anexo-transaccional-rdep",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Separar generadores ATS y RDEP con sus propios esquemas y fuentes; importar detalle laboral si no existe nómina.",
+      "pruebas_ids": [
+        "T-UI-XLS-098",
+        "T-PROC-XLS-098",
+        "T-NEG-XLS-098"
+      ],
+      "modulo": "Tributación",
+      "fila": 146,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-099",
+      "celda": "D148",
+      "texto_original": "Rep. Compras y Retenciones General",
+      "ruta_original": "Tributación > Reportes > Rep. Compras y Retenciones General",
+      "objetivo": "Generar un reporte general de compras y retenciones con código, base y valor, conciliable con ATS y contabilidad. Debe permitir revisar el detalle hasta el documento, retención, aplicación, asiento y snapshot del anexo, mostrar totales por código y tercero y dejar claras las diferencias sin asumir que el informe presenta información al SRI.",
+      "diseno_visible": "Panel de filtros con empresa y corte explícito; tarjetas para compras, bases, tributos, retenciones emitidas/recibidas según dirección configurada, total y diferencias ATS-contabilidad. Tabla con agrupación por código y proveedor, subtotales y total general; columna de estado de origen. Cada fila tiene navegación a compra, retención, asiento y anexo. Exportar reproduce filtros, columnas, totales y snapshot, con estados de trabajo para archivos grandes.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector_empresa",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada, activa y aislada por tenant."
+        },
+        {
+          "nombre": "desde",
+          "tipo": "date",
+          "obligatorio": true,
+          "validacion": "Fecha válida y no posterior a hasta."
+        },
+        {
+          "nombre": "hasta",
+          "tipo": "date",
+          "obligatorio": true,
+          "validacion": "Corte permitido, con semántica explícita de fecha de documento y fecha contable."
+        },
+        {
+          "nombre": "direccion_retencion",
+          "tipo": "select",
+          "obligatorio": true,
+          "validacion": "Emitida, recibida o ambas; conserva dirección en el maestro único."
+        },
+        {
+          "nombre": "codigo",
+          "tipo": "multiselect",
+          "obligatorio": false,
+          "validacion": "Código vigente para el periodo; no admite texto libre para alterar catálogo."
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "autocomplete_tercero",
+          "obligatorio": false,
+          "validacion": "Tercero de la empresa seleccionada."
+        },
+        {
+          "nombre": "comparar_con",
+          "tipo": "multiselect",
+          "obligatorio": false,
+          "validacion": "Solo ATS y/o mayor publicado; muestra diferencia y fuente."
+        }
+      ],
+      "columnas": [
+        "fecha",
+        "tercero",
+        "direccion",
+        "tipo_documento",
+        "codigo",
+        "base",
+        "valor_retencion",
+        "tributo",
+        "total_documento",
+        "clave_o_referencia",
+        "estado_negocio",
+        "estado_contable",
+        "estado_fiscal",
+        "ats",
+        "asiento",
+        "diferencia"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Ejecutar reporte",
+          "resultado": "Crea snapshot con filtros, columnas y totales conciliables.",
+          "permiso": "tax.reports.read"
+        },
+        {
+          "etiqueta": "Navegar a origen",
+          "resultado": "Abre documento, retención, aplicación, asiento o anexo sin permitir edición publicada.",
+          "permiso": "tax.reports.drilldown"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo con el mismo resultado y URL temporal autorizada; no contabiliza.",
+          "permiso": "tax.reports.export"
+        },
+        {
+          "etiqueta": "Solicitar corrección",
+          "resultado": "Crea incidencia enlazada al origen y no cambia el reporte histórico.",
+          "permiso": "tax.reports.request_correction"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, intervalo, dirección de retención y comparación ATS/mayor; el backend verifica alcance y corte.",
+        "Capturar códigos y tercero opcionales, y elegir columnas permitidas; mostrar advertencia sobre fechas y estados separados.",
+        "Validar fuentes, códigos vigentes, dirección, duplicados, documentos excluidos y consistencia de bases/valores.",
+        "Calcular detalle, subtotales y totales con Decimal, comparar con ATS y mayor publicado y marcar diferencias explicadas.",
+        "Revisar filas y navegar al origen; registrar una solicitud de corrección si el dato no concilia, sin editar publicado.",
+        "Exportar el snapshot o consultar el resultado, preservando filtros, columnas, totales, versión y auditoría."
+      ],
+      "estados": [
+        "solicitado",
+        "calculando",
+        "disponible",
+        "con_diferencias",
+        "exportando",
+        "exportado",
+        "error"
+      ],
+      "impacto_datos_contables": "Es un reporte de lectura y conciliación; no registra retenciones, no crea deuda y no publica asientos. Los importes provienen del maestro único de retenciones y de compras/asientos según el origen elegido. Si una diferencia exige corrección, se deriva al documento o retención de origen y cualquier efecto se realiza mediante operación aprobada, reverso o reemplazo trazable. Exportar y reimprimir no contabilizan otra vez. El informe conserva dirección emitida/recibida y estados independientes.",
+      "api_propuesta": [
+        "GET /api/v1/reports/purchases-withholdings",
+        "GET /api/v1/reports/purchases-withholdings/{snapshot_id}",
+        "POST /api/v1/reports/purchases-withholdings/correction-requests",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Empresa, fechas y fuentes quedan en el snapshot y no pueden cambiarse durante la exportación.",
+        "Dirección emitida/recibida se filtra desde el maestro único; no se duplican retenciones por tener varias aplicaciones.",
+        "Códigos, bases y valores se leen de configuración versionada y se muestran con vigencia; no se hardcodean tasas.",
+        "La comparación ATS/mayor identifica faltantes, diferencias de importe y diferencias de estado con navegación a cada origen.",
+        "Totales de pantalla y archivo son idénticos; importes monetarios usan precisión decimal y formato de presentación separado.",
+        "El endpoint no acepta SQL, columnas arbitrarias ni acceso cruzado entre empresas."
+      ],
+      "prueba_positiva": {
+        "dado": "Una empresa tiene compras y retenciones emitidas y recibidas con un ATS generado y mayor publicado.",
+        "cuando": "El usuario consulta el mes, selecciona ambas direcciones y compara ATS y mayor.",
+        "entonces": "Obtiene columnas de código, base y valor, subtotales, diferencias y enlaces a cada origen, con exportación reproducible y sin asiento nuevo."
+      },
+      "prueba_negativa": {
+        "dado": "El usuario intenta consultar otra empresa, inventar un código o editar una retención desde el reporte.",
+        "cuando": "Ejecuta el filtro o guarda la modificación.",
+        "entonces": "La API rechaza el acceso o código y la interfaz deriva a corrección/reverso autorizado, sin exponer ni cambiar datos."
+      },
+      "dependencias_ids": [
+        "XLS-096",
+        "XLS-097",
+        "XLS-098"
+      ],
+      "titulo_original": "Rep. Compras y Retenciones General",
+      "ruta_menu_original": "Tributación > Reportes > Rep. Compras y Retenciones General",
+      "ruta_react": "/tributacion/reportes/rep-compras-y-retenciones-general",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Generar informe de compras y retenciones con código/base/valor y conciliación hacia ATS y contabilidad.",
+      "pruebas_ids": [
+        "T-UI-XLS-099",
+        "T-PROC-XLS-099",
+        "T-NEG-XLS-099"
+      ],
+      "modulo": "Tributación",
+      "fila": 148,
+      "nivel": 4
+    }
+  ]
+}

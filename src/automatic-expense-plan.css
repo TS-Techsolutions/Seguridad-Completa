@@ -1,0 +1,98 @@
+.automatic-expense-plan {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  border: 1px solid #dce2ea;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.automatic-expense-plan > header {
+  display: grid;
+  grid-template-columns: 1.7fr repeat(4, 1fr);
+  gap: .65rem;
+  padding: .7rem .8rem;
+  border-bottom: 1px solid #e1e6ec;
+}
+
+.automatic-expense-plan > header > div {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.automatic-expense-plan > header span {
+  color: #788595;
+  font-size: .56rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.automatic-expense-plan > header strong {
+  color: #344358;
+  font-size: .72rem;
+}
+
+.automatic-expense-plan-list {
+  max-height: 130px;
+  overflow: auto;
+}
+
+.automatic-expense-plan-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .55rem .8rem;
+  border-bottom: 1px solid #e6eaef;
+}
+
+.automatic-expense-plan-list article:last-child {
+  border-bottom: 0;
+}
+
+.automatic-expense-plan-list article strong {
+  color: #46566a;
+  font-size: .68rem;
+}
+
+.automatic-expense-plan-list article span {
+  color: #7b8795;
+  font-size: .6rem;
+  text-align: right;
+}
+
+.automatic-expense-plan > p {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin: 0;
+  padding: .65rem .8rem;
+  color: #9a4a36;
+  background: #fff5f2;
+  font-size: .64rem;
+}
+
+.automatic-expense-plan > p svg {
+  width: 14px;
+  flex: none;
+}
+
+.automatic-expense-plan > aside {
+  padding: .6rem .8rem;
+  border-top: 1px solid #e1e6ec;
+  color: #697789;
+  background: #f1f4f7;
+  font-size: .63rem;
+  font-style: normal;
+}
+
+.automatic-expense-plan > aside strong {
+  color: #4b596b;
+}
+
+@media (max-width: 700px) {
+  .automatic-expense-plan { grid-column: auto; }
+  .automatic-expense-plan > header { grid-template-columns: 1fr; }
+  .automatic-expense-plan-list article { align-items: flex-start; flex-direction: column; }
+  .automatic-expense-plan-list article span { text-align: left; }
+}

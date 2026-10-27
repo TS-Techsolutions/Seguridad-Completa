@@ -1,0 +1,2331 @@
+{
+  "version": "2.0",
+  "modulo": "CxP",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-041",
+      "fila": 67,
+      "celda": "D67",
+      "texto_original": "Grupo de Proveedores",
+      "ruta_original": "CxP > Proveedores > Grupo de Proveedores",
+      "objetivo": "Administrar grupos reutilizables para clasificar proveedores sin crear una segunda identidad tributaria ni duplicar personas.",
+      "diseno_visible": "Listado paginado con árbol o tabla de grupos, buscador por código/nombre, contador de proveedores y panel lateral de alta/edición. La pantalla conserva el acceso original de Grupo de Proveedores y muestra auditoría, estado y empresa activa; no exige inmueble, condominio ni alícuota. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Código",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "único por empresa; formato configurado"
+        },
+        {
+          "nombre": "Nombre",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "no vacío; longitud configurada"
+        },
+        {
+          "nombre": "Descripción",
+          "tipo": "texto",
+          "obligatorio": "no",
+          "validacion": "longitud máxima configurada"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "ACTIVO o INACTIVO"
+        },
+        {
+          "nombre": "Grupo padre",
+          "tipo": "selector",
+          "obligatorio": "no",
+          "validacion": "no permitir ciclos"
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Grupo padre",
+        "Proveedores asignados",
+        "Estado",
+        "Actualizado por/fecha"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear grupo",
+          "resultado": "crea borrador y lo deja listo para asignación",
+          "permiso": "cxp.proveedor_grupo.crear"
+        },
+        {
+          "etiqueta": "Editar borrador",
+          "resultado": "actualiza datos no publicados",
+          "permiso": "cxp.proveedor_grupo.editar"
+        },
+        {
+          "etiqueta": "Activar/Inactivar",
+          "resultado": "cambia disponibilidad sin borrar historial",
+          "permiso": "cxp.proveedor_grupo.activar"
+        },
+        {
+          "etiqueta": "Ver proveedores",
+          "resultado": "abre proveedores filtrados por el grupo",
+          "permiso": "cxp.proveedor.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y consultar grupos con paginación.",
+        "Capturar código, nombre, jerarquía y estado; validar duplicados y ciclos.",
+        "Previsualizar proveedores afectados y registrar motivo si se inactiva.",
+        "Guardar con idempotencia y confirmar resultado; no modificar terceros históricos.",
+        "Consultar auditoría y navegar al registro de proveedor relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Activo",
+        "Inactivo",
+        "Con cambios auditados"
+      ],
+      "impacto_datos_contables": "No genera asiento ni saldo. Solo agrega una dimensión clasificatoria a terceros; cualquier proveedor ya utilizado conserva sus documentos, cuentas por pagar y trazabilidad.",
+      "api_propuesta": [
+        "GET /api/v1/cxp/provider-groups",
+        "POST /api/v1/cxp/provider-groups",
+        "PATCH /api/v1/cxp/provider-groups/{group_id}",
+        "GET /api/v1/cxp/provider-groups/{group_id}/providers"
+      ],
+      "validaciones": [
+        "La empresa activa debe estar autorizada.",
+        "Código y nombre no pueden duplicarse dentro de la empresa.",
+        "La jerarquía no puede formar ciclos.",
+        "Inactivar un grupo exige confirmar impacto y conserva sus asignaciones históricas.",
+        "Las dimensiones inmobiliarias son opcionales y no se solicitan."
+      ],
+      "prueba_positiva": "Dado un código de grupo disponible y nombre válido, cuando el usuario guarda con permiso de creación, entonces el grupo queda ACTIVO o en el estado seleccionado, aparece una auditoría y puede asignarse a proveedores.",
+      "prueba_negativa": "Dado un código ya usado o una relación padre que forma ciclo, cuando se intenta guardar, entonces el backend rechaza la operación, muestra el campo con error y no crea ni modifica datos.",
+      "dependencias_ids": [
+        "XLS-041"
+      ],
+      "titulo_original": "Grupo de Proveedores",
+      "ruta_menu_original": "CxP > Proveedores > Grupo de Proveedores",
+      "ruta_react": "/cxp/proveedores/grupo-de-proveedores",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mantener grupos de proveedores y clasificarlos sin duplicar la identidad tributaria del tercero.",
+      "pruebas_ids": [
+        "T-UI-XLS-041",
+        "T-PROC-XLS-041",
+        "T-NEG-XLS-041"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-042",
+      "fila": 68,
+      "celda": "D68",
+      "texto_original": "Registro Proveedores",
+      "ruta_original": "CxP > Proveedores > Registro Proveedores",
+      "objetivo": "Registrar y mantener proveedores reutilizables por empresa con identificación, datos fiscales, contactos y cuentas bancarias controladas.",
+      "diseno_visible": "Pantalla dedicada con búsqueda de terceros existentes, pestañas Identificación, Fiscal, Contactos, Bancos y Auditoría, y vista previa de cambios. Permite proveedor nacional o extranjero según configuración, sin forzar validaciones no aplicables y sin campos inmobiliarios obligatorios. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Tipo de persona",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "persona natural u organización"
+        },
+        {
+          "nombre": "Identificación",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "formato según tipo y país"
+        },
+        {
+          "nombre": "Razón social/nombre",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "coincide con evidencia"
+        },
+        {
+          "nombre": "Correo y teléfono",
+          "tipo": "texto",
+          "obligatorio": "no",
+          "validacion": "formatos válidos"
+        },
+        {
+          "nombre": "Cuenta bancaria",
+          "tipo": "objeto",
+          "obligatorio": "no",
+          "validacion": "banco, tipo, número y titular; requiere aprobación para cambio"
+        },
+        {
+          "nombre": "Grupo",
+          "tipo": "selector",
+          "obligatorio": "no",
+          "validacion": "grupo activo de la empresa"
+        }
+      ],
+      "columnas": [
+        "Identificación",
+        "Nombre/Razón social",
+        "Estado proveedor",
+        "Grupo",
+        "Cuenta principal enmascarada",
+        "Último cambio",
+        "Estado de aprobación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Nuevo proveedor",
+          "resultado": "crea tercero reutilizable y perfil proveedor",
+          "permiso": "cxp.proveedor.crear"
+        },
+        {
+          "etiqueta": "Modificar datos",
+          "resultado": "crea versión pendiente o solicita aprobación",
+          "permiso": "cxp.proveedor.editar"
+        },
+        {
+          "etiqueta": "Aprobar cambio bancario",
+          "resultado": "activa la cuenta con segregación de funciones",
+          "permiso": "cxp.proveedor.aprobar_banco"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "impide nuevas operaciones sin borrar historial",
+          "permiso": "cxp.proveedor.inactivar"
+        },
+        {
+          "etiqueta": "Consultar auditoría",
+          "resultado": "muestra versiones y evidencias",
+          "permiso": "cxp.proveedor.auditoria"
+        }
+      ],
+      "pasos_proceso": [
+        "Buscar identificación antes de crear y seleccionar persona existente si corresponde.",
+        "Capturar datos de identificación, fiscales, contacto, grupo y banco.",
+        "Validar duplicidad, evidencia y cambios sensibles; presentar vista previa.",
+        "Enviar a aprobación cuando cambie banco o política lo requiera.",
+        "Confirmar y consultar el perfil vigente, historial y vínculos a documentos."
+      ],
+      "estados": [
+        "Borrador",
+        "Pendiente de aprobación",
+        "Activo",
+        "Inactivo",
+        "Rechazado"
+      ],
+      "impacto_datos_contables": "No genera asiento. Habilita el tercero para documentos de CxP y conserva snapshots fiscales y bancarios en cada operación; cambiar la cuenta no altera pagos históricos.",
+      "api_propuesta": [
+        "GET /api/v1/cxp/providers",
+        "POST /api/v1/cxp/providers",
+        "PATCH /api/v1/cxp/providers/{provider_id}",
+        "POST /api/v1/cxp/providers/{provider_id}/bank-changes",
+        "GET /api/v1/cxp/providers/{provider_id}/audit"
+      ],
+      "validaciones": [
+        "No crear otro tercero si ya existe la misma identidad en la empresa.",
+        "Validar identificación según tipo y país configurado.",
+        "Datos fiscales usados en documentos quedan congelados en el documento.",
+        "Una cuenta bancaria nueva requiere evidencia, aprobación y segregación.",
+        "No exigir condominio, unidad ni alícuota."
+      ],
+      "prueba_positiva": "Dado un tercero no duplicado con identificación y nombre válidos, cuando se confirma el registro, entonces se crea un perfil proveedor activo, se registra auditoría y queda disponible para Documentos de Soporte.",
+      "prueba_negativa": "Dado que la identificación ya pertenece a una persona de la empresa, cuando el usuario intenta crear otro proveedor, entonces se ofrece reutilizar el perfil y se bloquea la duplicación.",
+      "dependencias_ids": [
+        "XLS-042"
+      ],
+      "titulo_original": "Registro Proveedores",
+      "ruta_menu_original": "CxP > Proveedores > Registro Proveedores",
+      "ruta_react": "/cxp/proveedores/registro-proveedores",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar proveedor con identificación, datos fiscales, contactos y cuenta bancaria con control de cambios.",
+      "pruebas_ids": [
+        "T-UI-XLS-042",
+        "T-PROC-XLS-042",
+        "T-NEG-XLS-042"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-043",
+      "fila": 69,
+      "celda": "D69",
+      "texto_original": "Importación Masiva de Proveedores/Clientes",
+      "ruta_original": "CxP > Proveedores > Importación Masiva de Proveedores/Clientes",
+      "objetivo": "Importar en lote proveedores y clientes, reutilizando personas existentes, detectando duplicados y permitiendo corregir filas antes de confirmar.",
+      "diseno_visible": "Asistente de importación dedicado: descargar plantilla versionada, cargar CSV/XLSX, revisar resumen, tabla de errores por fila y pestaña de homologación. Cada fila muestra identificación, roles proveedor/cliente, resultado, mensaje, clave de tercero reutilizada y acción de reintento; nunca confirma automáticamente. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Archivo",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "extensión y tamaño permitidos; hash"
+        },
+        {
+          "nombre": "Versión de plantilla",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "vigente para la empresa"
+        },
+        {
+          "nombre": "Modo de coincidencia",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "identificación y reglas configuradas"
+        },
+        {
+          "nombre": "Roles",
+          "tipo": "lista",
+          "obligatorio": "sí",
+          "validacion": "PROVEEDOR, CLIENTE o ambos"
+        },
+        {
+          "nombre": "Confirmar filas válidas",
+          "tipo": "booleano",
+          "obligatorio": "sí",
+          "validacion": "requiere revisión y permisos"
+        }
+      ],
+      "columnas": [
+        "Fila",
+        "Identificación",
+        "Nombre",
+        "Roles",
+        "Resultado validación",
+        "Mensaje",
+        "Tercero reutilizado",
+        "Estado confirmación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Descargar plantilla",
+          "resultado": "obtiene columnas y ejemplo de versión vigente",
+          "permiso": "migracion.importar_plantilla"
+        },
+        {
+          "etiqueta": "Prevalidar",
+          "resultado": "crea lote y errores por fila sin escribir perfiles activos",
+          "permiso": "migracion.importar_prevalidar"
+        },
+        {
+          "etiqueta": "Homologar",
+          "resultado": "vincula una fila con tercero o corrige datos",
+          "permiso": "migracion.homologar"
+        },
+        {
+          "etiqueta": "Confirmar válidas",
+          "resultado": "crea/actualiza roles de filas aprobadas",
+          "permiso": "migracion.importar_confirmar"
+        },
+        {
+          "etiqueta": "Reintentar rechazadas",
+          "resultado": "procesa solo filas corregidas sin duplicar lote",
+          "permiso": "migracion.importar_reintentar"
+        }
+      ],
+      "pasos_proceso": [
+        "Descargar plantilla, seleccionar versión y cargar archivo con hash.",
+        "Prevalidar estructura, identificación, roles, grupos y duplicados.",
+        "Revisar errores por fila y homologar personas existentes.",
+        "Corregir y reintentar solo filas rechazadas; conservar resultados previos.",
+        "Confirmar filas válidas con idempotencia y consultar conciliación del lote."
+      ],
+      "estados": [
+        "Cargado",
+        "Prevalidado",
+        "Con errores",
+        "Listo para confirmar",
+        "Confirmado parcial",
+        "Confirmado",
+        "Requiere corrección"
+      ],
+      "impacto_datos_contables": "Crea o actualiza perfiles de terceros, no asientos ni saldos. La reutilización evita doble identidad; el lote conserva mapas de origen, errores y reintentos para auditoría.",
+      "api_propuesta": [
+        "POST /api/v1/imports/providers-customers",
+        "GET /api/v1/imports/{batch_id}",
+        "POST /api/v1/imports/{batch_id}/homologations",
+        "POST /api/v1/imports/{batch_id}/confirm",
+        "POST /api/v1/imports/{batch_id}/retry"
+      ],
+      "validaciones": [
+        "Rechazar archivos maliciosos, ZIP bombs y entidades externas.",
+        "Identificación, roles y columnas obligatorias deben ser válidos.",
+        "Detectar duplicados dentro del archivo y contra la empresa.",
+        "No confirmar filas con tercero, grupo o dato fiscal sin homologar.",
+        "Reintentar no puede crear una segunda persona."
+      ],
+      "prueba_positiva": "Dado un archivo con diez filas válidas y dos filas corregibles, cuando se prevalida, homologa y confirma el lote, entonces se crean los perfiles de las diez filas, las dos corregidas quedan disponibles y el resumen conserva la trazabilidad.",
+      "prueba_negativa": "Dado un archivo con una identificación duplicada y una fila con rol inválido, cuando se confirma sin corregir, entonces esas filas quedan rechazadas con errores visibles y no se crean duplicados.",
+      "dependencias_ids": [
+        "XLS-043"
+      ],
+      "titulo_original": "Importación Masiva de Proveedores/Clientes",
+      "ruta_menu_original": "CxP > Proveedores > Importación Masiva de Proveedores/Clientes",
+      "ruta_react": "/cxp/proveedores/importacion-masiva-de-proveedores-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Importar terceros con rol proveedor/cliente reutilizando persona existente y reportando duplicados.",
+      "pruebas_ids": [
+        "T-UI-XLS-043",
+        "T-PROC-XLS-043",
+        "T-NEG-XLS-043"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-044",
+      "fila": 70,
+      "celda": "C70",
+      "texto_original": "Documentos de Soporte",
+      "ruta_original": "CxP > Documentos de Soporte",
+      "objetivo": "Registrar o importar documentos de soporte de compras, validarlos y generar una sola obligación y contabilización por documento confirmado.",
+      "diseno_visible": "Bandeja y formulario dedicados con pestañas Datos, Líneas/Impuestos, Soportes, Vista previa contable e Historial. Incluye carga de XML individual o ZIP, documento no electrónico permitido por configuración y comparación de duplicados; muestra estados fiscal y contable separados. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Tipo de documento",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "tipo permitido"
+        },
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "perfil activo y evidencia"
+        },
+        {
+          "nombre": "Fecha/serie/número",
+          "tipo": "fecha y texto",
+          "obligatorio": "sí",
+          "validacion": "periodo abierto; número válido"
+        },
+        {
+          "nombre": "Clave de acceso",
+          "tipo": "texto",
+          "obligatorio": "condicional",
+          "validacion": "longitud/formato cuando aplique"
+        },
+        {
+          "nombre": "Líneas y bases",
+          "tipo": "tabla decimal",
+          "obligatorio": "sí",
+          "validacion": "sumas y tratamiento tributario configurado"
+        },
+        {
+          "nombre": "Archivo/XML",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "hash, antivirus y estructura verificable"
+        }
+      ],
+      "columnas": [
+        "Tipo y número",
+        "Proveedor",
+        "Fecha",
+        "Total",
+        "Estado validación",
+        "Estado contable",
+        "Clave/duplicado",
+        "Saldo CxP"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Registrar",
+          "resultado": "guarda borrador sin contabilizar",
+          "permiso": "cxp.documento.crear"
+        },
+        {
+          "etiqueta": "Prevalidar XML/lote",
+          "resultado": "devuelve errores y duplicados sin publicar",
+          "permiso": "cxp.documento.validar"
+        },
+        {
+          "etiqueta": "Confirmar y contabilizar",
+          "resultado": "crea obligación y asiento una sola vez",
+          "permiso": "cxp.documento.publicar"
+        },
+        {
+          "etiqueta": "Reimprimir soporte",
+          "resultado": "genera copia del documento existente sin contabilizar",
+          "permiso": "cxp.documento.reimprimir"
+        },
+        {
+          "etiqueta": "Anular registro local",
+          "resultado": "envía al flujo de reverso autorizado",
+          "permiso": "cxp.documento.reversar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, proveedor y tipo; cargar soporte o XML.",
+        "Capturar líneas, bases, impuestos, vencimiento y cuentas sugeridas.",
+        "Validar proveedor, clave, número, fechas, totales, duplicados y periodo.",
+        "Revisar vista previa de obligación/asiento y aprobar según política.",
+        "Publicar con idempotencia, guardar XML/hash y consultar saldo y auditoría."
+      ],
+      "estados": [
+        "Borrador",
+        "En validación",
+        "Observado",
+        "Listo para contabilizar",
+        "Publicado",
+        "Reversado"
+      ],
+      "impacto_datos_contables": "Al publicar crea un payable_item y su asiento según plantilla aprobada; deuda, impuestos y saldo quedan enlazados al documento. Reimpresión no vuelve a contabilizar. Un reverso conserva el original.",
+      "api_propuesta": [
+        "POST /api/v1/cxp/support-documents",
+        "POST /api/v1/cxp/support-documents/{id}/validate",
+        "POST /api/v1/cxp/support-documents/{id}/post",
+        "GET /api/v1/cxp/support-documents/{id}/preview",
+        "POST /api/v1/cxp/support-documents/{id}/reverse"
+      ],
+      "validaciones": [
+        "Clave, proveedor, serie, número, fecha, bases, impuestos y total deben conciliar.",
+        "Duplicado considera empresa, proveedor, tipo y número completo.",
+        "XML original y hash son inmutables; separar estado fiscal de contable.",
+        "No publicar en periodo cerrado ni sin cuenta/tratamiento homologado.",
+        "Reintentos idempotentes no crean segunda obligación."
+      ],
+      "prueba_positiva": "Dado un documento válido no duplicado y un periodo abierto, cuando el aprobador confirma la vista previa, entonces se crea una obligación, un asiento publicado y un saldo CxP exactamente una vez.",
+      "prueba_negativa": "Dado un XML duplicado o con total que no coincide con sus líneas, cuando se intenta publicar, entonces la operación se rechaza, se conserva el soporte y no se genera asiento adicional.",
+      "dependencias_ids": [
+        "XLS-044"
+      ],
+      "titulo_original": "Documentos de Soporte",
+      "ruta_menu_original": "CxP > Documentos de Soporte",
+      "ruta_react": "/cxp/documentos-de-soporte",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar/importar factura y soporte, validar clave/número/proveedor/fecha y contabilizar una sola vez.",
+      "pruebas_ids": [
+        "T-UI-XLS-044",
+        "T-PROC-XLS-044",
+        "T-NEG-XLS-044"
+      ],
+      "modulo": "CxP",
+      "nivel": 3
+    },
+    {
+      "id": "XLS-045",
+      "fila": 72,
+      "celda": "D72",
+      "texto_original": "Ingreso de Anticipos",
+      "ruta_original": "CxP > Anticipos > Ingreso de Anticipos",
+      "objetivo": "Registrar un anticipo a proveedor con desembolso, saldo disponible y trazabilidad bancaria sin reconocerlo como gasto.",
+      "diseno_visible": "Formulario transaccional con proveedor, fecha, medio de desembolso, cuenta origen, importe, soporte y contrapartida; panel de saldo disponible, vista previa contable, historial y aplicaciones. El inmueble es opcional y se oculta cuando no está habilitado. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "activo y de la empresa"
+        },
+        {
+          "nombre": "Fecha y referencia",
+          "tipo": "fecha/texto",
+          "obligatorio": "sí",
+          "validacion": "periodo abierto; referencia única"
+        },
+        {
+          "nombre": "Importe",
+          "tipo": "decimal",
+          "obligatorio": "sí",
+          "validacion": "mayor que cero; precisión configurada"
+        },
+        {
+          "nombre": "Cuenta/medio de desembolso",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "cuenta habilitada"
+        },
+        {
+          "nombre": "Soporte",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "hash y tipo permitido"
+        },
+        {
+          "nombre": "Dimensión opcional",
+          "tipo": "selector",
+          "obligatorio": "no",
+          "validacion": "solo si módulo habilitado"
+        }
+      ],
+      "columnas": [
+        "Número anticipo",
+        "Proveedor",
+        "Fecha",
+        "Importe original",
+        "Aplicado",
+        "Disponible",
+        "Estado",
+        "Asiento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar borrador",
+          "resultado": "crea anticipo no publicado",
+          "permiso": "cxp.anticipo.crear"
+        },
+        {
+          "etiqueta": "Previsualizar asiento",
+          "resultado": "muestra débito/crédito propuesto",
+          "permiso": "cxp.anticipo.previsualizar"
+        },
+        {
+          "etiqueta": "Publicar desembolso",
+          "resultado": "registra activo de anticipo y asiento",
+          "permiso": "cxp.anticipo.publicar"
+        },
+        {
+          "etiqueta": "Consultar aplicaciones",
+          "resultado": "abre cruces vinculados",
+          "permiso": "cxp.anticipo.consultar"
+        },
+        {
+          "etiqueta": "Reimprimir comprobante",
+          "resultado": "copia soporte sin nuevo efecto",
+          "permiso": "cxp.anticipo.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar proveedor, periodo, cuenta de desembolso y soporte.",
+        "Capturar importe y referencia; validar saldo, duplicidad y cuenta.",
+        "Revisar vista previa que separa anticipo de gasto.",
+        "Aprobar y publicar en una transacción idempotente.",
+        "Consultar disponible, aplicaciones y vínculo bancario."
+      ],
+      "estados": [
+        "Borrador",
+        "Pendiente de aprobación",
+        "Publicado",
+        "Parcialmente aplicado",
+        "Aplicado",
+        "Reversado"
+      ],
+      "impacto_datos_contables": "Registra un activo/saldo a favor contra proveedor y reduce fondos según el medio; no crea gasto ni obligación por compra hasta el cruce correspondiente. Sus aplicaciones alimentan el auxiliar CxP.",
+      "api_propuesta": [
+        "POST /api/v1/cxp/supplier-advances",
+        "GET /api/v1/cxp/supplier-advances/{id}/preview",
+        "POST /api/v1/cxp/supplier-advances/{id}/post",
+        "GET /api/v1/cxp/supplier-advances/{id}/applications"
+      ],
+      "validaciones": [
+        "Proveedor y empresa deben coincidir.",
+        "Importe positivo, cuenta vigente y periodo abierto.",
+        "No duplicar referencia/soporte según regla de la empresa.",
+        "El asiento debe usar plantilla de anticipo, no gasto.",
+        "Publicar exige permiso y bloqueo de concurrencia."
+      ],
+      "prueba_positiva": "Dado un anticipo válido con desembolso identificado, cuando se aprueba y publica, entonces queda saldo disponible para el proveedor, asiento único y soporte consultable.",
+      "prueba_negativa": "Dado un importe cero, referencia duplicada o periodo cerrado, cuando se intenta publicar, entonces se rechaza sin movimiento bancario ni gasto.",
+      "dependencias_ids": [
+        "XLS-045"
+      ],
+      "titulo_original": "Ingreso de Anticipos",
+      "ruta_menu_original": "CxP > Anticipos > Ingreso de Anticipos",
+      "ruta_react": "/cxp/anticipos/ingreso-de-anticipos",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar anticipo proveedor con desembolso y saldo disponible; no registrarlo como gasto.",
+      "pruebas_ids": [
+        "T-UI-XLS-045",
+        "T-PROC-XLS-045",
+        "T-NEG-XLS-045"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-046",
+      "fila": 73,
+      "celda": "D73",
+      "texto_original": "Cruce de Anticipos Proveedores",
+      "ruta_original": "CxP > Anticipos > Cruce de Anticipos Proveedores",
+      "objetivo": "Aplicar un anticipo a una deuda del mismo proveedor y empresa hasta el saldo disponible, en una transacción única y trazable.",
+      "diseno_visible": "Pantalla de selección con filtros por proveedor, corte, vencimiento y estado; panel maestro-detalle que muestra anticipos disponibles, obligaciones elegibles, importe a aplicar, saldo antes/después y vista previa del asiento. No permite mezclar empresas ni proveedores. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "mismo proveedor en ambas fuentes"
+        },
+        {
+          "nombre": "Anticipo",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "saldo disponible positivo"
+        },
+        {
+          "nombre": "Documento CxP",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "obligación abierta elegible"
+        },
+        {
+          "nombre": "Importe aplicación",
+          "tipo": "decimal",
+          "obligatorio": "sí",
+          "validacion": "mayor que cero y menor o igual a ambos saldos"
+        },
+        {
+          "nombre": "Fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "periodo abierto"
+        },
+        {
+          "nombre": "Motivo",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "auditable"
+        }
+      ],
+      "columnas": [
+        "Anticipo",
+        "Documento",
+        "Proveedor",
+        "Saldo anticipo",
+        "Saldo deuda",
+        "Aplicado",
+        "Fecha",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Simular cruce",
+          "resultado": "calcula saldos y asiento sin escribir",
+          "permiso": "cxp.anticipo_cruce.previsualizar"
+        },
+        {
+          "etiqueta": "Confirmar cruce",
+          "resultado": "aplica en una transacción única",
+          "permiso": "cxp.anticipo_cruce.publicar"
+        },
+        {
+          "etiqueta": "Cancelar borrador",
+          "resultado": "descarta selección no publicada",
+          "permiso": "cxp.anticipo_cruce.cancelar"
+        },
+        {
+          "etiqueta": "Consultar trazabilidad",
+          "resultado": "navega a anticipo, obligación y asiento",
+          "permiso": "cxp.anticipo_cruce.consultar"
+        },
+        {
+          "etiqueta": "Reimprimir constancia",
+          "resultado": "copia operación existente",
+          "permiso": "cxp.anticipo_cruce.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Filtrar y seleccionar proveedor, anticipo y obligación compatible.",
+        "Capturar importe, fecha y motivo; validar saldos bajo bloqueo.",
+        "Revisar saldos antes/después y vista previa de aplicación.",
+        "Confirmar una sola transacción con idempotencia.",
+        "Consultar enlaces, estados y reporte de aplicaciones."
+      ],
+      "estados": [
+        "Borrador",
+        "Previsualizado",
+        "Publicado",
+        "Reversado",
+        "Rechazado"
+      ],
+      "impacto_datos_contables": "Reduce el anticipo disponible y la deuda CxP por el mismo importe; genera aplicación y asiento de compensación, no ingreso ni gasto nuevo. El histórico queda disponible para cortes.",
+      "api_propuesta": [
+        "GET /api/v1/cxp/advance-offsets/eligible",
+        "POST /api/v1/cxp/advance-offsets/preview",
+        "POST /api/v1/cxp/advance-offsets",
+        "GET /api/v1/cxp/advance-offsets/{id}"
+      ],
+      "validaciones": [
+        "Proveedor, empresa y moneda deben coincidir.",
+        "Importe no puede superar anticipo ni obligación.",
+        "Bloquear saldos durante la confirmación y rechazar versión obsoleta.",
+        "No aplicar a documentos anulados, reversados o cerrados.",
+        "Reintento con misma clave devuelve operación existente."
+      ],
+      "prueba_positiva": "Dado un anticipo disponible de 100 y una deuda elegible de 80, cuando se confirma una aplicación de 80, entonces el anticipo queda con 20, la deuda con cero y existe un asiento único enlazado.",
+      "prueba_negativa": "Dado que la deuda pertenece a otra empresa o el importe supera el saldo disponible, cuando se confirma, entonces el backend rechaza la operación sin modificar ninguno de los dos auxiliares.",
+      "dependencias_ids": [
+        "XLS-046"
+      ],
+      "titulo_original": "Cruce de Anticipos Proveedores",
+      "ruta_menu_original": "CxP > Anticipos > Cruce de Anticipos Proveedores",
+      "ruta_react": "/cxp/anticipos/cruce-de-anticipos-proveedores",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Aplicar anticipo a deuda del mismo proveedor/empresa hasta el saldo disponible en transacción única.",
+      "pruebas_ids": [
+        "T-UI-XLS-046",
+        "T-PROC-XLS-046",
+        "T-NEG-XLS-046"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-047",
+      "fila": 74,
+      "celda": "D74",
+      "texto_original": "Anulación de Anticipos Proveedores",
+      "ruta_original": "CxP > Anticipos > Anulación de Anticipos Proveedores",
+      "objetivo": "Reversar un anticipo no aplicado o deshacer primero sus aplicaciones, conservando vínculos y controles bancarios.",
+      "diseno_visible": "Pantalla transaccional con buscador de anticipos por proveedor/fecha/estado, detalle de aplicaciones, dependencias bancarias y asistente de reverso. Muestra advertencia clara de que se revierte el registro local y que no se borra el original. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Anticipo",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "publicado y de empresa activa"
+        },
+        {
+          "nombre": "Motivo",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "mínimo y auditable"
+        },
+        {
+          "nombre": "Fecha reverso",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "periodo abierto"
+        },
+        {
+          "nombre": "Tratamiento aplicaciones",
+          "tipo": "selector",
+          "obligatorio": "condicional",
+          "validacion": "deshacer primero o bloquear"
+        },
+        {
+          "nombre": "Evidencia",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "soporte y hash"
+        },
+        {
+          "nombre": "Confirmación",
+          "tipo": "booleano",
+          "obligatorio": "sí",
+          "validacion": "acepta efecto contable y bancario"
+        }
+      ],
+      "columnas": [
+        "Anticipo",
+        "Proveedor",
+        "Original",
+        "Aplicado",
+        "Disponible",
+        "Dependencias",
+        "Estado",
+        "Reverso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Revisar dependencias",
+          "resultado": "muestra aplicaciones y banco relacionado",
+          "permiso": "cxp.anticipo_anulacion.consultar"
+        },
+        {
+          "etiqueta": "Deshacer aplicaciones",
+          "resultado": "revierte cruces autorizados previamente",
+          "permiso": "cxp.anticipo_anulacion.desaplicar"
+        },
+        {
+          "etiqueta": "Solicitar reverso",
+          "resultado": "envía aprobación con motivo/evidencia",
+          "permiso": "cxp.anticipo_anulacion.solicitar"
+        },
+        {
+          "etiqueta": "Confirmar reverso",
+          "resultado": "publica reverso local único",
+          "permiso": "cxp.anticipo_anulacion.publicar"
+        },
+        {
+          "etiqueta": "Reimprimir constancia",
+          "resultado": "copia historial sin nuevo asiento",
+          "permiso": "cxp.anticipo_anulacion.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar anticipo publicado y revisar aplicaciones/relaciones bancarias.",
+        "Capturar motivo, fecha y evidencia; resolver aplicaciones según permisos.",
+        "Validar periodo, dependencias y vista previa del reverso.",
+        "Aprobar y publicar reverso sin borrar el original.",
+        "Consultar saldo, asiento reverso, auditoría y estado bancario pendiente."
+      ],
+      "estados": [
+        "Publicado",
+        "Con aplicaciones",
+        "Pendiente de reverso",
+        "Reversado",
+        "Bloqueado por dependencia"
+      ],
+      "impacto_datos_contables": "Revierte el efecto del anticipo y sus aplicaciones según orden aprobado; conserva original, enlaces y evidencias. Si hay dependencia bancaria, la deja en flujo controlado y no altera el extracto por simple anulación.",
+      "api_propuesta": [
+        "GET /api/v1/cxp/supplier-advances/{id}/dependencies",
+        "POST /api/v1/cxp/supplier-advances/{id}/unapply",
+        "POST /api/v1/cxp/supplier-advances/{id}/reverse",
+        "GET /api/v1/cxp/supplier-advances/{id}/history"
+      ],
+      "validaciones": [
+        "No borrar ni editar el anticipo publicado.",
+        "Exigir desaplicar antes si existen cruces activos.",
+        "Verificar periodo abierto y permiso de reverso.",
+        "Conservar XML/soporte y asiento original.",
+        "La operación es idempotente y bloquea doble reverso."
+      ],
+      "prueba_positiva": "Dado un anticipo publicado sin aplicaciones y con periodo abierto, cuando un usuario autorizado confirma el reverso, entonces se genera reverso enlazado, el saldo queda cero disponible y el original permanece consultable.",
+      "prueba_negativa": "Dado un anticipo con aplicación activa, cuando se intenta reversar sin desaplicar, entonces la pantalla bloquea la operación y enumera la dependencia sin crear asiento.",
+      "dependencias_ids": [
+        "XLS-047"
+      ],
+      "titulo_original": "Anulación de Anticipos Proveedores",
+      "ruta_menu_original": "CxP > Anticipos > Anulación de Anticipos Proveedores",
+      "ruta_react": "/cxp/anticipos/anulacion-de-anticipos-proveedores",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reversar anticipo no aplicado o deshacer aplicaciones primero, conservando vínculos y controles bancarios.",
+      "pruebas_ids": [
+        "T-UI-XLS-047",
+        "T-PROC-XLS-047",
+        "T-NEG-XLS-047"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-048",
+      "fila": 75,
+      "celda": "D75",
+      "texto_original": "Migración Anticipos Proveedores",
+      "ruta_original": "CxP > Anticipos > Migración Anticipos Proveedores",
+      "objetivo": "Migrar anticipos de proveedores al corte con saldo, contrapartida inicial y conciliación sin doble contabilización.",
+      "diseno_visible": "Asistente dedicado con plantilla versionada, fecha de corte, empresa, cuenta de contrapartida y tabla de conciliación. La revisión separa filas nuevas, duplicadas, con saldo discrepante y homologación de proveedor; exige confirmación explícita antes de crear saldos iniciales. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Archivo plantilla",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "formato, hash y columnas vigentes"
+        },
+        {
+          "nombre": "Fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "periodo y política de migración"
+        },
+        {
+          "nombre": "Proveedor/origen",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "homologable a tercero"
+        },
+        {
+          "nombre": "Saldo anticipo",
+          "tipo": "decimal",
+          "obligatorio": "sí",
+          "validacion": "no negativo y moneda"
+        },
+        {
+          "nombre": "Cuenta contrapartida",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "cuenta aprobada para apertura"
+        },
+        {
+          "nombre": "Modo de carga",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "preparar o confirmar"
+        }
+      ],
+      "columnas": [
+        "Fila",
+        "Proveedor origen",
+        "Proveedor destino",
+        "Saldo",
+        "Contrapartida",
+        "Resultado",
+        "Diferencia",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Descargar plantilla",
+          "resultado": "obtiene estructura de migración",
+          "permiso": "migracion.anticipos_plantilla"
+        },
+        {
+          "etiqueta": "Prevalidar corte",
+          "resultado": "calcula errores y duplicados sin publicar",
+          "permiso": "migracion.anticipos_prevalidar"
+        },
+        {
+          "etiqueta": "Conciliar",
+          "resultado": "muestra origen contra saldos cargados",
+          "permiso": "migracion.anticipos_conciliar"
+        },
+        {
+          "etiqueta": "Confirmar lote",
+          "resultado": "crea saldos iniciales y asientos aprobados",
+          "permiso": "migracion.anticipos_confirmar"
+        },
+        {
+          "etiqueta": "Reintentar errores",
+          "resultado": "procesa filas corregidas sin duplicar",
+          "permiso": "migracion.anticipos_reintentar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, corte, plantilla y contrapartida aprobada.",
+        "Cargar archivo y homologar proveedores a identidades existentes.",
+        "Prevalidar saldos, moneda, duplicados, cuentas y consistencia del corte.",
+        "Revisar conciliación y confirmar solo filas válidas con aprobación.",
+        "Consultar lote, saldos iniciales, asientos y diferencias pendientes."
+      ],
+      "estados": [
+        "Cargado",
+        "Prevalidado",
+        "Con errores",
+        "Conciliado",
+        "Confirmado parcial",
+        "Confirmado",
+        "Requiere reintento"
+      ],
+      "impacto_datos_contables": "Crea saldos iniciales de anticipo y sus contrapartidas de migración; no registra gasto. Cada fila queda enlazada al lote, proveedor y asiento de apertura, con conciliación para evitar segunda carga.",
+      "api_propuesta": [
+        "POST /api/v1/migrations/supplier-advances",
+        "GET /api/v1/migrations/{batch_id}",
+        "POST /api/v1/migrations/{batch_id}/reconcile",
+        "POST /api/v1/migrations/{batch_id}/confirm",
+        "POST /api/v1/migrations/{batch_id}/retry"
+      ],
+      "validaciones": [
+        "Corte, moneda, saldo y proveedor deben ser válidos.",
+        "Homologar antes de confirmar; no crear identidades implícitas.",
+        "Detectar lote/clave ya confirmado y rechazar doble contabilización.",
+        "Contrapartida requiere cuenta y permiso aprobados.",
+        "Errores por fila deben ser descargables y corregibles."
+      ],
+      "prueba_positiva": "Dado un lote conciliado con tres anticipos y contrapartida aprobada, cuando se confirma, entonces se crean tres saldos iniciales y asientos de apertura enlazados, con total igual al archivo.",
+      "prueba_negativa": "Dado que una fila ya fue confirmada o su saldo no concilia con el corte, cuando se reintenta el lote, entonces la fila se rechaza y no se duplica ningún saldo ni asiento.",
+      "dependencias_ids": [
+        "XLS-048"
+      ],
+      "titulo_original": "Migración Anticipos Proveedores",
+      "ruta_menu_original": "CxP > Anticipos > Migración Anticipos Proveedores",
+      "ruta_react": "/cxp/anticipos/migracion-anticipos-proveedores",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Importar anticipos proveedores con saldo al corte, contrapartida inicial y conciliación sin doble contabilización.",
+      "pruebas_ids": [
+        "T-UI-XLS-048",
+        "T-PROC-XLS-048",
+        "T-NEG-XLS-048"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-049",
+      "fila": 77,
+      "celda": "D77",
+      "texto_original": "Ingreso Nota de Crédito",
+      "ruta_original": "CxP > Notas de Crédito > Ingreso Nota de Crédito",
+      "objetivo": "Registrar una nota de crédito recibida vinculada a una compra y ajustar CxP e impuestos según documento válido.",
+      "diseno_visible": "Formulario separado de ingreso con búsqueda de compra/obligación, captura de motivo, líneas, bases, impuestos y soporte. Presenta impacto previo en saldo, crédito a favor si excede deuda y estados fiscal/contable independientes. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Proveedor y compra origen",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "misma empresa y vínculo válido"
+        },
+        {
+          "nombre": "Tipo/número/clave",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "unicidad y formato aplicable"
+        },
+        {
+          "nombre": "Fecha",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "periodo abierto y reglas vigentes configuradas"
+        },
+        {
+          "nombre": "Motivo y líneas",
+          "tipo": "texto/tabla",
+          "obligatorio": "sí",
+          "validacion": "coincide con soporte"
+        },
+        {
+          "nombre": "Bases/impuestos",
+          "tipo": "tabla decimal",
+          "obligatorio": "sí",
+          "validacion": "cálculo por matriz vigente"
+        },
+        {
+          "nombre": "XML/soporte",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "hash y validación"
+        }
+      ],
+      "columnas": [
+        "NC",
+        "Proveedor",
+        "Compra origen",
+        "Fecha",
+        "Total",
+        "Saldo antes/después",
+        "Estado fiscal",
+        "Estado contable"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Registrar borrador",
+          "resultado": "guarda documento sin impacto",
+          "permiso": "cxp.nota_credito.crear"
+        },
+        {
+          "etiqueta": "Validar soporte",
+          "resultado": "comprueba vínculo, totales y duplicados",
+          "permiso": "cxp.nota_credito.validar"
+        },
+        {
+          "etiqueta": "Publicar ajuste",
+          "resultado": "genera ajuste CxP/asiento único",
+          "permiso": "cxp.nota_credito.publicar"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "copia documento ya registrado",
+          "permiso": "cxp.nota_credito.reimprimir"
+        },
+        {
+          "etiqueta": "Consultar origen",
+          "resultado": "navega a compra y asiento",
+          "permiso": "cxp.nota_credito.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar proveedor y compra u obligación vinculada.",
+        "Capturar nota, motivo, líneas, bases, impuestos y soporte.",
+        "Validar unicidad, vínculo, importes, periodo y matriz fiscal configurada.",
+        "Revisar vista previa del saldo y crédito a favor; aprobar.",
+        "Publicar una vez y consultar documento, asiento y trazabilidad."
+      ],
+      "estados": [
+        "Borrador",
+        "En validación",
+        "Observada",
+        "Publicada",
+        "Reversada"
+      ],
+      "impacto_datos_contables": "Reduce la obligación y ajusta impuestos según la configuración aprobada; si excede saldo impago, crea saldo a favor explícito. No borra la compra ni usa saldo cero como rechazo automático.",
+      "api_propuesta": [
+        "POST /api/v1/cxp/credit-notes",
+        "POST /api/v1/cxp/credit-notes/{id}/validate",
+        "POST /api/v1/cxp/credit-notes/{id}/post",
+        "GET /api/v1/cxp/credit-notes/{id}/preview"
+      ],
+      "validaciones": [
+        "Nota y compra deben pertenecer a la misma empresa/proveedor.",
+        "No duplicar por tipo y número completo.",
+        "Bases, impuestos y total deben conciliar con soporte.",
+        "No modificar documentos publicados; correcciones usan reverso.",
+        "No hardcodear porcentajes: resolver matriz vigente configurada."
+      ],
+      "prueba_positiva": "Dado un soporte válido vinculado a una compra abierta, cuando se publica la nota, entonces el saldo CxP y el asiento se ajustan una vez, conservando el documento original y su auditoría.",
+      "prueba_negativa": "Dado un número duplicado, proveedor distinto o total inconsistente, cuando se intenta publicar, entonces el backend rechaza la nota y mantiene intacta la obligación original.",
+      "dependencias_ids": [
+        "XLS-049"
+      ],
+      "titulo_original": "Ingreso Nota de Crédito",
+      "ruta_menu_original": "CxP > Notas de Crédito > Ingreso Nota de Crédito",
+      "ruta_react": "/cxp/notas-de-credito/ingreso-nota-de-credito",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar nota de crédito recibida vinculada a compra y ajustar CxP/impuestos según documento válido.",
+      "pruebas_ids": [
+        "T-UI-XLS-049",
+        "T-PROC-XLS-049",
+        "T-NEG-XLS-049"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-050",
+      "fila": 78,
+      "celda": "D78",
+      "texto_original": "Anulación Nota de Crédito",
+      "ruta_original": "CxP > Notas de Crédito > Anulación Nota de Crédito",
+      "objetivo": "Revertir localmente una nota de crédito recibida mediante reverso autorizado, sin pretender anular el documento fiscal del proveedor.",
+      "diseno_visible": "Pantalla propia de anulación con buscador de NC publicadas, detalle de compra, estado fiscal informado, dependencias, motivo, evidencia y vista previa de reverso. Explica visualmente que la operación local y cualquier trámite fiscal externo son flujos separados. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Nota de crédito",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "publicada y empresa activa"
+        },
+        {
+          "nombre": "Motivo",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "obligatorio y auditable"
+        },
+        {
+          "nombre": "Fecha reverso",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "periodo abierto"
+        },
+        {
+          "nombre": "Evidencia",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "soporte/hash"
+        },
+        {
+          "nombre": "Resultado fiscal externo",
+          "tipo": "texto/estado",
+          "obligatorio": "no",
+          "validacion": "solo registro informativo; no asumir API"
+        },
+        {
+          "nombre": "Confirmación",
+          "tipo": "booleano",
+          "obligatorio": "sí",
+          "validacion": "acepta reverso local"
+        }
+      ],
+      "columnas": [
+        "NC",
+        "Proveedor",
+        "Compra",
+        "Total",
+        "Estado contable",
+        "Estado fiscal informado",
+        "Dependencias",
+        "Reverso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar detalle",
+          "resultado": "muestra XML/soporte y vínculos",
+          "permiso": "cxp.nota_credito.consultar"
+        },
+        {
+          "etiqueta": "Solicitar reverso",
+          "resultado": "crea aprobación con motivo",
+          "permiso": "cxp.nota_credito.reversar_solicitar"
+        },
+        {
+          "etiqueta": "Confirmar reverso local",
+          "resultado": "publica asiento reverso sin borrar NC",
+          "permiso": "cxp.nota_credito.reversar_publicar"
+        },
+        {
+          "etiqueta": "Registrar evidencia externa",
+          "resultado": "actualiza solo resultado documentado",
+          "permiso": "cxp.nota_credito.evidencia"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "copia historial sin nuevo asiento",
+          "permiso": "cxp.nota_credito.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar NC publicada y revisar compra, aplicaciones y estado fiscal.",
+        "Capturar motivo, evidencia y fecha; identificar dependencias.",
+        "Previsualizar reverso contable y advertencia sobre trámite externo.",
+        "Aprobar/publicar reverso local sin borrar XML ni original.",
+        "Registrar por separado cualquier evidencia externa y consultar auditoría."
+      ],
+      "estados": [
+        "Publicada",
+        "Pendiente de reverso",
+        "Reversada localmente",
+        "Con trámite externo informado",
+        "Bloqueada"
+      ],
+      "impacto_datos_contables": "Reconstituye localmente el efecto de la NC sobre CxP e impuestos mediante reverso enlazado. No afirma anulación fiscal del proveedor ni elimina XML, número o historial.",
+      "api_propuesta": [
+        "GET /api/v1/cxp/credit-notes/{id}/dependencies",
+        "POST /api/v1/cxp/credit-notes/{id}/reverse",
+        "POST /api/v1/cxp/credit-notes/{id}/external-evidence",
+        "GET /api/v1/cxp/credit-notes/{id}/history"
+      ],
+      "validaciones": [
+        "Solo NC publicada puede solicitar reverso.",
+        "Resolver aplicaciones/dependencias antes de publicar.",
+        "No borrar documento, XML o autorización.",
+        "Estado fiscal externo debe ser informativo hasta evidencia verificable.",
+        "Reverso idempotente y sujeto a periodo/permisos."
+      ],
+      "prueba_positiva": "Dado una NC publicada sin dependencias bloqueantes, cuando el usuario autorizado confirma el reverso local, entonces se publica un reverso enlazado, la NC permanece consultable y el resultado fiscal no se inventa.",
+      "prueba_negativa": "Dado una NC con aplicación activa o periodo cerrado, cuando se intenta anular, entonces la pantalla bloquea el reverso y muestra la dependencia o cierre responsable.",
+      "dependencias_ids": [
+        "XLS-050"
+      ],
+      "titulo_original": "Anulación Nota de Crédito",
+      "ruta_menu_original": "CxP > Notas de Crédito > Anulación Nota de Crédito",
+      "ruta_react": "/cxp/notas-de-credito/anulacion-nota-de-credito",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Anular registro local de NC recibida por reverso autorizado; no pretender anular documento fiscal del proveedor.",
+      "pruebas_ids": [
+        "T-UI-XLS-050",
+        "T-PROC-XLS-050",
+        "T-NEG-XLS-050"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-051",
+      "fila": 80,
+      "celda": "D80",
+      "texto_original": "Ingreso Liq. De Compras",
+      "ruta_original": "CxP > Liquidación de Compras > Ingreso Liq. De Compras",
+      "objetivo": "Emitir una liquidación de compras solo bajo supuestos configurados y aprobados, generar XML real mediante adaptador habilitado y consultar resultado autorizado.",
+      "diseno_visible": "Flujo dedicado con datos del proveedor/sujeto, concepto, bases, impuestos configurados, numeración, soportes, vista previa contable, firma y bandeja de trabajo. Se muestran por separado validación local, recepción, autorización, RIDE y deuda CxP; nunca se simula autorización en producción. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Proveedor/sujeto",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "perfil y supuesto habilitado"
+        },
+        {
+          "nombre": "Fecha y numeración",
+          "tipo": "fecha/texto",
+          "obligatorio": "sí",
+          "validacion": "secuencia vigente y no reutilizada"
+        },
+        {
+          "nombre": "Concepto y líneas",
+          "tipo": "tabla",
+          "obligatorio": "sí",
+          "validacion": "soporte y cuentas"
+        },
+        {
+          "nombre": "Tratamiento fiscal",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "matriz vigente aprobada; sin tasas fijas"
+        },
+        {
+          "nombre": "Certificado/configuración",
+          "tipo": "referencia",
+          "obligatorio": "sí",
+          "validacion": "secreto custodiado, no expuesto"
+        },
+        {
+          "nombre": "Soportes",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "hash y evidencia"
+        }
+      ],
+      "columnas": [
+        "Número/clave",
+        "Sujeto",
+        "Fecha",
+        "Total",
+        "Estado local",
+        "Recepción",
+        "Autorización",
+        "Asiento",
+        "RIDE"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar borrador",
+          "resultado": "crea documento sin emisión",
+          "permiso": "tax.liquidacion.crear"
+        },
+        {
+          "etiqueta": "Validar y firmar",
+          "resultado": "genera XML firmado si configuración válida",
+          "permiso": "tax.liquidacion.firmar"
+        },
+        {
+          "etiqueta": "Transmitir/encolar",
+          "resultado": "usa adaptador oficial documentado y devuelve trabajo",
+          "permiso": "tax.liquidacion.transmitir"
+        },
+        {
+          "etiqueta": "Consultar autorización",
+          "resultado": "actualiza respuesta real y efectos",
+          "permiso": "tax.liquidacion.consultar"
+        },
+        {
+          "etiqueta": "Reimprimir RIDE",
+          "resultado": "copia autorizado sin contabilizar otra vez",
+          "permiso": "tax.liquidacion.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, sujeto y supuesto configurado/aprobado.",
+        "Capturar líneas, tratamiento fiscal, numeración y soportes.",
+        "Validar XML, secuencia, firma, cuentas y vista previa CxP.",
+        "Aprobar, firmar y transmitir por adaptador documentado; seguir trabajo.",
+        "Consultar recepción/autorización real y publicar efecto contable una sola vez."
+      ],
+      "estados": [
+        "Borrador",
+        "Validación fallida",
+        "Firmada",
+        "Enviada",
+        "Recibida",
+        "Autorizada",
+        "No autorizada",
+        "Rechazada"
+      ],
+      "impacto_datos_contables": "Al autorizar y confirmar el efecto, crea documento/obligación y asiento según plantilla. Firma, recepción y autorización se guardan con artefactos; no se presenta una pantalla falsa de SRI ni se publica antes del control definido.",
+      "api_propuesta": [
+        "POST /api/v1/tax/purchase-settlements",
+        "POST /api/v1/tax/purchase-settlements/{id}/validate-sign",
+        "POST /api/v1/tax/purchase-settlements/{id}/transmit",
+        "GET /api/v1/tax/purchase-settlements/{id}/status",
+        "POST /api/v1/tax/purchase-settlements/{id}/post-effect"
+      ],
+      "validaciones": [
+        "Supuesto y perfil tributario deben estar aprobados para la fecha.",
+        "Resolver numeración, firma, XSD/catálogos y credenciales custodiadas.",
+        "No inventar endpoint público ni estado autorizado.",
+        "Separar estados fiscal y contable; no publicar dos veces.",
+        "Tasas y retenciones provienen de configuración vigente, nunca constantes."
+      ],
+      "prueba_positiva": "Dado un supuesto habilitado, XML válido y certificado configurado, cuando el adaptador devuelve autorización real y el usuario confirma el efecto, entonces se conserva el comprobante y se crea una obligación/asiento único.",
+      "prueba_negativa": "Dado un supuesto no habilitado o una respuesta fiscal no autorizada, cuando se intenta publicar, entonces el sistema mantiene el documento en estado fiscal correspondiente y no crea una deuda contable autorizada.",
+      "dependencias_ids": [
+        "XLS-051"
+      ],
+      "titulo_original": "Ingreso Liq. De Compras",
+      "ruta_menu_original": "CxP > Liquidación de Compras > Ingreso Liq. De Compras",
+      "ruta_react": "/cxp/liquidacion-de-compras/ingreso-liq-de-compras",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Emitir liquidación de compra solo en supuestos configurados/aprobados, firmar y consultar autorización SRI.",
+      "pruebas_ids": [
+        "T-UI-XLS-051",
+        "T-PROC-XLS-051",
+        "T-NEG-XLS-051"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-052",
+      "fila": 81,
+      "celda": "D81",
+      "texto_original": "Anulación Liq. De Compras",
+      "ruta_original": "CxP > Liquidación de Compras > Anulación Liq. De Compras",
+      "objetivo": "Separar el reverso local de una liquidación de compras del trámite fiscal de anulación, reflejando solo resultados remotos comprobados.",
+      "diseno_visible": "Pantalla propia con búsqueda de liquidaciones, estado fiscal/contable lado a lado, dependencias, motivo, evidencia y asistente de acciones. Si no existe canal oficial automatizable, genera tarea para operador autorizado en portal correspondiente; no asume API pública. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Liquidación",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "identificador y empresa"
+        },
+        {
+          "nombre": "Motivo local",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "evidencia obligatoria"
+        },
+        {
+          "nombre": "Fecha reverso",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "periodo abierto"
+        },
+        {
+          "nombre": "Acción fiscal",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "registrar solicitud o tarea manual"
+        },
+        {
+          "nombre": "Resultado remoto",
+          "tipo": "estado/texto",
+          "obligatorio": "no",
+          "validacion": "solo respuesta documentada"
+        },
+        {
+          "nombre": "Confirmación",
+          "tipo": "booleano",
+          "obligatorio": "sí",
+          "validacion": "separa efectos"
+        }
+      ],
+      "columnas": [
+        "Liquidación",
+        "Clave",
+        "Proveedor",
+        "Estado contable",
+        "Estado fiscal",
+        "Solicitud externa",
+        "Dependencias",
+        "Reverso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Revisar",
+          "resultado": "muestra XML, autorización y asiento",
+          "permiso": "tax.liquidacion.consultar"
+        },
+        {
+          "etiqueta": "Reversar local",
+          "resultado": "publica reverso autorizado del efecto interno",
+          "permiso": "tax.liquidacion.reversar_local"
+        },
+        {
+          "etiqueta": "Crear tarea fiscal",
+          "resultado": "registra instrucción y responsable si aplica",
+          "permiso": "tax.liquidacion.crear_tarea"
+        },
+        {
+          "etiqueta": "Registrar resultado",
+          "resultado": "guarda evidencia de canal real",
+          "permiso": "tax.liquidacion.resultado"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "copia constancia sin nuevo efecto",
+          "permiso": "tax.liquidacion.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar liquidación autorizada y revisar dependencias.",
+        "Capturar motivo y elegir reverso local, tarea externa o ambos.",
+        "Validar periodo, permisos y evidencia; mostrar advertencia de separación.",
+        "Publicar reverso local si fue aprobado y registrar solicitud externa separadamente.",
+        "Actualizar resultado solo con evidencia; consultar historial y efectos CxP."
+      ],
+      "estados": [
+        "Autorizada",
+        "Pendiente de decisión",
+        "Reversada localmente",
+        "Solicitud fiscal pendiente",
+        "Anulación fiscal confirmada",
+        "Anulación fiscal rechazada"
+      ],
+      "impacto_datos_contables": "El reverso local deshace efectos contables/CxP según autorización; el trámite fiscal conserva XML y cambia únicamente con respuesta o evidencia verificable. Nunca se confunde una tarea manual con autorización.",
+      "api_propuesta": [
+        "GET /api/v1/tax/purchase-settlements/{id}/cancellation-context",
+        "POST /api/v1/tax/purchase-settlements/{id}/local-reversal",
+        "POST /api/v1/tax/cancellation-requests",
+        "PATCH /api/v1/tax/cancellation-requests/{id}/result",
+        "GET /api/v1/tax/cancellation-requests/{id}"
+      ],
+      "validaciones": [
+        "No borrar XML, autorización ni asiento original.",
+        "Separar permiso de reverso local y permiso de trámite fiscal.",
+        "No llamar a una API SRI no documentada; usar adaptador solo con capacidad comprobada.",
+        "No cambiar estado remoto sin evidencia.",
+        "Reverso local idempotente y sujeto a dependencias/periodo."
+      ],
+      "prueba_positiva": "Dado una liquidación autorizada y un reverso local aprobado, cuando se confirma, entonces se crea el reverso contable y una solicitud fiscal separada, cada una con su estado e historial.",
+      "prueba_negativa": "Dado que no existe canal oficial automatizable o falta evidencia externa, cuando se intenta marcar anulación fiscal confirmada, entonces el sistema lo impide y mantiene la solicitud pendiente/manual.",
+      "dependencias_ids": [
+        "XLS-052"
+      ],
+      "titulo_original": "Anulación Liq. De Compras",
+      "ruta_menu_original": "CxP > Liquidación de Compras > Anulación Liq. De Compras",
+      "ruta_react": "/cxp/liquidacion-de-compras/anulacion-liq-de-compras",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Separar reverso local de trámite fiscal de anulación; reflejar resultado remoto y efectos en CxP.",
+      "pruebas_ids": [
+        "T-UI-XLS-052",
+        "T-PROC-XLS-052",
+        "T-NEG-XLS-052"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-053",
+      "fila": 83,
+      "celda": "D83",
+      "texto_original": "Anular Retención",
+      "ruta_original": "CxP > Retenciones > Anular Retención",
+      "objetivo": "Anular una retención emitida mediante flujo fiscal aplicable y reverso local autorizado, conservando XML y estados separados.",
+      "diseno_visible": "Pantalla dedicada bajo Retenciones emitidas, con selector de retención, documento origen, código/base/valor, estado de aceptación o trámite, dependencias y acciones separadas. Incluye advertencia explícita sobre reverso contable y trámite fiscal; no reemplaza título ni usa tasas fijas. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Retención emitida",
+          "tipo": "búsqueda",
+          "obligatorio": "sí",
+          "validacion": "documento y empresa válidos"
+        },
+        {
+          "nombre": "Motivo",
+          "tipo": "texto",
+          "obligatorio": "sí",
+          "validacion": "evidencia y aprobación"
+        },
+        {
+          "nombre": "Fecha/acción",
+          "tipo": "fecha/selector",
+          "obligatorio": "sí",
+          "validacion": "periodo y flujo configurado"
+        },
+        {
+          "nombre": "Resultado fiscal",
+          "tipo": "estado/texto",
+          "obligatorio": "no",
+          "validacion": "respuesta o evidencia real"
+        },
+        {
+          "nombre": "Soporte",
+          "tipo": "archivo",
+          "obligatorio": "sí",
+          "validacion": "XML/hash y documento"
+        },
+        {
+          "nombre": "Confirmación",
+          "tipo": "booleano",
+          "obligatorio": "sí",
+          "validacion": "acepta separación de efectos"
+        }
+      ],
+      "columnas": [
+        "Código/clave",
+        "Proveedor",
+        "Documento origen",
+        "Base",
+        "Valor",
+        "Estado local",
+        "Estado fiscal",
+        "Reverso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar retención",
+          "resultado": "abre XML, documento y vínculos",
+          "permiso": "tax.withholding.consultar"
+        },
+        {
+          "etiqueta": "Solicitar trámite",
+          "resultado": "crea solicitud o tarea externa",
+          "permiso": "tax.withholding.solicitar_anulacion"
+        },
+        {
+          "etiqueta": "Reversar efecto local",
+          "resultado": "publica reverso autorizado sin borrar XML",
+          "permiso": "tax.withholding.reversar_local"
+        },
+        {
+          "etiqueta": "Registrar respuesta",
+          "resultado": "guarda evidencia y estado remoto",
+          "permiso": "tax.withholding.registrar_resultado"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "copia retención existente",
+          "permiso": "tax.withholding.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar retención emitida y revisar documento, base, valor y dependencias.",
+        "Capturar motivo, evidencia y acción fiscal permitida por configuración vigente.",
+        "Validar aceptación/trámite, permisos, periodo y vista previa local.",
+        "Aprobar y publicar reverso local; crear tarea externa cuando corresponda.",
+        "Registrar únicamente respuesta comprobada y consultar auditoría/efectos."
+      ],
+      "estados": [
+        "Emitida",
+        "Pendiente de trámite",
+        "Reversada localmente",
+        "Solicitud externa pendiente",
+        "Anulada fiscalmente confirmada",
+        "Rechazada"
+      ],
+      "impacto_datos_contables": "Revierte localmente la obligación tributaria y el efecto sobre CxP solo tras autorización; conserva XML, clave, documento y resultado fiscal. No recalcula con tasas hardcodeadas ni presume API pública de anulación.",
+      "api_propuesta": [
+        "GET /api/v1/tax/withholdings/{id}/cancellation-context",
+        "POST /api/v1/tax/withholdings/{id}/local-reversal",
+        "POST /api/v1/tax/withholding-cancellations",
+        "PATCH /api/v1/tax/withholding-cancellations/{id}/result",
+        "GET /api/v1/tax/withholding-cancellations/{id}"
+      ],
+      "validaciones": [
+        "Retención debe estar emitida y pertenecer a la empresa.",
+        "No borrar XML ni modificar publicado; usar reverso.",
+        "Resolver código, base y porcentaje desde configuración vigente y snapshot.",
+        "Separar aceptación/trámite fiscal de reverso contable.",
+        "Sin canal oficial documentado, generar tarea y no simular resultado."
+      ],
+      "prueba_positiva": "Dado una retención emitida con evidencia y flujo aprobado, cuando se confirma el reverso local y se registra una respuesta externa verificable, entonces los estados quedan separados y el XML permanece íntegro.",
+      "prueba_negativa": "Dado que el usuario intenta confirmar anulación fiscal sin respuesta o modificar el valor publicado, cuando guarda, entonces se rechaza la acción y se conserva el estado y documento originales.",
+      "dependencias_ids": [
+        "XLS-053"
+      ],
+      "titulo_original": "Anular Retención",
+      "ruta_menu_original": "CxP > Retenciones > Anular Retención",
+      "ruta_react": "/cxp/retenciones/anular-retencion",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Anular retención emitida mediante flujo fiscal aplicable y reverso local autorizado sin borrar XML.",
+      "pruebas_ids": [
+        "T-UI-XLS-053",
+        "T-PROC-XLS-053",
+        "T-NEG-XLS-053"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-054",
+      "fila": 85,
+      "celda": "D85",
+      "texto_original": "Rep. Documentos Ingresados",
+      "ruta_original": "CxP > Reportes > Rep. Documentos Ingresados",
+      "objetivo": "Listar documentos de compras ingresados por proveedor, fecha y estado, totalizando neto, impuestos y saldo con navegación al origen.",
+      "diseno_visible": "Reporte dedicado con filtros visibles de empresa, intervalo/corte, proveedor, tipo, estado fiscal/contable y texto de clave/número. Tabla exportable con paginación, fila totalizadora, subtotales y enlaces a documento, obligación, asiento y soporte; permite comparar pantalla y exportación. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Desde/hasta",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "rango válido"
+        },
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "no",
+          "validacion": "empresa activa"
+        },
+        {
+          "nombre": "Estado contable/fiscal",
+          "tipo": "multi-selector",
+          "obligatorio": "no",
+          "validacion": "valores separados"
+        },
+        {
+          "nombre": "Tipo/documento",
+          "tipo": "multi-selector",
+          "obligatorio": "no",
+          "validacion": "catálogo permitido"
+        },
+        {
+          "nombre": "Corte/saldo",
+          "tipo": "fecha/selector",
+          "obligatorio": "sí",
+          "validacion": "fecha explícita para saldo"
+        }
+      ],
+      "columnas": [
+        "Fecha",
+        "Tipo/número",
+        "Proveedor",
+        "Clave",
+        "Neto",
+        "Impuestos",
+        "Total",
+        "Pagado",
+        "Saldo",
+        "Estado",
+        "Origen"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "ejecuta reporte con snapshot de filtros",
+          "permiso": "reportes.cxp.consultar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera archivo con mismos filtros y totales",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir documento",
+          "resultado": "navega a origen dedicado",
+          "permiso": "reportes.cxp.navegar_origen"
+        },
+        {
+          "etiqueta": "Abrir asiento",
+          "resultado": "navega al asiento y auxiliares",
+          "permiso": "reportes.cxp.navegar_asiento"
+        },
+        {
+          "etiqueta": "Reimprimir soporte",
+          "resultado": "copia documento sin contabilizar",
+          "permiso": "reportes.cxp.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, intervalo/corte, proveedor y estados separados.",
+        "Ejecutar consulta y revisar filas, subtotales y documentos excluidos.",
+        "Abrir origen para comprobar soporte, obligación y asiento.",
+        "Exportar el mismo snapshot con columnas y totales conciliables.",
+        "Registrar filtros/usuario y volver a consultar para auditoría."
+      ],
+      "estados": [
+        "Sin ejecutar",
+        "Cargando",
+        "Con resultados",
+        "Sin resultados",
+        "Exportación en proceso",
+        "Error de validación"
+      ],
+      "impacto_datos_contables": "No genera movimientos. Lee documentos y movimientos publicados/reversos efectivos al corte; saldo deriva del auxiliar CxP y los anulados se presentan según estado, sin alterar el libro.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxp-documents",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/cxp/support-documents/{id}",
+        "GET /api/v1/journals/{id}"
+      ],
+      "validaciones": [
+        "Exigir empresa y fechas/corte explícitos.",
+        "Aplicar permisos de empresa y datos sensibles.",
+        "Totales de neto, impuestos, total, pagado y saldo deben conciliar con origen.",
+        "No mezclar estado fiscal con contable.",
+        "Exportación usa idénticos filtros y snapshot; no SQL libre."
+      ],
+      "prueba_positiva": "Dado un rango y proveedor con dos compras publicadas, cuando se ejecuta el reporte, entonces aparecen ambas, los totales coinciden con sus documentos y cada fila navega a origen y asiento.",
+      "prueba_negativa": "Dado un rango invertido o empresa no autorizada, cuando se consulta, entonces se muestra error sin filtrar datos de otra empresa ni producir totales engañosos.",
+      "dependencias_ids": [
+        "XLS-054"
+      ],
+      "titulo_original": "Rep. Documentos Ingresados",
+      "ruta_menu_original": "CxP > Reportes > Rep. Documentos Ingresados",
+      "ruta_react": "/cxp/reportes/rep-documentos-ingresados",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Listar compras ingresadas por proveedor/fecha/estado y totalizar neto, impuestos y saldo.",
+      "pruebas_ids": [
+        "T-UI-XLS-054",
+        "T-PROC-XLS-054",
+        "T-NEG-XLS-054"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-055",
+      "fila": 86,
+      "celda": "D86",
+      "texto_original": "Rep. Retenciones Emitidas",
+      "ruta_original": "CxP > Reportes > Rep. Retenciones Emitidas",
+      "objetivo": "Reportar retenciones emitidas con código, base, porcentaje configurado, valor, autorización y documento relacionado.",
+      "diseno_visible": "Reporte dedicado titulado exactamente Rep. Retenciones Emitidas, con filtros de periodo/corte, tercero, estado, código y documento. La tabla conserva porcentaje como dato del snapshot vigente, totales y enlaces a retención, compra, asiento y evidencia; no calcula tasas en cliente. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Desde/hasta",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "rango válido"
+        },
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "no",
+          "validacion": "empresa activa"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "multi-selector",
+          "obligatorio": "no",
+          "validacion": "local y fiscal por separado"
+        },
+        {
+          "nombre": "Código/tipo",
+          "tipo": "texto/selector",
+          "obligatorio": "no",
+          "validacion": "catálogo configurado"
+        },
+        {
+          "nombre": "Corte",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "fecha de consulta"
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Clave",
+        "Fecha",
+        "Proveedor",
+        "Documento relacionado",
+        "Base",
+        "Porcentaje snapshot",
+        "Valor",
+        "Autorización",
+        "Estado",
+        "Asiento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "ejecuta reporte con snapshot",
+          "permiso": "reportes.retenciones.consultar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "exporta mismas filas y totales",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir retención",
+          "resultado": "navega a pantalla dedicada",
+          "permiso": "reportes.retenciones.origen"
+        },
+        {
+          "etiqueta": "Abrir documento",
+          "resultado": "navega a compra/liquidación origen",
+          "permiso": "reportes.cxp.navegar_origen"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "copia retención sin nuevo efecto",
+          "permiso": "reportes.retenciones.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, rango/corte, tercero y estados separados.",
+        "Ejecutar y revisar código, base, porcentaje snapshot, valor y autorización.",
+        "Navegar al documento origen y asiento para conciliar.",
+        "Exportar con los mismos filtros, columnas y totales.",
+        "Guardar snapshot, usuario y versión de configuración usada."
+      ],
+      "estados": [
+        "Sin ejecutar",
+        "Cargando",
+        "Con resultados",
+        "Sin resultados",
+        "Exportación en proceso"
+      ],
+      "impacto_datos_contables": "No genera efectos; consulta retenciones y sus movimientos publicados. El porcentaje mostrado es histórico/configurado para la operación y no se reemplaza por una constante actual.",
+      "api_propuesta": [
+        "GET /api/v1/reports/issued-withholdings",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/tax/withholdings/{id}",
+        "GET /api/v1/cxp/documents/{id}"
+      ],
+      "validaciones": [
+        "Filtrar por empresa y fechas/corte obligatorios.",
+        "Mostrar base, porcentaje y valor almacenados en snapshot.",
+        "No recalcular valores ni hardcodear porcentajes.",
+        "Separar autorización fiscal de estado contable.",
+        "Permitir navegación solo con permisos del origen."
+      ],
+      "prueba_positiva": "Dado un periodo con retenciones emitidas autorizadas, cuando se consulta el reporte, entonces cada fila contiene código, base, porcentaje snapshot, valor, autorización y vínculo al documento.",
+      "prueba_negativa": "Dado un usuario sin permiso para la empresa o un rango inválido, cuando consulta, entonces no se devuelven datos y se muestra el error sin exponer información.",
+      "dependencias_ids": [
+        "XLS-055"
+      ],
+      "titulo_original": "Rep. Retenciones Emitidas",
+      "ruta_menu_original": "CxP > Reportes > Rep. Retenciones Emitidas",
+      "ruta_react": "/cxp/reportes/rep-retenciones-emitidas",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Listar retenciones emitidas con código, base, porcentaje, valor, autorización y documento relacionado.",
+      "pruebas_ids": [
+        "T-UI-XLS-055",
+        "T-PROC-XLS-055",
+        "T-NEG-XLS-055"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-056",
+      "fila": 87,
+      "celda": "D87",
+      "texto_original": "Rep. de Anticipos",
+      "ruta_original": "CxP > Reportes > Rep. de Anticipos",
+      "objetivo": "Mostrar por proveedor el anticipo original, aplicaciones, reversos y disponible al corte con trazabilidad completa.",
+      "diseno_visible": "Reporte de anticipos con fecha de corte obligatoria, filtros de proveedor/estado y modo detalle por anticipo. Incluye columnas de movimientos, saldo derivado, enlaces a cruces y reversos, y total por proveedor; no usa saldo manual separado ni requiere inmueble. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Corte",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "fecha comercial válida"
+        },
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "no",
+          "validacion": "empresa activa"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "multi-selector",
+          "obligatorio": "no",
+          "validacion": "publicado/aplicado/reversado"
+        },
+        {
+          "nombre": "Incluir detalle",
+          "tipo": "booleano",
+          "obligatorio": "no",
+          "validacion": "muestra aplicaciones y reversos"
+        },
+        {
+          "nombre": "Moneda",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "moneda de la empresa"
+        }
+      ],
+      "columnas": [
+        "Proveedor",
+        "Anticipo",
+        "Fecha original",
+        "Original",
+        "Aplicaciones",
+        "Reversos",
+        "Disponible",
+        "Estado",
+        "Último movimiento",
+        "Origen"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "calcula saldo al corte desde movimientos",
+          "permiso": "reportes.anticipos.consultar"
+        },
+        {
+          "etiqueta": "Ver detalle",
+          "resultado": "abre aplicaciones y reversos",
+          "permiso": "reportes.anticipos.detalle"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera archivo con totales y detalle",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir anticipo",
+          "resultado": "navega a registro transaccional",
+          "permiso": "reportes.anticipos.origen"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "copia comprobante sin nuevo efecto",
+          "permiso": "reportes.anticipos.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, corte, proveedor, moneda y modo detalle.",
+        "Consultar anticipo original y movimientos efectivos hasta el corte.",
+        "Revisar aplicaciones, reversos, disponible y totales por proveedor.",
+        "Navegar a cada operación para validar asiento y soporte.",
+        "Exportar snapshot conciliable y registrar filtros/usuario."
+      ],
+      "estados": [
+        "Sin ejecutar",
+        "Cargando",
+        "Con resultados",
+        "Sin resultados",
+        "Exportación en proceso"
+      ],
+      "impacto_datos_contables": "No contabiliza. Deriva disponible como original menos aplicaciones más reversos efectivos al corte, conservando operaciones posteriores fuera del saldo histórico.",
+      "api_propuesta": [
+        "GET /api/v1/reports/supplier-advances",
+        "GET /api/v1/cxp/supplier-advances/{id}/movements",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Corte y empresa son obligatorios.",
+        "Aplicar fecha efectiva de movimientos, no fecha de consulta.",
+        "Mostrar saldos a favor y reversos por separado.",
+        "Totales de reporte deben conciliar con auxiliar bajo locks/versiones.",
+        "No permitir edición desde el reporte."
+      ],
+      "prueba_positiva": "Dado un anticipo de 100, aplicación de 40 y reverso de 10 efectivos al corte, cuando se consulta, entonces el reporte muestra original 100, aplicaciones 40, reversos 10 y disponible 70.",
+      "prueba_negativa": "Dado un corte anterior a la fecha del movimiento o un proveedor de otra empresa, cuando se consulta, entonces el movimiento queda fuera o la consulta se rechaza sin alterar el saldo histórico.",
+      "dependencias_ids": [
+        "XLS-056"
+      ],
+      "titulo_original": "Rep. de Anticipos",
+      "ruta_menu_original": "CxP > Reportes > Rep. de Anticipos",
+      "ruta_react": "/cxp/reportes/rep-de-anticipos",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar anticipo original, aplicaciones, reversos y disponible por proveedor al corte.",
+      "pruebas_ids": [
+        "T-UI-XLS-056",
+        "T-PROC-XLS-056",
+        "T-NEG-XLS-056"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-057",
+      "fila": 88,
+      "celda": "D88",
+      "texto_original": "Rep. Saldo de Proveedores",
+      "ruta_original": "CxP > Reportes > Rep. Saldo de Proveedores",
+      "objetivo": "Mostrar saldo y antigüedad de proveedores al corte, conciliable con la cuenta de control y separado de anticipos/saldos a favor.",
+      "diseno_visible": "Reporte con fecha de corte obligatoria, filtros por proveedor, cuenta de control, estado y bandas configuradas. La tabla muestra documentos y bandas 0–30, 31–60, 61–90 y más de 90 según configuración, además de saldos a favor; enlaces a obligación, asiento y conciliación. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Corte",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "fecha válida"
+        },
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "no",
+          "validacion": "empresa activa"
+        },
+        {
+          "nombre": "Cuenta de control",
+          "tipo": "selector",
+          "obligatorio": "sí",
+          "validacion": "cuenta configurada"
+        },
+        {
+          "nombre": "Bandas",
+          "tipo": "configuración",
+          "obligatorio": "sí",
+          "validacion": "versión vigente del reporte"
+        },
+        {
+          "nombre": "Incluir detalle",
+          "tipo": "booleano",
+          "obligatorio": "no",
+          "validacion": "documentos por proveedor"
+        }
+      ],
+      "columnas": [
+        "Proveedor",
+        "Saldo total",
+        "No vencido",
+        "0–30",
+        "31–60",
+        "61–90",
+        "Más de 90",
+        "Saldo a favor/anticipo",
+        "Cuenta control",
+        "Conciliación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "calcula saldo/antigüedad al corte",
+          "permiso": "reportes.saldos_proveedores.consultar"
+        },
+        {
+          "etiqueta": "Ver detalle",
+          "resultado": "abre obligaciones por vencimiento",
+          "permiso": "reportes.saldos_proveedores.detalle"
+        },
+        {
+          "etiqueta": "Conciliar control",
+          "resultado": "muestra diferencias contra cuenta contable",
+          "permiso": "reportes.saldos_proveedores.conciliar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera reporte con mismos filtros",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir obligación",
+          "resultado": "navega al auxiliar/origen",
+          "permiso": "reportes.saldos_proveedores.origen"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, corte, cuenta de control y versión de bandas.",
+        "Calcular obligaciones y vencimiento al corte desde movimientos publicados.",
+        "Separar saldos a favor/anticipos y presentar totales por proveedor.",
+        "Revisar diferencias contra cuenta de control y abrir documentos.",
+        "Exportar snapshot y registrar conciliación o excepción explicada."
+      ],
+      "estados": [
+        "Sin ejecutar",
+        "Cargando",
+        "Con resultados",
+        "Con diferencias",
+        "Sin resultados",
+        "Exportación en proceso"
+      ],
+      "impacto_datos_contables": "No modifica saldos. Lee payable_item y asientos publicados/reversos; antigüedad se basa en vencimiento al corte y la cuenta de control se compara sin reemplazar el auxiliar.",
+      "api_propuesta": [
+        "GET /api/v1/reports/supplier-balances",
+        "GET /api/v1/reports/supplier-balances/{provider_id}/detail",
+        "POST /api/v1/reports/supplier-balances/reconcile",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Empresa, corte, cuenta y versión de bandas obligatorios.",
+        "No incluir movimientos posteriores al corte.",
+        "Conciliar con cuenta de control y mostrar diferencias, no ocultarlas.",
+        "Separar anticipos/saldos a favor de deuda vencida.",
+        "Respeta permisos y no permite editar desde el reporte."
+      ],
+      "prueba_positiva": "Dado un proveedor con una obligación no vencida y otra de 45 días, cuando se consulta al corte, entonces aparecen en no vencido y banda 31–60, con total conciliable a la cuenta de control.",
+      "prueba_negativa": "Dado que la cuenta de control no está configurada o el corte es inválido, cuando se ejecuta, entonces se bloquea el reporte y no se presenta un saldo no conciliable.",
+      "dependencias_ids": [
+        "XLS-057"
+      ],
+      "titulo_original": "Rep. Saldo de Proveedores",
+      "ruta_menu_original": "CxP > Reportes > Rep. Saldo de Proveedores",
+      "ruta_react": "/cxp/reportes/rep-saldo-de-proveedores",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar saldo y antigüedad de proveedor al corte, conciliables con cuenta de control.",
+      "pruebas_ids": [
+        "T-UI-XLS-057",
+        "T-PROC-XLS-057",
+        "T-NEG-XLS-057"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-058",
+      "fila": 89,
+      "celda": "D89",
+      "texto_original": "Rep. Pagos Realizados",
+      "ruta_original": "CxP > Reportes > Rep. Pagos Realizados",
+      "objetivo": "Listar pagos realizados, medio bancario, documentos cancelados y reversos, excluyendo anulados de los totales netos.",
+      "diseno_visible": "Reporte dedicado con filtros de intervalo/corte, proveedor, cuenta/medio, estado y documento. La tabla separa pago original, aplicaciones, reversos y neto; permite navegar a pago, documentos cancelados, asiento y conciliación bancaria, y exportar el mismo conjunto. Es una pantalla independiente accesible desde la opción original y una URL dedicada que asignará el árbol padre; compartir componentes, validaciones o servicios no fusiona su registro, reimpresión, modificación, anulación, importación o reporte. La interfaz debe mostrar estados de carga, error y vacío, permisos, confirmación informativa, historial y navegación al origen sin ocultar estados.",
+      "filtros_campos": [
+        {
+          "nombre": "Desde/hasta",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "rango válido"
+        },
+        {
+          "nombre": "Proveedor",
+          "tipo": "búsqueda",
+          "obligatorio": "no",
+          "validacion": "empresa activa"
+        },
+        {
+          "nombre": "Medio/cuenta",
+          "tipo": "multi-selector",
+          "obligatorio": "no",
+          "validacion": "catálogo bancario"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "multi-selector",
+          "obligatorio": "no",
+          "validacion": "publicado/reversado/anulado"
+        },
+        {
+          "nombre": "Corte",
+          "tipo": "fecha",
+          "obligatorio": "sí",
+          "validacion": "fecha efectiva para neto"
+        }
+      ],
+      "columnas": [
+        "Fecha",
+        "Pago",
+        "Proveedor",
+        "Medio/cuenta",
+        "Referencia bancaria",
+        "Importe bruto",
+        "Aplicaciones",
+        "Reversos",
+        "Neto",
+        "Documentos cancelados",
+        "Estado",
+        "Conciliación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "lista pagos y netos al corte",
+          "permiso": "reportes.pagos.consultar"
+        },
+        {
+          "etiqueta": "Ver aplicaciones",
+          "resultado": "abre documentos cancelados y saldos",
+          "permiso": "reportes.pagos.detalle"
+        },
+        {
+          "etiqueta": "Abrir pago",
+          "resultado": "navega al registro transaccional",
+          "permiso": "reportes.pagos.origen"
+        },
+        {
+          "etiqueta": "Abrir banco",
+          "resultado": "navega a conciliación/extracto",
+          "permiso": "reportes.pagos.banco"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera archivo con filtros y totales",
+          "permiso": "reportes.exportar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, intervalo/corte, proveedor, cuenta y estados.",
+        "Consultar pagos publicados y movimientos efectivos hasta el corte.",
+        "Revisar medio bancario, documentos aplicados, reversos y neto.",
+        "Navegar a pago, asiento y conciliación para explicar diferencias.",
+        "Exportar snapshot y verificar que anulados no entren en totales netos."
+      ],
+      "estados": [
+        "Sin ejecutar",
+        "Cargando",
+        "Con resultados",
+        "Con diferencias",
+        "Sin resultados",
+        "Exportación en proceso"
+      ],
+      "impacto_datos_contables": "No genera pagos ni asientos. Lee pagos y reversos publicados; el neto excluye anulados según estado y conserva el bruto, aplicaciones, documentos y evidencia bancaria para auditoría.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxp-payments",
+        "GET /api/v1/cxp/payments/{id}/applications",
+        "GET /api/v1/treasury/payments/{id}/reconciliation",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Intervalo/corte y empresa obligatorios.",
+        "Aplicar fecha efectiva y estados, no solo fecha de captura.",
+        "Excluir anulados de totales netos y mostrar su existencia separada.",
+        "Total de aplicaciones debe conciliar con documentos cancelados.",
+        "Exportar exactamente los filtros y columnas consultados."
+      ],
+      "prueba_positiva": "Dado un pago publicado de 100 aplicado a dos documentos y un reverso posterior de 20, cuando se consulta al corte posterior, entonces el reporte muestra bruto 100, reverso 20 y neto 80 con enlaces a ambos documentos.",
+      "prueba_negativa": "Dado un pago anulado, cuando se ejecuta el reporte neto, entonces no suma al total neto, aparece identificado como anulado y no se puede reimprimir como nuevo pago.",
+      "dependencias_ids": [
+        "XLS-058"
+      ],
+      "titulo_original": "Rep. Pagos Realizados",
+      "ruta_menu_original": "CxP > Reportes > Rep. Pagos Realizados",
+      "ruta_react": "/cxp/reportes/rep-pagos-realizados",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Listar pagos, medio bancario, documentos cancelados y reversos; excluir anulados de totales netos.",
+      "pruebas_ids": [
+        "T-UI-XLS-058",
+        "T-PROC-XLS-058",
+        "T-NEG-XLS-058"
+      ],
+      "modulo": "CxP",
+      "nivel": 4
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+.nav-group .nav-group {
+  margin-bottom: 2px;
+}
+
+.nav-group > button {
+  text-align: left;
+}
+
+.nav-group .nav-group > button {
+  height: 27px;
+  color: #737b8d;
+  font-size: 9px;
+  letter-spacing: .035em;
+}
+
+.nav-group > button svg {
+  min-width: 14px;
+}

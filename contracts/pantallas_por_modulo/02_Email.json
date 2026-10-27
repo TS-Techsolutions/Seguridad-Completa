@@ -1,0 +1,625 @@
+{
+  "version": "2.0",
+  "modulo": "Email",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-012",
+      "fila": 20,
+      "celda": "C20",
+      "nivel": 3,
+      "texto_original": "Modificar Email Exp. Ordinarias",
+      "ruta_original": "Email > Modificar Email Exp. Ordinarias",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "objetivo": "Administrar versiones de la plantilla de correo para expensas ordinarias, con variables explícitamente permitidas, vista previa y correo de prueba. La pantalla no genera cargos, facturas ni asientos; únicamente deja una versión aprobable para el proceso de expensas.",
+      "diseno_visible": "Encabezado con empresa, estado de PROPERTY_MANAGEMENT y advertencia de solo lectura o MODULE_DISABLED cuando corresponda. Panel izquierdo con versiones, vigencia y autor; panel central con asunto y cuerpo en editor accesible; panel derecho con variables permitidas, datos de ejemplo, destinatario de prueba y resumen de cambios. Mostrar preview HTML/texto, errores por campo, historial de auditoría y controles de guardar, probar, solicitar aprobación y publicar. No mostrar campos inmobiliarios como obligatorios fuera del módulo opcional.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada y con contexto vigente; no cruzar tenant."
+        },
+        {
+          "nombre": "estado_version",
+          "tipo": "multi-selector",
+          "obligatorio": false,
+          "validacion": "Solo estados DRAFT, PENDING_APPROVAL, PUBLISHED o ARCHIVED."
+        },
+        {
+          "nombre": "vigente_desde",
+          "tipo": "fecha",
+          "obligatorio": false,
+          "validacion": "Fecha comercial válida; no cambiar versiones históricas."
+        },
+        {
+          "nombre": "asunto",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Longitud configurada, sin variables no permitidas ni encabezados inyectados."
+        },
+        {
+          "nombre": "cuerpo",
+          "tipo": "editor_html_texto",
+          "obligatorio": true,
+          "validacion": "HTML saneado, texto alternativo disponible y solo variables del catálogo de expensa ordinaria."
+        },
+        {
+          "nombre": "destinatario_prueba",
+          "tipo": "email",
+          "obligatorio": true,
+          "validacion": "Correo válido; confirmado por usuario con permiso de prueba y nunca destinatario masivo."
+        },
+        {
+          "nombre": "motivo_cambio",
+          "tipo": "textarea",
+          "obligatorio": true,
+          "validacion": "Obligatorio al crear versión, publicar o archivar; queda auditado."
+        }
+      ],
+      "columnas": [
+        "Versión",
+        "Estado",
+        "Vigencia desde",
+        "Autor",
+        "Último cambio",
+        "Variables usadas",
+        "Prueba más reciente",
+        "Hash de contenido"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar versiones",
+          "resultado": "Lista paginada y detalle de versiones de la empresa, sin modificar datos.",
+          "permiso": "notifications.email.template.read"
+        },
+        {
+          "etiqueta": "Crear borrador",
+          "resultado": "Crea una versión DRAFT sin afectar la versión publicada.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Guardar versión",
+          "resultado": "Valida y guarda contenido con hash y auditoría; invalida aprobación previa si cambia.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Vista previa",
+          "resultado": "Renderiza con datos sintéticos y reporta variables faltantes o sobrantes.",
+          "permiso": "notifications.email.template.preview"
+        },
+        {
+          "etiqueta": "Enviar correo de prueba",
+          "resultado": "Encola un mensaje de prueba identificable; no activa envíos productivos ni contabiliza.",
+          "permiso": "notifications.email.test_send"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Crea approval_request sobre el hash de la versión.",
+          "permiso": "notifications.email.approval.request"
+        },
+        {
+          "etiqueta": "Publicar versión",
+          "resultado": "Marca una única versión vigente y archiva la anterior sin borrar historial.",
+          "permiso": "notifications.email.template.publish"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y revisar el estado efectivo de PROPERTY_MANAGEMENT; si está DISABLED, permitir lectura histórica y rechazar alta/cambio con MODULE_DISABLED.",
+        "Capturar asunto, cuerpo, variables, vigencia y motivo; el editor ofrece únicamente el catálogo de expensa ordinaria y conserva la versión previa intacta.",
+        "Validar sintaxis, saneamiento, variables, destinatario de prueba, permisos, conflicto de vigencia y hash de contenido.",
+        "Guardar DRAFT y solicitar aprobación; cualquier cambio posterior obliga a validar y aprobar nuevamente.",
+        "Enviar prueba a un destinatario autorizado, registrar delivery_attempt y mostrar resultado sin publicar ni repetir el envío por doble clic.",
+        "Aprobar y publicar la versión; dejarla disponible para ciclos ordinarios posteriores y consultar auditoría, entregas o fallos en la bandeja común."
+      ],
+      "estados": [
+        "DRAFT",
+        "VALIDATING",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "PUBLISHED",
+        "ARCHIVED",
+        "TEST_QUEUED",
+        "TEST_DELIVERED",
+        "TEST_FAILED",
+        "MODULE_DISABLED"
+      ],
+      "impacto_datos_contables": "Ninguno directo. La plantilla publicada se consume después del commit de un ciclo ordinario; un fallo de correo no revierte cargos, obligaciones ni asientos válidos. No crea deuda ni modifica saldos. Si el módulo inmobiliario se desactiva, se conserva lectura histórica, pero se bloquean nuevas versiones y cambios verticales.",
+      "api_propuesta": [
+        "GET /api/v1/notifications/email/templates/expense-ordinary?company_id={company_id}",
+        "POST /api/v1/notifications/email/templates/expense-ordinary/versions",
+        "POST /api/v1/notifications/email/templates/expense-ordinary/versions/{version_id}/preview",
+        "POST /api/v1/notifications/email/templates/expense-ordinary/versions/{version_id}/test",
+        "POST /api/v1/notifications/email/templates/expense-ordinary/versions/{version_id}/approval",
+        "POST /api/v1/notifications/email/templates/expense-ordinary/versions/{version_id}/publish"
+      ],
+      "validaciones": [
+        "Verificar empresa, tenant, permiso y módulo en backend; una bandera del navegador no autoriza la operación.",
+        "Rechazar variables desconocidas, variables obligatorias sin valor de ejemplo, HTML inseguro, archivos no permitidos y asunto vacío.",
+        "Impedir dos versiones PUBLISHED vigentes para la misma empresa y tipo; resolver concurrencia con versión esperada/idempotencia.",
+        "La aprobación debe referir hash y versión exactos; cambiar contenido invalida la aprobación anterior.",
+        "El destinatario de prueba debe estar autorizado y la evidencia debe ocultar datos personales innecesarios.",
+        "El worker usa outbox y conciliación de resultado incierto; no reenviar automáticamente tras timeout del proveedor."
+      ],
+      "prueba_positiva": "Dado que la empresa tiene PROPERTY_MANAGEMENT habilitado y permiso de edición, cuando el usuario crea una versión con variables permitidas, la valida, envía una prueba, obtiene resultado y publica con aprobación, entonces queda una única versión PUBLISHED auditable y el ciclo ordinario posterior puede consumirla sin crear ningún efecto contable adicional.",
+      "prueba_negativa": "Dado que PROPERTY_MANAGEMENT está DISABLED o el cuerpo contiene una variable no permitida, cuando el usuario intenta guardar o publicar, entonces la API devuelve MODULE_DISABLED o VALIDATION_ERROR, no crea una versión utilizable, no envía correo productivo y no altera cargos ni asientos.",
+      "dependencias_ids": [
+        "ADD-EMAIL-001"
+      ],
+      "titulo_original": "Modificar Email Exp. Ordinarias",
+      "ruta_menu_original": "Email > Modificar Email Exp. Ordinarias",
+      "ruta_react": "/email/modificar-email-exp-ordinarias",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Versionar plantilla de expensas ordinarias con variables permitidas y correo de prueba.",
+      "pruebas_ids": [
+        "T-UI-XLS-012",
+        "T-PROC-XLS-012",
+        "T-NEG-XLS-012"
+      ],
+      "modulo": "Email"
+    },
+    {
+      "id": "XLS-013",
+      "fila": 21,
+      "celda": "C21",
+      "nivel": 3,
+      "texto_original": "Modificar Email Exp. Extraordinarias",
+      "ruta_original": "Email > Modificar Email Exp. Extraordinarias",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "objetivo": "Versionar de forma independiente la plantilla de correo para expensas extraordinarias, permitiendo explicar ciclo, resolución o concepto aprobado sin mezclarla con la plantilla ordinaria. Incluye prueba controlada y publicación aprobada, no la creación del ciclo ni su contabilización.",
+      "diseno_visible": "La pantalla conserva el rótulo original y muestra selector de empresa, estado del módulo opcional y lista de versiones extraordinarias. El editor presenta asunto, cuerpo, variables del ciclo y datos de ejemplo; una ficha lateral indica que resolución, periodo, rubro y vencimiento son snapshots del proceso origen. La vista previa permite alternar HTML/texto y revisar faltantes. Acciones separadas para guardar, probar, solicitar aprobación, publicar y archivar. En modo sin inmuebles, el historial puede abrirse y las acciones de alta/cambio muestran MODULE_DISABLED.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa del tenant y autorizada para consultar el tipo extraordinario."
+        },
+        {
+          "nombre": "version_id",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "Debe pertenecer a la empresa y a la plantilla EXPENSE_EXTRAORDINARY."
+        },
+        {
+          "nombre": "estado_version",
+          "tipo": "multi-selector",
+          "obligatorio": false,
+          "validacion": "Valores enumerados; no aceptar estados libres."
+        },
+        {
+          "nombre": "asunto",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "No vacío, saneado y con variables del catálogo extraordinario solamente."
+        },
+        {
+          "nombre": "cuerpo",
+          "tipo": "editor_html_texto",
+          "obligatorio": true,
+          "validacion": "HTML saneado, alternativa de texto y marcadores permitidos; no ejecutar scripts."
+        },
+        {
+          "nombre": "destinatario_prueba",
+          "tipo": "email",
+          "obligatorio": true,
+          "validacion": "Formato válido y destinatario autorizado para pruebas."
+        },
+        {
+          "nombre": "motivo_cambio",
+          "tipo": "textarea",
+          "obligatorio": true,
+          "validacion": "Explica el cambio y se graba en auditoría."
+        }
+      ],
+      "columnas": [
+        "Versión",
+        "Estado",
+        "Código/tipo de ciclo",
+        "Vigencia",
+        "Autor",
+        "Variables",
+        "Prueba",
+        "Último resultado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar versiones",
+          "resultado": "Muestra historial paginado, contenido protegido y metadatos del ciclo de vida.",
+          "permiso": "notifications.email.template.read"
+        },
+        {
+          "etiqueta": "Crear borrador",
+          "resultado": "Abre una versión DRAFT separada de la plantilla ordinaria.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Guardar versión",
+          "resultado": "Persiste snapshot, hash, variables detectadas y auditoría.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Vista previa",
+          "resultado": "Renderiza con ciclo extraordinario de ejemplo y lista validaciones.",
+          "permiso": "notifications.email.template.preview"
+        },
+        {
+          "etiqueta": "Enviar correo de prueba",
+          "resultado": "Encola solo la prueba, con identificador y resultado de entrega.",
+          "permiso": "notifications.email.test_send"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Envía la versión con su hash a aprobación segregada.",
+          "permiso": "notifications.email.approval.request"
+        },
+        {
+          "etiqueta": "Publicar versión",
+          "resultado": "Vuelve utilizable la versión aprobada para notificaciones extraordinarias futuras.",
+          "permiso": "notifications.email.template.publish"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y versión; comprobar que PROPERTY_MANAGEMENT esté ENABLED para crear o cambiar y que el usuario tenga permiso.",
+        "Capturar asunto, cuerpo, variables permitidas, vigencia y motivo, sin copiar automáticamente la plantilla ordinaria.",
+        "Validar sintaxis, saneamiento, snapshot de ciclo, permisos y ausencia de solapamiento de versiones vigentes.",
+        "Guardar el borrador y solicitar aprobación sobre el hash; conservar el historial y bloquear edición de versiones publicadas.",
+        "Generar vista previa y enviar correo de prueba al destinatario autorizado; registrar el intento de entrega de forma asíncrona.",
+        "Publicar tras aprobación y dejar disponible el contenido para el proceso de notificación posterior al commit; consultar entregas en la bandeja común."
+      ],
+      "estados": [
+        "DRAFT",
+        "VALIDATING",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "PUBLISHED",
+        "ARCHIVED",
+        "TEST_QUEUED",
+        "TEST_DELIVERED",
+        "TEST_FAILED",
+        "MODULE_DISABLED"
+      ],
+      "impacto_datos_contables": "Ninguno directo: no prepara, finaliza ni publica cargos de expensa, obligaciones o asientos. El ciclo extraordinario conserva su propio efecto contable y el correo se encola después del commit. Un fallo de proveedor se registra para revisión y no deshace una contabilización válida. Sin módulo inmobiliario solo se permite lectura histórica.",
+      "api_propuesta": [
+        "GET /api/v1/notifications/email/templates/expense-extraordinary?company_id={company_id}",
+        "POST /api/v1/notifications/email/templates/expense-extraordinary/versions",
+        "POST /api/v1/notifications/email/templates/expense-extraordinary/versions/{version_id}/preview",
+        "POST /api/v1/notifications/email/templates/expense-extraordinary/versions/{version_id}/test",
+        "POST /api/v1/notifications/email/templates/expense-extraordinary/versions/{version_id}/approval",
+        "POST /api/v1/notifications/email/templates/expense-extraordinary/versions/{version_id}/publish"
+      ],
+      "validaciones": [
+        "Aplicar autorización efectiva por empresa, permiso y estado de PROPERTY_MANAGEMENT en servidor.",
+        "La lista de variables debe estar versionada; rechazar marcadores de otras plantillas o datos no disponibles en el snapshot.",
+        "Saneamiento HTML, límite de tamaño, texto alternativo, protección contra inyección de cabeceras y adjuntos no previstos.",
+        "No editar ni borrar una versión publicada; archivar mediante acción auditada y publicar reemplazo aprobado.",
+        "El correo de prueba nunca llama al proveedor dentro de la transacción ni genera un evento contable.",
+        "Usar clave idempotente y conciliación del proveedor para que un timeout no cause reenvío ciego."
+      ],
+      "prueba_positiva": "Dado un módulo inmobiliario habilitado y una resolución extraordinaria representada en datos de ejemplo, cuando el usuario autorizado crea, valida, prueba y publica una versión aprobada, entonces la plantilla queda disponible para el siguiente ciclo extraordinario y su historial registra hash, usuario, aprobación y resultado de prueba.",
+      "prueba_negativa": "Dado que el módulo está deshabilitado o la plantilla intenta usar una variable ordinaria no presente en el snapshot extraordinario, cuando se intenta guardar o publicar, entonces se rechaza con MODULE_DISABLED o VALIDATION_ERROR, no se crea envío productivo ni se modifica el ciclo, saldo o asiento.",
+      "dependencias_ids": [
+        "ADD-EMAIL-001"
+      ],
+      "titulo_original": "Modificar Email Exp. Extraordinarias",
+      "ruta_menu_original": "Email > Modificar Email Exp. Extraordinarias",
+      "ruta_react": "/email/modificar-email-exp-extraordinarias",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Versionar plantilla de expensas extraordinarias con variables permitidas y correo de prueba.",
+      "pruebas_ids": [
+        "T-UI-XLS-013",
+        "T-PROC-XLS-013",
+        "T-NEG-XLS-013"
+      ],
+      "modulo": "Email"
+    },
+    {
+      "id": "XLS-014",
+      "fila": 22,
+      "celda": "C22",
+      "nivel": 3,
+      "texto_original": "Modificar Email Recaudaciones",
+      "ruta_original": "Email > Modificar Email Recaudaciones",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Administrar la plantilla general de correo que se encola después de registrar y aplicar una recaudación, adjuntando únicamente el recibo correspondiente al destinatario autorizado. Debe funcionar en una empresa sin condominio, inmueble o alícuota y no crear una segunda recaudación.",
+      "diseno_visible": "La pantalla muestra empresa, versiones y estado de la plantilla de recaudación. El formulario separa asunto, cuerpo, variables del cobro, destinatario y regla de adjunto. Un preview enseña recibo sintético y marca que el archivo se genera desde el documento autorizado, sin permitir adjuntar archivos arbitrarios. La vista de historial enlaza recaudación, recibo, evento outbox y delivery_attempt, ocultando direcciones de terceros no autorizados. Acciones de edición y publicación están separadas de la operación de cobrar.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada del núcleo; no requiere módulo inmobiliario."
+        },
+        {
+          "nombre": "estado_version",
+          "tipo": "multi-selector",
+          "obligatorio": false,
+          "validacion": "Solo estados del ciclo de plantilla definidos por API."
+        },
+        {
+          "nombre": "asunto",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "No vacío, sin inyección de cabeceras y con variables de recaudación permitidas."
+        },
+        {
+          "nombre": "cuerpo",
+          "tipo": "editor_html_texto",
+          "obligatorio": true,
+          "validacion": "HTML saneado, texto alternativo y variables de recibo existentes."
+        },
+        {
+          "nombre": "destinatario_origen",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Debe ser tercero autorizado de la recaudación; nunca una lista global."
+        },
+        {
+          "nombre": "adjuntar_recibo",
+          "tipo": "booleano_controlado",
+          "obligatorio": true,
+          "validacion": "Debe ser verdadero para el flujo aceptado; el recibo debe corresponder a la recaudación."
+        },
+        {
+          "nombre": "motivo_cambio",
+          "tipo": "textarea",
+          "obligatorio": true,
+          "validacion": "Obligatorio para guardar/publicar y auditado."
+        }
+      ],
+      "columnas": [
+        "Versión",
+        "Estado",
+        "Vigencia",
+        "Variables",
+        "Adjunto configurado",
+        "Autor",
+        "Prueba",
+        "Último cambio"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar versiones",
+          "resultado": "Lista versiones y sus reglas de destinatario/recibo sin exponer otros clientes.",
+          "permiso": "notifications.email.template.read"
+        },
+        {
+          "etiqueta": "Crear borrador",
+          "resultado": "Crea DRAFT de la plantilla de recaudación del núcleo.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Guardar versión",
+          "resultado": "Valida variables, adjunto permitido y guarda hash/auditoría.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Vista previa",
+          "resultado": "Muestra recibo sintético y destinatario enmascarado.",
+          "permiso": "notifications.email.template.preview"
+        },
+        {
+          "etiqueta": "Enviar correo de prueba",
+          "resultado": "Encola prueba con recibo sintético; no registra cobro ni asiento.",
+          "permiso": "notifications.email.test_send"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Crea aprobación segregada sobre versión y configuración de adjunto.",
+          "permiso": "notifications.email.approval.request"
+        },
+        {
+          "etiqueta": "Publicar versión",
+          "resultado": "Habilita la versión para recaudaciones posteriores sin duplicar recibos.",
+          "permiso": "notifications.email.template.publish"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa del núcleo y revisar la versión actual; no solicitar condominio, inmueble, alícuota ni paquete inmobiliario.",
+        "Capturar asunto, cuerpo, variables, destinatario autorizado y regla obligatoria de adjuntar solo el recibo propio.",
+        "Validar tercero, preferencias aplicables, existencia del documento, correspondencia recibo-recaudación, saneamiento y permisos.",
+        "Guardar DRAFT y solicitar aprobación; el cambio no toca la recaudación ni el documento contable ya registrado.",
+        "Previsualizar y enviar prueba con datos sintéticos; dejar el mensaje en outbox y registrar el resultado asincrónico.",
+        "Publicar la versión aprobada; cuando una recaudación se confirme, el evento posterior al commit la utilizará con idempotencia y trazabilidad."
+      ],
+      "estados": [
+        "DRAFT",
+        "VALIDATING",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "PUBLISHED",
+        "ARCHIVED",
+        "TEST_QUEUED",
+        "TEST_DELIVERED",
+        "TEST_FAILED"
+      ],
+      "impacto_datos_contables": "La edición de plantilla no contabiliza. En el proceso origen, la recaudación y sus aplicaciones crean el efecto contable conforme al núcleo; el email solo consume el evento posterior al commit y adjunta una representación del recibo. Reintentos o timeouts del proveedor no crean otro cobro, recibo, asiento ni aplicación.",
+      "api_propuesta": [
+        "GET /api/v1/notifications/email/templates/collections?company_id={company_id}",
+        "POST /api/v1/notifications/email/templates/collections/versions",
+        "POST /api/v1/notifications/email/templates/collections/versions/{version_id}/preview",
+        "POST /api/v1/notifications/email/templates/collections/versions/{version_id}/test",
+        "POST /api/v1/notifications/email/templates/collections/versions/{version_id}/approval",
+        "POST /api/v1/notifications/email/templates/collections/versions/{version_id}/publish"
+      ],
+      "validaciones": [
+        "La empresa, recaudación, recibo, tercero y permisos deben pertenecer al mismo tenant/empresa.",
+        "El adjunto permitido es únicamente el recibo autorizado del destinatario; rechazar rutas de archivo arbitrarias o documentos de otro tercero.",
+        "Rechazar variables inexistentes, HTML peligroso, destinatario no autorizado y cambios de versión publicados.",
+        "El envío productivo se dispara por evento de recaudación confirmado, no por guardar o publicar la plantilla.",
+        "Registrar hash del payload, referencia del proveedor, rebotes y resultado sin almacenar credenciales ni exponer email completo en listados.",
+        "Aplicar idempotencia por evento y conciliación de timeout; restaurar outbox requiere revisión antes de reanudar."
+      ],
+      "prueba_positiva": "Dado un cliente del núcleo sin inmuebles, cuando se publica una versión aprobada y luego se confirma una recaudación con recibo y destinatario autorizado, entonces se encola un único email con el recibo correcto, se registra su entrega y la recaudación conserva exactamente sus aplicaciones y efecto contable.",
+      "prueba_negativa": "Dado un recibo de otro tercero, un adjunto arbitrario o una empresa sin permiso, cuando se intenta probar o usar la plantilla, entonces la validación rechaza el mensaje, no expone el documento, no encola un envío productivo y no altera el cobro ni el asiento.",
+      "dependencias_ids": [
+        "ADD-EMAIL-001"
+      ],
+      "titulo_original": "Modificar Email Recaudaciones",
+      "ruta_menu_original": "Email > Modificar Email Recaudaciones",
+      "ruta_react": "/email/modificar-email-recaudaciones",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Versionar plantilla de recaudaciones y adjuntar únicamente el recibo del destinatario autorizado.",
+      "pruebas_ids": [
+        "T-UI-XLS-014",
+        "T-PROC-XLS-014",
+        "T-NEG-XLS-014"
+      ],
+      "modulo": "Email"
+    },
+    {
+      "id": "XLS-015",
+      "fila": 23,
+      "celda": "C23",
+      "nivel": 3,
+      "texto_original": "Modificar Email Gestión Cobranza",
+      "ruta_original": "Email > Modificar Email Gestión Cobranza",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Versionar la plantilla general para gestión de cobranza, mostrando saldo congelado a fecha y vencimientos del auxiliar canónico, y dejando registro de cada contacto. La pantalla configura comunicación; no calcula mora, no fija tasas y no sustituye la cartera ni la aprobación de promesas.",
+      "diseno_visible": "La pantalla conserva el nombre original y ofrece empresa, versiones, variables permitidas y preview con saldo a fecha, vencimientos y bandas configuradas por el núcleo. Incluye selector de tono/mensaje aprobado, destinatario autorizado y datos de contacto de prueba; un panel de auditoría enlaza campaña, envío, respuesta y promesa de pago sin revelar clientes entre sí. Las acciones de editar/publicar no ejecutan una campaña: la ejecución y su registro quedan en la bandeja de comunicaciones. No hay campos inmobiliarios obligatorios.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada del núcleo y con cartera visible para el usuario."
+        },
+        {
+          "nombre": "estado_version",
+          "tipo": "multi-selector",
+          "obligatorio": false,
+          "validacion": "Estados enumerados, con paginación y empresa activa."
+        },
+        {
+          "nombre": "asunto",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Sin inyección de cabeceras y con variables aprobadas de cobranza."
+        },
+        {
+          "nombre": "cuerpo",
+          "tipo": "editor_html_texto",
+          "obligatorio": true,
+          "validacion": "HTML saneado y texto alternativo; no incluir datos de otros terceros."
+        },
+        {
+          "nombre": "fecha_corte_saldo",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Fecha válida; saldo y vencimientos se leen del snapshot del proceso, no de cálculo del navegador."
+        },
+        {
+          "nombre": "destinatario_origen",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Cliente autorizado, preferencia/canal verificable y empresa coincidente."
+        },
+        {
+          "nombre": "motivo_cambio",
+          "tipo": "textarea",
+          "obligatorio": true,
+          "validacion": "Auditado en creación, publicación o archivo de versión."
+        }
+      ],
+      "columnas": [
+        "Versión",
+        "Estado",
+        "Vigencia",
+        "Saldo a fecha habilitado",
+        "Vencimiento habilitado",
+        "Variables",
+        "Última prueba",
+        "Autor"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar versiones",
+          "resultado": "Muestra versiones y trazabilidad sin modificar cartera.",
+          "permiso": "notifications.email.template.read"
+        },
+        {
+          "etiqueta": "Crear borrador",
+          "resultado": "Crea DRAFT con catálogo de variables de cobranza.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Guardar versión",
+          "resultado": "Guarda hash, snapshot de configuración y auditoría.",
+          "permiso": "notifications.email.template.write"
+        },
+        {
+          "etiqueta": "Vista previa",
+          "resultado": "Renderiza saldo/vencimientos sintéticos y valida privacidad del mensaje.",
+          "permiso": "notifications.email.template.preview"
+        },
+        {
+          "etiqueta": "Enviar correo de prueba",
+          "resultado": "Encola prueba sin contacto real de campaña ni cambio de cartera.",
+          "permiso": "notifications.email.test_send"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Somete el contenido y variables a aprobación segregada.",
+          "permiso": "notifications.email.approval.request"
+        },
+        {
+          "etiqueta": "Publicar versión",
+          "resultado": "Habilita el contenido para una campaña o contacto posterior autorizado.",
+          "permiso": "notifications.email.template.publish"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y versión; comprobar cartera, preferencias y permiso, sin exigir condominio, inmueble ni alícuota.",
+        "Capturar asunto, cuerpo, variables de saldo a fecha, vencimiento, destinatario y motivo; no capturar una tasa de mora fija.",
+        "Validar snapshot de cartera, fecha de corte, segregación de saldos a favor, destinatario, saneamiento y ausencia de datos cruzados.",
+        "Guardar DRAFT y solicitar aprobación; el hash aprobado representa exactamente el mensaje y sus variables permitidas.",
+        "Previsualizar y enviar prueba; registrar contacto de prueba, intento, resultado y cualquier rebote en la bandeja común.",
+        "Publicar la versión; la campaña/contacto posterior congela el saldo al envío, enlaza el evento y registra cada contacto y promesa sin contabilizar por el correo."
+      ],
+      "estados": [
+        "DRAFT",
+        "VALIDATING",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "PUBLISHED",
+        "ARCHIVED",
+        "TEST_QUEUED",
+        "TEST_DELIVERED",
+        "TEST_FAILED"
+      ],
+      "impacto_datos_contables": "No hay efecto contable por modificar, probar o publicar una plantilla. La gestión de cobranza consulta el saldo canónico al corte y lo congela en el mensaje/campaña; no recalcula saldos en React, no modifica cartera y no aplica automáticamente recargos o tasas. Una promesa de pago es registro de gestión, no cobro ni asiento hasta que exista una operación financiera independiente.",
+      "api_propuesta": [
+        "GET /api/v1/notifications/email/templates/collections-management?company_id={company_id}",
+        "POST /api/v1/notifications/email/templates/collections-management/versions",
+        "POST /api/v1/notifications/email/templates/collections-management/versions/{version_id}/preview",
+        "POST /api/v1/notifications/email/templates/collections-management/versions/{version_id}/test",
+        "POST /api/v1/notifications/email/templates/collections-management/versions/{version_id}/approval",
+        "POST /api/v1/notifications/email/templates/collections-management/versions/{version_id}/publish"
+      ],
+      "validaciones": [
+        "El snapshot debe provenir de la cartera autorizada, tener fecha de corte explícita y conservar saldo original, vencimiento y versión.",
+        "No fijar porcentajes ni tasas en la plantilla; cualquier cálculo configurado debe venir de la política aprobada y vigencia correspondiente.",
+        "Aplicar preferencias/canal y destinatario por empresa; impedir divulgación de saldos entre clientes.",
+        "Rechazar variables no permitidas, saldo calculado en cliente, HTML inseguro y cambios sobre versión publicada.",
+        "Registrar cada contacto, resultado, rebote y promesa con actor, timestamp y correlación; no duplicar por reintento.",
+        "El proveedor externo se llama desde worker/outbox; ante timeout se concilia antes de reintentar."
+      ],
+      "prueba_positiva": "Dado un cliente del núcleo con una obligación vencida y un saldo a fecha autorizado, cuando se publica una plantilla aprobada y se ejecuta un contacto, entonces el mensaje contiene el snapshot correcto de saldo y vencimiento, el contacto queda registrado y la cartera y contabilidad permanecen sin cambios.",
+      "prueba_negativa": "Dado un saldo calculado en navegador, una variable de tasa no aprobada, un destinatario de otra empresa o un módulo sin permiso, cuando se intenta probar o ejecutar el contacto, entonces la API rechaza la operación, no divulga información, no registra contacto productivo y no modifica cartera ni contabilidad.",
+      "dependencias_ids": [
+        "ADD-EMAIL-001"
+      ],
+      "titulo_original": "Modificar Email Gestión Cobranza",
+      "ruta_menu_original": "Email > Modificar Email Gestión Cobranza",
+      "ruta_react": "/email/modificar-email-gestion-cobranza",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Versionar plantilla de cobranza con saldo a fecha, vencimiento y registro de cada contacto.",
+      "pruebas_ids": [
+        "T-UI-XLS-015",
+        "T-PROC-XLS-015",
+        "T-NEG-XLS-015"
+      ],
+      "modulo": "Email"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+.expense-block-list > div {
+  grid-template-columns: 1fr 1.7rem 1.7rem 1.7rem;
+}
+
+.expense-block-list button.has-text {
+  border-color: #5365e8;
+  background: #eef1ff;
+  color: #5365e8;
+}
+
+.expense-block-custom-text {
+  margin: 5px 0 0;
+  padding: 5px 6px;
+  border-left: 2px solid var(--expense-accent);
+  background: #f7f7f7;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+.expense-block-text-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #14203499;
+  backdrop-filter: blur(2px);
+}
+
+.expense-block-text-dialog {
+  width: min(560px, 96vw);
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 70px #11182744;
+}
+
+.expense-block-text-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid #e2e7ec;
+}
+
+.expense-block-text-dialog > header span {
+  color: #7b8796;
+  font-size: .58rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.expense-block-text-dialog > header h2 {
+  margin: .15rem 0 0;
+  color: #344357;
+  font-size: .95rem;
+}
+
+.expense-block-text-dialog > header button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: .4rem;
+  background: #f1f4f7;
+  color: #6b7889;
+}
+
+.expense-block-text-dialog > header svg {
+  width: 15px;
+}
+
+.expense-block-text-dialog > div {
+  padding: 1rem;
+}
+
+.expense-block-text-dialog label {
+  display: grid;
+  gap: .35rem;
+  color: #4d5a6b;
+  font-size: .67rem;
+  font-weight: 750;
+}
+
+.expense-block-text-dialog textarea {
+  width: 100%;
+  padding: .65rem;
+  border: 1px solid #cfd8e2;
+  border-radius: .5rem;
+  color: #344357;
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  outline: 0;
+}
+
+.expense-block-text-dialog textarea:focus {
+  border-color: #5365e8;
+  box-shadow: 0 0 0 3px #5365e814;
+}
+
+.expense-block-text-dialog > div > small {
+  display: block;
+  margin-top: .3rem;
+  color: #8a95a4;
+  text-align: right;
+  font-size: .58rem;
+}
+
+.expense-block-text-dialog > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding: .8rem 1rem;
+  border-top: 1px solid #e2e7ec;
+}

@@ -1,0 +1,22 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      SAGA_V2_DATABASE_PATH: /data/saga-v2.db
+    volumes:
+      - saga-data:/data
+    ports:
+      - "8010:8010"
+  web:
+    build: .
+    depends_on:
+      - api
+    environment:
+      VITE_API_TARGET: http://api:8010
+    ports:
+      - "4180:4180"
+
+volumes:
+  saga-data:

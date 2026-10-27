@@ -1,0 +1,1506 @@
+{
+  "version": "2.0",
+  "modulo": "Bancos",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-085",
+      "celda": "C126",
+      "texto_original": "Cuentas Bancarias",
+      "ruta_original": "Bancos > Cuentas Bancarias",
+      "objetivo": "Mantener las cuentas bancarias de cada empresa con banco, moneda, cuenta contable, numeración, responsables y estado sin exponer datos sensibles. La pantalla permite administrar configuración operativa y consultar historial, pero no altera asientos publicados ni sustituye la revisión de permisos.",
+      "diseno_visible": "Encabezado con empresa activa, estado de módulo y aviso de protección de datos; listado paginado con búsqueda y filtros; botón Nueva cuenta; panel lateral de detalle con pestañas Identificación, Contabilidad, Seguridad, Numeración e Historial. La cuenta bancaria muestra solo el dato enmascarado por defecto, permite revelar mediante reautenticación y presenta estados de negocio separados del estado de conciliación. El formulario indica qué campos son opcionales cuando se opera sin inmuebles; no presenta condominio, inmueble ni alícuota como requisito. Las acciones de activar, inactivar o cambiar cuenta contable exigen motivo y auditoría.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada y activa"
+        },
+        {
+          "nombre": "nombre_cuenta",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "1-120 caracteres, único por empresa"
+        },
+        {
+          "nombre": "banco",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "banco vigente del catálogo interno"
+        },
+        {
+          "nombre": "numero_cuenta",
+          "tipo": "texto_enmascarado",
+          "obligatorio": true,
+          "validacion": "formato permitido por país, cifrado y no duplicado"
+        },
+        {
+          "nombre": "moneda",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "moneda soportada; conservar moneda histórica"
+        },
+        {
+          "nombre": "cuenta_contable",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "cuenta imputable, naturaleza compatible y empresa activa"
+        },
+        {
+          "nombre": "estado",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "ACTIVA o INACTIVA; inactivar exige motivo"
+        },
+        {
+          "nombre": "fecha_inicio",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "no posterior al primer movimiento"
+        }
+      ],
+      "columnas": [
+        "Empresa",
+        "Nombre de cuenta",
+        "Banco",
+        "Número enmascarado",
+        "Moneda",
+        "Cuenta contable",
+        "Estado",
+        "Última conciliación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Nueva cuenta",
+          "resultado": "crea borrador y solicita aprobación antes de activar",
+          "permiso": "banks.account.create"
+        },
+        {
+          "etiqueta": "Editar configuración",
+          "resultado": "actualiza solo campos permitidos y conserva versiones",
+          "permiso": "banks.account.update"
+        },
+        {
+          "etiqueta": "Activar/Inactivar",
+          "resultado": "cambia estado operativo sin borrar historial",
+          "permiso": "banks.account.status"
+        },
+        {
+          "etiqueta": "Ver historial",
+          "resultado": "muestra auditoría, cambios y movimientos vinculados",
+          "permiso": "banks.account.read"
+        },
+        {
+          "etiqueta": "Revelar datos sensibles",
+          "resultado": "muestra temporalmente el dato desenmascarado y audita acceso",
+          "permiso": "banks.account.sensitive_read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y revisar duplicados, permisos y contexto de moneda.",
+        "Capturar banco, cuenta enmascarada, moneda, cuenta contable, numeración y responsables.",
+        "Validar formato, unicidad, cuenta imputable, vigencia y ausencia de movimientos incompatibles.",
+        "Enviar a aprobación cuando la política lo exija y activar solo con decisión registrada.",
+        "Aplicar configuración a futuras operaciones sin modificar documentos históricos.",
+        "Consultar versión, auditoría y fecha de última conciliación."
+      ],
+      "estados": [
+        "BORRADOR",
+        "PENDIENTE_APROBACION",
+        "ACTIVA",
+        "INACTIVA",
+        "BLOQUEADA"
+      ],
+      "impacto_datos_contables": "No genera asiento al crear o editar la cuenta. La cuenta contable y moneda seleccionadas se aplican a operaciones futuras; el cambio de cuenta no reescribe asientos ni extractos anteriores. Inactivar bloquea nuevas operaciones y conserva consulta, conciliación e informes históricos. Las dimensiones inmobiliarias no son obligatorias.",
+      "api_propuesta": [
+        "GET /api/v1/treasury/bank-accounts",
+        "POST /api/v1/treasury/bank-accounts",
+        "PATCH /api/v1/treasury/bank-accounts/{id}",
+        "POST /api/v1/treasury/bank-accounts/{id}/activate",
+        "POST /api/v1/treasury/bank-accounts/{id}/deactivate",
+        "GET /api/v1/treasury/bank-accounts/{id}/audit"
+      ],
+      "validaciones": [
+        "Aplicar tenant/company scope y RLS en toda lectura y escritura.",
+        "Cifrar número y secretos; no enviarlos completos en listados ni logs.",
+        "Impedir duplicidad por empresa, banco, número normalizado y moneda cuando la política lo defina.",
+        "Impedir inactivar si existen operaciones abiertas sin resolución, mostrando impacto.",
+        "Usar Decimal y versionado optimista para cambios concurrentes."
+      ],
+      "prueba_positiva": {
+        "dado": "una empresa autorizada sin inmuebles y una cuenta bancaria nueva con banco, moneda y cuenta contable válidos",
+        "cuando": "el usuario con permiso registra, aprueba y activa la cuenta",
+        "entonces": "la cuenta queda ACTIVA, enmascarada, auditada y disponible para depósitos, egresos y conciliación sin asiento de alta"
+      },
+      "prueba_negativa": {
+        "dado": "una cuenta duplicada o una cuenta contable no imputable",
+        "cuando": "el usuario intenta guardarla o activarla",
+        "entonces": "la API rechaza la operación, no crea datos parciales y muestra errores por campo"
+      },
+      "dependencias_ids": [
+        "XLS-086",
+        "XLS-087",
+        "XLS-088",
+        "XLS-089",
+        "XLS-090",
+        "XLS-091",
+        "XLS-093",
+        "XLS-094",
+        "XLS-095"
+      ],
+      "titulo_original": "Cuentas Bancarias",
+      "ruta_menu_original": "Bancos > Cuentas Bancarias",
+      "ruta_react": "/bancos/cuentas-bancarias",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mantener cuentas por empresa, moneda, banco, cuenta contable y estado; proteger datos bancarios.",
+      "pruebas_ids": [
+        "T-UI-XLS-085",
+        "T-PROC-XLS-085",
+        "T-NEG-XLS-085"
+      ],
+      "modulo": "Bancos",
+      "fila": 126,
+      "nivel": 3
+    },
+    {
+      "id": "XLS-087",
+      "celda": "D129",
+      "texto_original": "Anulación de Depósito",
+      "ruta_original": "Bancos > Depósitos > Anulación de Depósito",
+      "objetivo": "Reversar un depósito publicado únicamente cuando la conciliación y sus dependencias permiten deshacerlo, restaurando efectivo o cheques en tránsito sin borrar el depósito original. Debe evidenciar quién solicitó, aprobó y ejecutó el reverso.",
+      "diseno_visible": "Listado de depósitos publicados con filtros por empresa, cuenta, fecha, referencia, estado de conciliación y medio. El detalle presenta asiento original, líneas de origen, matches de extracto, documentos y dependencias. La acción Anular abre un asistente con motivo obligatorio, soporte, impacto calculado y advertencia de que no se elimina el histórico. Si el depósito está conciliado, la pantalla informa qué grupos deben deshacerse o por qué se bloquea. La confirmación muestra el asiento reverso y la restauración de estados de efectivo/cheques. Se separan estado de negocio, contable y conciliación.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "deposito",
+          "tipo": "busqueda",
+          "obligatorio": true,
+          "validacion": "depósito PUBLICADO y perteneciente a la empresa"
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto_largo",
+          "obligatorio": true,
+          "validacion": "20-1000 caracteres y catálogo de motivo"
+        },
+        {
+          "nombre": "soportes",
+          "tipo": "archivos",
+          "obligatorio": true,
+          "validacion": "al menos una evidencia según política"
+        },
+        {
+          "nombre": "fecha_efecto",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "periodo abierto y no anterior a controles aprobados"
+        },
+        {
+          "nombre": "confirmacion_dependencias",
+          "tipo": "checkbox",
+          "obligatorio": true,
+          "validacion": "revisión expresa de conciliación y partidas relacionadas"
+        }
+      ],
+      "columnas": [
+        "Depósito",
+        "Cuenta",
+        "Fecha",
+        "Valor",
+        "Estado conciliación",
+        "Orígenes",
+        "Asiento original",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Evaluar anulación",
+          "resultado": "calcula dependencias y elegibilidad sin modificar datos",
+          "permiso": "banks.deposit.reverse_request"
+        },
+        {
+          "etiqueta": "Solicitar reverso",
+          "resultado": "crea solicitud con motivo y evidencia",
+          "permiso": "banks.deposit.reverse_request"
+        },
+        {
+          "etiqueta": "Aprobar reverso",
+          "resultado": "autoriza la operación segregada",
+          "permiso": "banks.deposit.reverse_approve"
+        },
+        {
+          "etiqueta": "Ejecutar anulación",
+          "resultado": "publica reverso y restaura partidas elegibles",
+          "permiso": "banks.deposit.reverse_post"
+        },
+        {
+          "etiqueta": "Ver auditoría",
+          "resultado": "consulta cadena de eventos y soportes",
+          "permiso": "banks.deposit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar el depósito publicado y cargar su composición y conciliaciones.",
+        "Capturar motivo, fecha de efecto, evidencia y confirmación de dependencias.",
+        "Validar que periodo, permisos, conciliación y movimientos relacionados permiten reversar.",
+        "Solicitar y obtener aprobación independiente con snapshot del depósito.",
+        "Publicar asiento reverso atómico y restaurar efectivo/cheques en tránsito no comprometidos.",
+        "Marcar el depósito ANULADO, mantener original y notificar impactos pendientes."
+      ],
+      "estados": [
+        "PUBLICADO",
+        "REVERSO_SOLICITADO",
+        "REVERSO_APROBADO",
+        "ANULADO",
+        "BLOQUEADO_POR_CONCILIACION",
+        "REVERSO_RECHAZADO"
+      ],
+      "impacto_datos_contables": "No se edita ni elimina el asiento original. Se crea un asiento reverso enlazado que devuelve el saldo a efectivo o cheques en tránsito y deshace las aplicaciones bancarias que correspondan. Si existen pagos, cierres o conciliaciones dependientes, se bloquea o exige un flujo previo aprobado; nunca se fuerza el saldo mediante actualización directa.",
+      "api_propuesta": [
+        "GET /api/v1/treasury/deposits/{id}/reverse-impact",
+        "POST /api/v1/treasury/deposits/{id}/reverse-requests",
+        "POST /api/v1/treasury/deposit-reversals/{id}/approve",
+        "POST /api/v1/treasury/deposit-reversals/{id}/post",
+        "GET /api/v1/treasury/deposit-reversals/{id}/audit"
+      ],
+      "validaciones": [
+        "Exigir motivo, evidencia, versión y segregación de funciones.",
+        "Bloquear reverso si el extracto conciliado no fue deshecho por el flujo autorizado.",
+        "Verificar periodo abierto y que todas las líneas no tengan dependencias incompatibles.",
+        "Usar reverso idempotente; una segunda ejecución devuelve el resultado existente.",
+        "Separar cualquier anulación fiscal o documental de este reverso contable."
+      ],
+      "prueba_positiva": {
+        "dado": "un depósito publicado no conciliado y sin pagos dependientes",
+        "cuando": "se solicita, aprueba y ejecuta su anulación",
+        "entonces": "se publica el reverso, se restauran los orígenes y el histórico conserva ambos asientos enlazados"
+      },
+      "prueba_negativa": {
+        "dado": "un depósito conciliado sin reversión previa del match",
+        "cuando": "se intenta ejecutarlo",
+        "entonces": "la API bloquea la acción, conserva el estado original y explica la dependencia"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-086",
+        "XLS-093",
+        "XLS-095"
+      ],
+      "titulo_original": "Anulación de Depósito",
+      "ruta_menu_original": "Bancos > Depósitos > Anulación de Depósito",
+      "ruta_react": "/bancos/depositos/anulacion-de-deposito",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reversar depósito solo si conciliación permite deshacerlo; restaurar efectivo/cheques en tránsito.",
+      "pruebas_ids": [
+        "T-UI-XLS-087",
+        "T-PROC-XLS-087",
+        "T-NEG-XLS-087"
+      ],
+      "modulo": "Bancos",
+      "fila": 129,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-088",
+      "celda": "D131",
+      "texto_original": "Cambio de Cheque",
+      "ruta_original": "Bancos > Cheques > Cambio de Cheque",
+      "objetivo": "Sustituir un cheque emitido por otro con cancelación controlada del anterior, secuencia nueva, vínculo y motivo, evitando reconocer un segundo gasto o duplicar la deuda pagada.",
+      "diseno_visible": "Pantalla independiente con búsqueda de cheque emitido, filtros por empresa, cuenta, beneficiario, estado y fecha. El detalle lado a lado muestra cheque original, documento de egreso, aplicaciones CxP, soporte y nuevo cheque propuesto. Un asistente solicita causa, fecha, número nuevo asignado por servidor, medio y evidencia; advierte que la sustitución no es un nuevo pago. La vista previa contable identifica si corresponde reverso/reemplazo según estado del cheque y muestra vínculos de auditoría. Cheques cobrados o ya anulados no aparecen como elegibles.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "cheque_original",
+          "tipo": "busqueda",
+          "obligatorio": true,
+          "validacion": "cheque emitido elegible y no sustituido"
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "selector_mas_texto",
+          "obligatorio": true,
+          "validacion": "causa catalogada y detalle mínimo 20 caracteres"
+        },
+        {
+          "nombre": "fecha_sustitucion",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "periodo abierto"
+        },
+        {
+          "nombre": "beneficiario_confirmado",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "coincide con beneficiario o cambio aprobado"
+        },
+        {
+          "nombre": "soporte",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "evidencia legible y con hash"
+        }
+      ],
+      "columnas": [
+        "Cheque original",
+        "Cuenta",
+        "Beneficiario",
+        "Egreso",
+        "Valor",
+        "Estado",
+        "Cheque sustituto",
+        "Fecha"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Evaluar sustitución",
+          "resultado": "muestra elegibilidad y efecto previsto",
+          "permiso": "banks.check.replace_request"
+        },
+        {
+          "etiqueta": "Proponer cheque sustituto",
+          "resultado": "reserva nueva secuencia sin publicar gasto adicional",
+          "permiso": "banks.check.replace_request"
+        },
+        {
+          "etiqueta": "Aprobar cambio",
+          "resultado": "autoriza cancelación y emisión vinculadas",
+          "permiso": "banks.check.replace_approve"
+        },
+        {
+          "etiqueta": "Confirmar cambio",
+          "resultado": "marca original SUSTITUIDO y nuevo cheque EMITIDO",
+          "permiso": "banks.check.replace_post"
+        },
+        {
+          "etiqueta": "Ver vínculo",
+          "resultado": "navega entre ambos cheques, egreso y asiento",
+          "permiso": "banks.check.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar cheque emitido elegible y revisar estado, egreso y aplicaciones.",
+        "Capturar causa, fecha, beneficiario confirmado, soporte y datos operativos del reemplazo.",
+        "Validar que no esté cobrado/anulado, que el importe y obligación sean consistentes y que la secuencia sea nueva.",
+        "Obtener aprobación segregada con vista previa de vínculos y reversos.",
+        "Cancelar lógicamente el cheque anterior y emitir el sustituto sin duplicar gasto ni deuda.",
+        "Consultar el encadenamiento, auditoría y eventual conciliación del nuevo cheque."
+      ],
+      "estados": [
+        "EMITIDO",
+        "SOLICITUD_CAMBIO",
+        "APROBADO",
+        "SUSTITUIDO",
+        "BLOQUEADO",
+        "RECHAZADO"
+      ],
+      "impacto_datos_contables": "El gasto y la obligación CxP permanecen únicos. Según el estado del cheque, se registra la cancelación/reverso necesario y se crea el nuevo instrumento enlazado; no se vuelve a debitar gasto ni se aplica dos veces la deuda. El cheque original queda histórico como SUSTITUIDO y el nuevo conserva la misma referencia de pago lógico.",
+      "api_propuesta": [
+        "GET /api/v1/treasury/checks/{id}/replace-impact",
+        "POST /api/v1/treasury/check-replacements",
+        "POST /api/v1/treasury/check-replacements/{id}/approve",
+        "POST /api/v1/treasury/check-replacements/{id}/post",
+        "GET /api/v1/treasury/checks/{id}/links"
+      ],
+      "validaciones": [
+        "No permitir cambio de cheque COBRADO, ANULADO o ya SUSTITUIDO.",
+        "Generar la secuencia en backend con lock y no reutilizar números.",
+        "Conservar saldo, tercero, aplicaciones y asiento de origen.",
+        "Exigir soporte y segregación de funciones según política.",
+        "Recalcular conciliación y alertar si el cheque original estaba en extracto."
+      ],
+      "prueba_positiva": {
+        "dado": "un cheque emitido por USD 500 aún no cobrado y un soporte de reemplazo válido",
+        "cuando": "se aprueba y confirma el cambio",
+        "entonces": "el original queda SUSTITUIDO, se genera una nueva secuencia y el gasto/CxP siguen siendo USD 500 una sola vez"
+      },
+      "prueba_negativa": {
+        "dado": "un cheque COBRADO",
+        "cuando": "se intenta sustituirlo",
+        "entonces": "la operación se bloquea y no crea cheque nuevo ni asiento"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-089",
+        "XLS-090",
+        "XLS-091",
+        "XLS-092"
+      ],
+      "titulo_original": "Cambio de Cheque",
+      "ruta_menu_original": "Bancos > Cheques > Cambio de Cheque",
+      "ruta_react": "/bancos/cheques/cambio-de-cheque",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Sustituir cheque con cancelación del anterior, secuencia nueva y vínculo, evitando un segundo gasto.",
+      "pruebas_ids": [
+        "T-UI-XLS-088",
+        "T-PROC-XLS-088",
+        "T-NEG-XLS-088"
+      ],
+      "modulo": "Bancos",
+      "fila": 131,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-089",
+      "celda": "D132",
+      "texto_original": "Reimpresión de Cheque",
+      "ruta_original": "Bancos > Cheques > Reimpresión de Cheque",
+      "objetivo": "Permitir reimprimir la representación de un cheque existente con control de permiso, motivo, versión documental y auditoría, sin crear pago, asiento, número ni aplicación nuevos.",
+      "diseno_visible": "Pantalla separada del cambio de cheque, con buscador por número, egreso, beneficiario, fecha y estado. El detalle muestra una vista previa no editable del cheque original, leyenda de reimpresión, número y hash del documento. El botón Reimprimir abre confirmación con motivo y destino de impresión/descarga; un historial registra usuario, timestamp, versión de plantilla y resultado. La interfaz deshabilita edición de importe, beneficiario, cuenta, número y fecha. Se advierte que corregir datos requiere el proceso de cambio o reverso, no reimpresión.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "cheque",
+          "tipo": "busqueda",
+          "obligatorio": true,
+          "validacion": "cheque existente y visible al usuario"
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto_largo",
+          "obligatorio": true,
+          "validacion": "10-500 caracteres"
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "plantilla vigente autorizada"
+        },
+        {
+          "nombre": "destino",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "impresora o descarga permitida"
+        },
+        {
+          "nombre": "confirmacion_no_contable",
+          "tipo": "checkbox",
+          "obligatorio": true,
+          "validacion": "acepta que no genera contabilización"
+        }
+      ],
+      "columnas": [
+        "Cheque",
+        "Egreso",
+        "Beneficiario",
+        "Valor",
+        "Fecha",
+        "Estado",
+        "Última impresión",
+        "Impresiones"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Previsualizar",
+          "resultado": "renderiza copia fiel con marca de control",
+          "permiso": "banks.check.read"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "genera nueva copia documental y auditoría, sin mutación contable",
+          "permiso": "banks.check.reprint"
+        },
+        {
+          "etiqueta": "Descargar evidencia",
+          "resultado": "descarga la representación autorizada con registro",
+          "permiso": "banks.check.reprint"
+        },
+        {
+          "etiqueta": "Consultar historial",
+          "resultado": "muestra todas las impresiones y usuarios",
+          "permiso": "banks.check.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar el cheque existente y verificar empresa, estado y permisos.",
+        "Capturar motivo, formato y destino de la copia.",
+        "Validar que los datos del cheque no hayan sido alterados y que la plantilla sea vigente.",
+        "Mostrar vista previa idéntica al documento fuente con marca de reimpresión.",
+        "Confirmar y generar solo un artefacto documental con idempotencia de solicitud.",
+        "Registrar auditoría y permitir consulta sin nuevo asiento, pago o número."
+      ],
+      "estados": [
+        "EMITIDO",
+        "ENTREGADO",
+        "COBRADO",
+        "SUSTITUIDO",
+        "ANULADO",
+        "REIMPRESION_SOLICITADA"
+      ],
+      "impacto_datos_contables": "Cero impacto contable. Reimprimir no cambia estado de pago, no consume numeración, no vuelve a aplicar CxP y no genera asiento. Solo crea un artefacto o evento de impresión vinculado al cheque original, con hash de plantilla y auditoría. Si el contenido es incorrecto, la navegación dirige a cambio, anulación o reverso según corresponda.",
+      "api_propuesta": [
+        "GET /api/v1/treasury/checks/{id}/print-preview",
+        "POST /api/v1/treasury/checks/{id}/reprints",
+        "GET /api/v1/treasury/checks/{id}/reprints",
+        "GET /api/v1/treasury/check-reprints/{id}/artifact"
+      ],
+      "validaciones": [
+        "No aceptar campos contables ni número nuevo en el comando.",
+        "Exigir permiso específico y motivo; auditar descarga e impresión.",
+        "Verificar versión de plantilla, hash del cheque y acceso por empresa.",
+        "Usar idempotency key para doble clic, devolviendo el mismo artefacto.",
+        "No permitir reimpresión de un borrador que nunca fue emitido."
+      ],
+      "prueba_positiva": {
+        "dado": "un cheque emitido y un usuario con permiso de reimpresión",
+        "cuando": "confirma una copia con motivo",
+        "entonces": "se genera el documento marcado, se registra auditoría y permanecen idénticos número, estado y asiento"
+      },
+      "prueba_negativa": {
+        "dado": "un usuario sin permiso o un intento de cambiar el importe durante la reimpresión",
+        "cuando": "envía la solicitud",
+        "entonces": "la API rechaza la operación y no crea artefacto ni movimiento contable"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-088",
+        "XLS-090",
+        "XLS-092"
+      ],
+      "titulo_original": "Reimpresión de Cheque",
+      "ruta_menu_original": "Bancos > Cheques > Reimpresión de Cheque",
+      "ruta_react": "/bancos/cheques/reimpresion-de-cheque",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reimprimir cheque con control de permiso y auditoría; no crear nuevo pago ni número.",
+      "pruebas_ids": [
+        "T-UI-XLS-089",
+        "T-PROC-XLS-089",
+        "T-NEG-XLS-089"
+      ],
+      "modulo": "Bancos",
+      "fila": 132,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-090",
+      "celda": "D134",
+      "texto_original": "Emisión de Egreso",
+      "ruta_original": "Bancos > Egresos > Emisión de Egreso",
+      "objetivo": "Emitir un egreso aprobado para pagar obligaciones o anticipos, con beneficiario, medio, cuenta bancaria, soportes y aplicación a CxP, bloqueando pagos duplicados y separando estados de negocio, contable y tributario.",
+      "diseno_visible": "Formulario transaccional con selector de empresa, beneficiario y deuda CxP; cabecera de fecha, moneda, medio y cuenta; detalle de aplicaciones, retenciones/anticipos disponibles, soporte y observaciones. Una tarjeta de duplicidad compara proveedor, obligación, importe, medio y referencias. La vista previa muestra saldo antes/después, asiento propuesto, cheque si aplica y advertencias de periodo. La pantalla tiene pestañas Captura, Validación, Aprobación, Resultado y Auditoría; ningún dato inmobiliario es requerido. El pago queda en estado pendiente si el proveedor externo o banco no confirma, sin inventar confirmación.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada y periodo abierto"
+        },
+        {
+          "nombre": "beneficiario",
+          "tipo": "tercero",
+          "obligatorio": true,
+          "validacion": "tercero activo con cuenta/datos validados"
+        },
+        {
+          "nombre": "fecha_egreso",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "periodo abierto"
+        },
+        {
+          "nombre": "medio_pago",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "TRANSFERENCIA, CHEQUE, EFECTIVO u otro configurado"
+        },
+        {
+          "nombre": "cuenta_origen",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "cuenta activa y moneda compatible"
+        },
+        {
+          "nombre": "aplicaciones_cxp",
+          "tipo": "tabla_decimal",
+          "obligatorio": true,
+          "validacion": "saldo disponible, tercero coincidente y suma positiva"
+        },
+        {
+          "nombre": "soportes",
+          "tipo": "archivos",
+          "obligatorio": true,
+          "validacion": "evidencia requerida por política"
+        }
+      ],
+      "columnas": [
+        "Egreso",
+        "Beneficiario",
+        "Fecha",
+        "Medio",
+        "Cuenta",
+        "Valor",
+        "Aplicado CxP",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear egreso",
+          "resultado": "guarda borrador sin afectar saldos",
+          "permiso": "banks.disbursement.create"
+        },
+        {
+          "etiqueta": "Validar duplicidad",
+          "resultado": "calcula conflictos y saldo aplicable",
+          "permiso": "banks.disbursement.validate"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "envía snapshot al aprobador",
+          "permiso": "banks.disbursement.submit"
+        },
+        {
+          "etiqueta": "Emitir egreso",
+          "resultado": "publica pago, aplicaciones y cheque/transferencia una vez",
+          "permiso": "banks.disbursement.post"
+        },
+        {
+          "etiqueta": "Consultar resultado",
+          "resultado": "muestra estados, soportes y asiento",
+          "permiso": "banks.disbursement.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, beneficiario, obligación CxP y medio de pago.",
+        "Capturar importe, aplicaciones, cuenta, fecha, soporte y referencias.",
+        "Validar saldo, tercero, duplicidad, moneda, periodo, retenciones y numeración.",
+        "Presentar vista previa y obtener aprobación conforme umbral y segregación.",
+        "Publicar asiento, reducir CxP y emitir cheque/transferencia con idempotencia.",
+        "Consultar confirmación, estado bancario, documento y auditoría."
+      ],
+      "estados": [
+        "BORRADOR",
+        "VALIDANDO",
+        "PENDIENTE_APROBACION",
+        "EMITIDO",
+        "PENDIENTE_CONFIRMACION",
+        "ANULADO",
+        "RECHAZADO"
+      ],
+      "impacto_datos_contables": "Al emitir, se reduce la obligación CxP mediante aplicaciones y se acredita banco, caja o cuenta puente; retenciones y anticipos se contabilizan según configuración versionada. No se permite pagar dos veces el mismo saldo. Un timeout externo conserva resultado incierto y exige conciliación, no reenvío ciego. Reversos posteriores usan la pantalla de anulación.",
+      "api_propuesta": [
+        "GET /api/v1/payables/items/available-for-payment",
+        "POST /api/v1/treasury/disbursements",
+        "POST /api/v1/treasury/disbursements/{id}/validate",
+        "POST /api/v1/treasury/disbursements/{id}/submit",
+        "POST /api/v1/treasury/disbursements/{id}/post",
+        "GET /api/v1/treasury/disbursements/{id}"
+      ],
+      "validaciones": [
+        "Bloquear importe mayor al saldo disponible salvo anticipo explícito y autorizado.",
+        "Detectar duplicados por empresa, tercero, obligación, importe y referencia sin ocultar falsos positivos.",
+        "No publicar en periodo cerrado ni con cuenta o numerador inactivo.",
+        "Aplicar locks sobre saldo CxP y clave idempotente.",
+        "Mantener estados contable y tributario separados; no fijar tasas en código."
+      ],
+      "prueba_positiva": {
+        "dado": "una factura CxP abierta por USD 800 y cuenta bancaria activa",
+        "cuando": "se crea, aprueba y emite un egreso de USD 800",
+        "entonces": "la deuda queda pagada, el banco se acredita una vez, el asiento y soporte quedan enlazados"
+      },
+      "prueba_negativa": {
+        "dado": "un pago ya emitido para la misma obligación y saldo cero",
+        "cuando": "se intenta emitir otro egreso",
+        "entonces": "la validación bloquea la publicación y no duplica deuda ni asiento"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-088",
+        "XLS-089",
+        "XLS-091",
+        "XLS-094",
+        "XLS-095"
+      ],
+      "titulo_original": "Emisión de Egreso",
+      "ruta_menu_original": "Bancos > Egresos > Emisión de Egreso",
+      "ruta_react": "/bancos/egresos/emision-de-egreso",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Emitir egreso con aprobación, beneficiario, medio y aplicación a CxP; bloquear pago duplicado.",
+      "pruebas_ids": [
+        "T-UI-XLS-090",
+        "T-PROC-XLS-090",
+        "T-NEG-XLS-090"
+      ],
+      "modulo": "Bancos",
+      "fila": 134,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-091",
+      "celda": "D135",
+      "texto_original": "Anulación de Egreso",
+      "ruta_original": "Bancos > Egresos > Anulación de Egreso",
+      "objetivo": "Reversar un egreso emitido y restituir la deuda o anticipo, resolviendo cheque, transferencia y conciliación relacionadas con evidencia y aprobación. No elimina el egreso ni altera el asiento publicado.",
+      "diseno_visible": "Listado de egresos emitidos con filtros por empresa, beneficiario, fecha, medio, estado de cheque, conciliación y obligación. El detalle muestra aplicaciones CxP, asiento, cheque/transferencia, extracto relacionado y estado tributario separado. El asistente de anulación calcula impacto, solicita motivo y evidencia, identifica si hace falta deshacer conciliación o cancelar instrumento y bloquea dependencias no resueltas. La confirmación presenta asiento reverso, saldo CxP restituido y tareas pendientes; cualquier anulación fiscal se muestra como proceso distinto y no se ejecuta implícitamente.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "egreso",
+          "tipo": "busqueda",
+          "obligatorio": true,
+          "validacion": "egreso EMITIDO elegible"
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "selector_mas_texto",
+          "obligatorio": true,
+          "validacion": "motivo y explicación mínima"
+        },
+        {
+          "nombre": "fecha_efecto",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "periodo abierto y calendario válido"
+        },
+        {
+          "nombre": "soportes",
+          "tipo": "archivos",
+          "obligatorio": true,
+          "validacion": "evidencia y hash obligatorios"
+        },
+        {
+          "nombre": "plan_dependencias",
+          "tipo": "texto_largo",
+          "obligatorio": true,
+          "validacion": "describe cheque/conciliación y resolución"
+        }
+      ],
+      "columnas": [
+        "Egreso",
+        "Beneficiario",
+        "Fecha",
+        "Valor",
+        "Medio",
+        "CxP aplicada",
+        "Conciliación",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Evaluar impacto",
+          "resultado": "muestra dependencias y asiento reverso previsto",
+          "permiso": "banks.disbursement.reverse_request"
+        },
+        {
+          "etiqueta": "Solicitar anulación",
+          "resultado": "crea solicitud con evidencia y snapshot",
+          "permiso": "banks.disbursement.reverse_request"
+        },
+        {
+          "etiqueta": "Aprobar anulación",
+          "resultado": "autoriza reverso segregado",
+          "permiso": "banks.disbursement.reverse_approve"
+        },
+        {
+          "etiqueta": "Ejecutar anulación",
+          "resultado": "publica reverso y restituye deuda o anticipo",
+          "permiso": "banks.disbursement.reverse_post"
+        },
+        {
+          "etiqueta": "Ver tareas fiscales",
+          "resultado": "consulta el estado fiscal separado sin asumir API pública",
+          "permiso": "tax.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar egreso y revisar obligación, instrumento, conciliación y estados separados.",
+        "Capturar motivo, fecha, evidencia y plan para dependencias.",
+        "Validar periodo, saldo, cheque/transferencia, conciliación y permisos.",
+        "Obtener aprobación con vista previa de reversos y restauración.",
+        "Resolver o enlazar la dependencia bancaria y publicar reverso contable atómico.",
+        "Marcar egreso ANULADO, restituir deuda/anticipo y dejar auditoría consultable."
+      ],
+      "estados": [
+        "EMITIDO",
+        "ANULACION_SOLICITADA",
+        "ANULACION_APROBADA",
+        "ANULADO",
+        "BLOQUEADO",
+        "RECHAZADO"
+      ],
+      "impacto_datos_contables": "Se conserva el egreso y su asiento original; se publica un reverso enlazado que acredita nuevamente la obligación CxP o devuelve el anticipo, y revierte el crédito bancario según plantilla. Si el cheque fue sustituido o cobrado, se obliga a resolver la cadena. La anulación fiscal, cuando aplique, queda separada y pendiente de canal autorizado, sin crear un endpoint SRI ficticio.",
+      "api_propuesta": [
+        "GET /api/v1/treasury/disbursements/{id}/reverse-impact",
+        "POST /api/v1/treasury/disbursement-reversals",
+        "POST /api/v1/treasury/disbursement-reversals/{id}/approve",
+        "POST /api/v1/treasury/disbursement-reversals/{id}/post",
+        "GET /api/v1/treasury/disbursement-reversals/{id}"
+      ],
+      "validaciones": [
+        "Impedir borrar o editar el egreso publicado.",
+        "Bloquear si el instrumento cobrado o la conciliación no tienen ruta de resolución aprobada.",
+        "Aplicar locks a saldo CxP, cheque y estado de conciliación.",
+        "No ejecutar anulación fiscal desde este comando ni asumir servicio público.",
+        "Hacer reverso idempotente y auditar actor, motivo, fechas y soportes."
+      ],
+      "prueba_positiva": {
+        "dado": "un egreso emitido no conciliado y una CxP pagada por USD 300",
+        "cuando": "se aprueba y ejecuta la anulación",
+        "entonces": "se publica reverso por USD 300, la deuda vuelve a abierta y el egreso original queda histórico"
+      },
+      "prueba_negativa": {
+        "dado": "un egreso con cheque cobrado sin procedimiento de resolución",
+        "cuando": "se intenta anular directamente",
+        "entonces": "se bloquea, no se toca saldo ni se publica reverso parcial"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-088",
+        "XLS-090",
+        "XLS-092",
+        "XLS-093",
+        "XLS-094"
+      ],
+      "titulo_original": "Anulación de Egreso",
+      "ruta_menu_original": "Bancos > Egresos > Anulación de Egreso",
+      "ruta_react": "/bancos/egresos/anulacion-de-egreso",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reversar egreso y restituir deuda, resolviendo cheque/conciliación relacionada y registrando evidencia.",
+      "pruebas_ids": [
+        "T-UI-XLS-091",
+        "T-PROC-XLS-091",
+        "T-NEG-XLS-091"
+      ],
+      "modulo": "Bancos",
+      "fila": 135,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-092",
+      "celda": "D137",
+      "texto_original": "Rep. Cheques Emitidos",
+      "ruta_original": "Bancos > Reportes > Rep. Cheques Emitidos",
+      "objetivo": "Listar cheques emitidos al corte o en un intervalo, filtrando estado, vencimiento, cuenta y beneficiario, e identificando sustituidos y anulados con totales conciliables y navegación al origen.",
+      "diseno_visible": "Reporte dedicado con filtros de empresa, cuenta, fecha de emisión, fecha de corte, beneficiario, número, estado y rango de valor. La tabla muestra número, cheque original/sustituto, beneficiario, egreso, fecha, vencimiento, importe, estado de negocio, estado contable, estado de conciliación y marcas de anulación. Encima aparecen totales por estado y total general; debajo, leyenda de que emitido no equivale a cobrado. Cada fila enlaza al cheque, egreso, asiento y grupo de conciliación. Exportar usa exactamente los filtros y columnas visibles, con advertencia contra fórmulas maliciosas.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "cuenta_bancaria",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "cuentas visibles"
+        },
+        {
+          "nombre": "desde_hasta",
+          "tipo": "rango_fecha",
+          "obligatorio": true,
+          "validacion": "rango válido y corte explícito"
+        },
+        {
+          "nombre": "estado_cheque",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "estados emitido/entregado/cobrado/anulado/sustituido"
+        },
+        {
+          "nombre": "beneficiario",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "búsqueda normalizada"
+        },
+        {
+          "nombre": "vencimiento",
+          "tipo": "rango_fecha",
+          "obligatorio": false,
+          "validacion": "rango opcional consistente"
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "pantalla, CSV o XLSX permitido"
+        }
+      ],
+      "columnas": [
+        "Número",
+        "Sustituye a",
+        "Beneficiario",
+        "Egreso",
+        "Fecha emisión",
+        "Vencimiento",
+        "Valor",
+        "Estado cheque",
+        "Estado conciliación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar reporte",
+          "resultado": "calcula filas y totales al corte con snapshot",
+          "permiso": "reports.banks.checks.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera archivo con mismos filtros, columnas y totales",
+          "permiso": "reports.banks.checks.export"
+        },
+        {
+          "etiqueta": "Abrir cheque",
+          "resultado": "navega al origen y conserva filtros de retorno",
+          "permiso": "banks.check.read"
+        },
+        {
+          "etiqueta": "Abrir egreso/asiento",
+          "resultado": "navega a documentos y libro publicados",
+          "permiso": "accounting.journal.read"
+        },
+        {
+          "etiqueta": "Ver auditoría",
+          "resultado": "muestra cambios, sustituciones y anulaciones",
+          "permiso": "audit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, corte/intervalo y filtros de cuenta, estado o beneficiario.",
+        "Validar permisos, fechas, periodo y consistencia del corte solicitado.",
+        "Consultar cheques y estados derivados de eventos publicados, sin editar datos.",
+        "Calcular totales por estado, vencimiento y valor con la misma semántica de exportación.",
+        "Revisar excepciones y navegar a cheque, egreso, asiento o conciliación.",
+        "Exportar un snapshot autorizado y registrar filtros, usuario y fecha."
+      ],
+      "estados": [
+        "BORRADOR",
+        "EMITIDO",
+        "ENTREGADO",
+        "COBRADO",
+        "ANULADO",
+        "SUSTITUIDO"
+      ],
+      "impacto_datos_contables": "Es de solo consulta y no publica movimientos. Incluye únicamente documentos y reversos efectivos al corte; muestra el valor del cheque y su estado sin confundir disponibilidad bancaria con efectivo conciliado. Sustituciones y anulaciones se exponen como relaciones históricas, no se ocultan ni se cuentan como un segundo gasto.",
+      "api_propuesta": [
+        "GET /api/v1/reports/banks/issued-checks",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/treasury/checks/{id}",
+        "GET /api/v1/accounting/journals/{id}"
+      ],
+      "validaciones": [
+        "Exigir as_of o from/to explícito y empresa autorizada.",
+        "Usar estados de negocio, contable y conciliación separados.",
+        "No mostrar ni exportar datos de otra empresa.",
+        "Totalizar con Decimal y reproducir el mismo resultado en pantalla y archivo.",
+        "Neutralizar fórmulas en CSV/XLSX y auditar exportaciones."
+      ],
+      "prueba_positiva": {
+        "dado": "tres cheques emitidos, uno sustituido y uno anulado dentro del corte",
+        "cuando": "un usuario consulta por estado y exporta",
+        "entonces": "la tabla y el archivo muestran las nueve columnas pactadas, totales por estado y enlaces correctos sin duplicar gasto"
+      },
+      "prueba_negativa": {
+        "dado": "un rango sin fecha de corte o una empresa no autorizada",
+        "cuando": "se solicita el reporte",
+        "entonces": "la API rechaza la consulta y no devuelve filas ni totales"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-088",
+        "XLS-089",
+        "XLS-090",
+        "XLS-091",
+        "XLS-093"
+      ],
+      "titulo_original": "Rep. Cheques Emitidos",
+      "ruta_menu_original": "Bancos > Reportes > Rep. Cheques Emitidos",
+      "ruta_react": "/bancos/reportes/rep-cheques-emitidos",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Listar cheques por estado, vencimiento y beneficiario, identificando sustituidos y anulados.",
+      "pruebas_ids": [
+        "T-UI-XLS-092",
+        "T-PROC-XLS-092",
+        "T-NEG-XLS-092"
+      ],
+      "modulo": "Bancos",
+      "fila": 137,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-093",
+      "celda": "D138",
+      "texto_original": "Rep. Saldo en Bancos",
+      "ruta_original": "Bancos > Reportes > Rep. Saldo en Bancos",
+      "objetivo": "Mostrar por cuenta y corte el saldo contable, saldo conciliado, saldo de extracto y diferencias explicadas, distinguiendo claramente efectivo disponible, partidas en tránsito y pendientes.",
+      "diseno_visible": "Reporte con selector de empresa, fecha de corte y cuenta, tarjeta de saldos separados y panel de conciliación. La tabla incluye saldo inicial, débitos, créditos, saldo contable publicado, movimientos conciliados, extracto, depósitos en tránsito, cheques pendientes, ajustes aprobados, diferencia no explicada y fecha de última conciliación. Totales por cuenta se concilian con el mayor; cada diferencia abre partidas pendientes o ajuste. La pantalla declara que saldo contable o conciliado no necesariamente equivale a efectivo disponible y permite exportar la misma vista. Sin inmuebles, funciona con empresa y banco únicamente.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "fecha_corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "fecha comercial válida"
+        },
+        {
+          "nombre": "cuentas",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "cuentas bancarias autorizadas"
+        },
+        {
+          "nombre": "incluir_pendientes",
+          "tipo": "checkbox",
+          "obligatorio": true,
+          "validacion": "define si se detallan partidas abiertas"
+        },
+        {
+          "nombre": "estado_conciliacion",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "SUGERIDO/CONFIRMADO/DESCARTADO/EXCEPCION"
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "pantalla, CSV o XLSX permitido"
+        }
+      ],
+      "columnas": [
+        "Cuenta",
+        "Saldo contable",
+        "Saldo conciliado",
+        "Saldo extracto",
+        "Depósitos tránsito",
+        "Cheques pendientes",
+        "Ajustes aprobados",
+        "Diferencia",
+        "Última conciliación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar saldo",
+          "resultado": "calcula saldos al corte y resumen por cuenta",
+          "permiso": "reports.banks.balance.read"
+        },
+        {
+          "etiqueta": "Ver pendientes",
+          "resultado": "abre partidas de extracto/libro y su estado",
+          "permiso": "banks.reconciliation.read"
+        },
+        {
+          "etiqueta": "Abrir conciliación",
+          "resultado": "navega al grupo o cierre de conciliación",
+          "permiso": "banks.reconciliation.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "descarga snapshot con columnas y totales idénticos",
+          "permiso": "reports.banks.balance.export"
+        },
+        {
+          "etiqueta": "Abrir mayor",
+          "resultado": "navega a movimientos publicados de la cuenta",
+          "permiso": "accounting.journal.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, fecha de corte, cuentas y detalle de pendientes.",
+        "Validar acceso, fecha y existencia de extractos/conciliaciones aplicables.",
+        "Leer únicamente movimientos publicados, reversos efectivos y líneas de extracto versionadas.",
+        "Separar saldo contable, conciliado, extracto, tránsito y diferencia explicada.",
+        "Presentar totales y permitir navegación a partidas, ajustes aprobados y mayor.",
+        "Exportar snapshot con los mismos filtros, fórmulas y auditoría."
+      ],
+      "estados": [
+        "SIN_EXTRACTO",
+        "IMPORTADO",
+        "EN_CONCILIACION",
+        "CONCILIADO",
+        "CON_DIFERENCIAS",
+        "CERRADO"
+      ],
+      "impacto_datos_contables": "No contabiliza. El saldo contable proviene del libro publicado; conciliado y extracto son vistas de control independientes. Depósitos y cheques en tránsito se muestran como partidas explicativas, no como incremento artificial del banco. Los ajustes solo afectan el informe cuando tienen aprobación y asiento asociado.",
+      "api_propuesta": [
+        "GET /api/v1/reports/banks/balances",
+        "GET /api/v1/treasury/bank-accounts/{id}/reconciliation-summary",
+        "GET /api/v1/treasury/reconciliations/{id}/items",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Exigir corte explícito y bloquear acceso entre empresas.",
+        "Conciliar totales con el mayor de la misma cuenta y fecha.",
+        "No inferir signos de extracto; usar importe firmado normalizado.",
+        "Marcar diferencia no explicada en vez de ocultarla o redondearla.",
+        "Usar la misma precisión y semántica para pantalla y exportación."
+      ],
+      "prueba_positiva": {
+        "dado": "una cuenta con saldo contable USD 1000, extracto USD 950 y cheque pendiente USD 50",
+        "cuando": "se consulta el corte",
+        "entonces": "el reporte separa los tres saldos, muestra la partida pendiente y no etiqueta USD 1000 como efectivo disponible conciliado"
+      },
+      "prueba_negativa": {
+        "dado": "un corte omitido o un extracto con signos ambiguos sin normalización",
+        "cuando": "se intenta generar el reporte",
+        "entonces": "la API solicita datos explícitos y no calcula una diferencia engañosa"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-086",
+        "XLS-087",
+        "XLS-090",
+        "XLS-091",
+        "XLS-094",
+        "XLS-095"
+      ],
+      "titulo_original": "Rep. Saldo en Bancos",
+      "ruta_menu_original": "Bancos > Reportes > Rep. Saldo en Bancos",
+      "ruta_react": "/bancos/reportes/rep-saldo-en-bancos",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar saldo contable, conciliado, extracto y diferencias sin confundir efectivo disponible.",
+      "pruebas_ids": [
+        "T-UI-XLS-093",
+        "T-PROC-XLS-093",
+        "T-NEG-XLS-093"
+      ],
+      "modulo": "Bancos",
+      "fila": 138,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-094",
+      "celda": "D139",
+      "texto_original": "Rep. Mayor de Cuentas",
+      "ruta_original": "Bancos > Reportes > Rep. Mayor de Cuentas",
+      "objetivo": "Generar el mayor de cada cuenta bancaria desde asientos publicados y reversos efectivos, con referencias de depósito, cheque, egreso, conciliación y saldo acumulado al corte.",
+      "diseno_visible": "Reporte de mayor con empresa, cuenta bancaria, fecha inicial/final, fecha de corte y filtros de tipo de movimiento, documento, beneficiario y estado de conciliación. La cabecera muestra saldo inicial y saldo final; la tabla incluye fecha, número de asiento, documento origen, referencia bancaria, descripción, débito, crédito, saldo acumulado, estado contable y match de conciliación. Los totales de débitos/créditos y saldo final aparecen al pie. Cada fila navega al asiento publicado y a su documento de origen; no se permite editar desde el reporte. Exportación y pantalla usan el mismo snapshot y columnas.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "cuenta_bancaria",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "cuenta activa o histórica visible"
+        },
+        {
+          "nombre": "desde_hasta",
+          "tipo": "rango_fecha",
+          "obligatorio": true,
+          "validacion": "desde no mayor que hasta"
+        },
+        {
+          "nombre": "fecha_corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "igual o posterior a hasta"
+        },
+        {
+          "nombre": "tipos_movimiento",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "catálogo de movimientos bancarios"
+        },
+        {
+          "nombre": "estado_conciliacion",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "estados de conciliación válidos"
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "pantalla, CSV o XLSX permitido"
+        }
+      ],
+      "columnas": [
+        "Fecha",
+        "Asiento",
+        "Documento origen",
+        "Referencia",
+        "Descripción",
+        "Débito",
+        "Crédito",
+        "Saldo acumulado",
+        "Conciliación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Generar mayor",
+          "resultado": "consulta asientos publicados y calcula saldo al corte",
+          "permiso": "reports.banks.ledger.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "crea archivo con igual snapshot, columnas y totales",
+          "permiso": "reports.banks.ledger.export"
+        },
+        {
+          "etiqueta": "Abrir asiento",
+          "resultado": "navega al asiento inmutable y su auditoría",
+          "permiso": "accounting.journal.read"
+        },
+        {
+          "etiqueta": "Abrir origen",
+          "resultado": "navega a depósito, egreso, cheque o ajuste",
+          "permiso": "banks.transaction.read"
+        },
+        {
+          "etiqueta": "Ver conciliación",
+          "resultado": "muestra match de extracto relacionado",
+          "permiso": "banks.reconciliation.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, cuenta, intervalo, corte y filtros opcionales.",
+        "Validar permisos, periodo y que la cuenta pertenezca a la empresa.",
+        "Leer asientos publicados y reversos efectivos con referencias de origen.",
+        "Calcular saldo inicial, movimientos, débitos, créditos y saldo acumulado con Decimal.",
+        "Presentar totales, estados de conciliación y navegación a documentos fuente.",
+        "Generar exportación autorizada con el snapshot exacto y registrar auditoría."
+      ],
+      "estados": [
+        "GENERANDO",
+        "LISTO",
+        "SIN_MOVIMIENTOS",
+        "CON_EXCEPCIONES",
+        "EXPORTADO"
+      ],
+      "impacto_datos_contables": "Solo consulta el libro canónico. No incluye borradores ni cambia asientos. Un reverso aparece como movimiento separado y conserva la referencia al original. Las referencias de conciliación enriquecen la vista pero no sustituyen el saldo contable ni permiten editarlo desde el reporte.",
+      "api_propuesta": [
+        "GET /api/v1/reports/banks/ledger",
+        "GET /api/v1/accounting/journals/{id}",
+        "GET /api/v1/treasury/reconciliations/matches",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Usar from/to y as_of explícitos, con zona comercial definida.",
+        "Filtrar exclusivamente por empresa y cuenta autorizadas.",
+        "Excluir asientos no publicados y explicar cualquier referencia huérfana.",
+        "Reconciliar saldo final con balance de comprobación de la cuenta.",
+        "Escapar valores peligrosos al exportar sin alterar importes."
+      ],
+      "prueba_positiva": {
+        "dado": "una cuenta con asientos de depósito, egreso y un reverso publicado",
+        "cuando": "se genera el mayor del mes",
+        "entonces": "la tabla muestra cada movimiento y el saldo final coincide con el libro, con enlaces a sus orígenes"
+      },
+      "prueba_negativa": {
+        "dado": "un asiento en BORRADOR",
+        "cuando": "se solicita el mayor",
+        "entonces": "no aparece en filas ni totales y la API no permite incluirlo mediante un filtro arbitrario"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-086",
+        "XLS-087",
+        "XLS-090",
+        "XLS-091",
+        "XLS-093",
+        "XLS-095"
+      ],
+      "titulo_original": "Rep. Mayor de Cuentas",
+      "ruta_menu_original": "Bancos > Reportes > Rep. Mayor de Cuentas",
+      "ruta_react": "/bancos/reportes/rep-mayor-de-cuentas",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Generar mayor de cada cuenta bancaria desde asientos publicados con referencias de conciliación.",
+      "pruebas_ids": [
+        "T-UI-XLS-094",
+        "T-PROC-XLS-094",
+        "T-NEG-XLS-094"
+      ],
+      "modulo": "Bancos",
+      "fila": 139,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-095",
+      "celda": "D140",
+      "texto_original": "Rep. Movimientos Bancarios",
+      "ruta_original": "Bancos > Reportes > Rep. Movimientos Bancarios",
+      "objetivo": "Listar movimientos bancarios con fecha, valor, medio, referencia y documento, distinguiendo extracto de libro y mostrando el estado de emparejamiento sin confundir fuentes.",
+      "diseno_visible": "Reporte dedicado con pestañas Libro, Extracto y Comparación; filtros por empresa, cuenta, periodo, origen, medio, estado de conciliación, referencia, importe y tercero. La tabla comparativa mantiene columnas paralelas para fecha/valor/referencia del extracto y fecha/valor/documento del libro, más grupo de match, diferencia y estado. La pestaña Libro navega a asientos y operaciones; Extracto conserva la línea original e importada; Comparación permite abrir el grupo sin aprobarlo desde el reporte. Totales separados por fuente, conciliados y pendientes, exportables con las mismas columnas y filtros.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "cuenta_bancaria",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "cuenta visible y activa/histórica"
+        },
+        {
+          "nombre": "desde_hasta",
+          "tipo": "rango_fecha",
+          "obligatorio": true,
+          "validacion": "rango comercial válido"
+        },
+        {
+          "nombre": "fuente",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "LIBRO, EXTRACTO o COMPARACION"
+        },
+        {
+          "nombre": "medio",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "catálogo de medios bancarios"
+        },
+        {
+          "nombre": "estado_conciliacion",
+          "tipo": "multiseleccion",
+          "obligatorio": false,
+          "validacion": "SUGERIDO/CONFIRMADO/DESCARTADO/EXCEPCION"
+        },
+        {
+          "nombre": "referencia_importe",
+          "tipo": "texto_y_decimal",
+          "obligatorio": false,
+          "validacion": "búsqueda exacta o normalizada"
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "pantalla, CSV o XLSX permitido"
+        }
+      ],
+      "columnas": [
+        "Fuente",
+        "Fecha",
+        "Valor firmado",
+        "Medio",
+        "Referencia",
+        "Documento/Asiento",
+        "Tercero",
+        "Grupo match",
+        "Estado",
+        "Diferencia"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar movimientos",
+          "resultado": "lista líneas según fuente y corte",
+          "permiso": "reports.banks.movements.read"
+        },
+        {
+          "etiqueta": "Abrir línea de extracto",
+          "resultado": "muestra archivo, hash y datos originales",
+          "permiso": "banks.statement.read"
+        },
+        {
+          "etiqueta": "Abrir movimiento de libro",
+          "resultado": "navega al documento y asiento publicados",
+          "permiso": "accounting.journal.read"
+        },
+        {
+          "etiqueta": "Abrir grupo de conciliación",
+          "resultado": "muestra miembros, total y decisión",
+          "permiso": "banks.reconciliation.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera snapshot con fuentes y columnas separadas",
+          "permiso": "reports.banks.movements.export"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, cuenta, intervalo, fuente y filtros de medio/estado.",
+        "Validar acceso, existencia de extracto y normalización de importes firmados.",
+        "Consultar líneas originales del extracto o movimientos publicados del libro.",
+        "Comparar solo mediante grupos de conciliación aprobados, mostrando diferencia y tolerancia.",
+        "Permitir navegación a origen sin modificar ni aprobar desde el reporte.",
+        "Exportar resultados separados por fuente, con totales, hash y auditoría."
+      ],
+      "estados": [
+        "IMPORTADO",
+        "SUGERIDO",
+        "CONFIRMADO",
+        "DESCARTADO",
+        "EXCEPCION",
+        "PUBLICADO"
+      ],
+      "impacto_datos_contables": "Es un reporte de consulta. El extracto no modifica el libro y una coincidencia no publica por sí misma. Los movimientos de libro provienen de asientos publicados; las diferencias, comisiones o intereses requieren operación y aprobación aparte. La exportación conserva el signo normalizado y la línea original para trazabilidad.",
+      "api_propuesta": [
+        "GET /api/v1/reports/banks/movements",
+        "GET /api/v1/treasury/statements/{id}/lines",
+        "GET /api/v1/treasury/reconciliations/{id}/matches",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Separar fuente y no mezclar extracto con libro en una única columna ambigua.",
+        "Conservar saldo y referencia originales del archivo importado junto a normalizados.",
+        "No inferir cargo/abono desde texto libre; exigir importe firmado.",
+        "Calcular totales y diferencias con Decimal y snapshot estable.",
+        "Aplicar control de exportación y navegación por empresa."
+      ],
+      "prueba_positiva": {
+        "dado": "un extracto con dos líneas, un movimiento de libro y un match confirmado",
+        "cuando": "se consulta la pestaña Comparación",
+        "entonces": "se muestran columnas paralelas, grupo confirmado, diferencia explicada y totales separados por fuente"
+      },
+      "prueba_negativa": {
+        "dado": "una línea con descripción 'cargo' pero sin importe firmado",
+        "cuando": "se intenta incluirla en movimientos comparables",
+        "entonces": "queda EXCEPCION y el reporte no inventa su signo ni la empareja automáticamente"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-086",
+        "XLS-087",
+        "XLS-090",
+        "XLS-091",
+        "XLS-093",
+        "XLS-094"
+      ],
+      "titulo_original": "Rep. Movimientos Bancarios",
+      "ruta_menu_original": "Bancos > Reportes > Rep. Movimientos Bancarios",
+      "ruta_react": "/bancos/reportes/rep-movimientos-bancarios",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Listar movimientos bancarios con valor/fecha/medio/documento y distinguir extracto de libro.",
+      "pruebas_ids": [
+        "T-UI-XLS-095",
+        "T-PROC-XLS-095",
+        "T-NEG-XLS-095"
+      ],
+      "modulo": "Bancos",
+      "fila": 140,
+      "nivel": 4
+    }
+  ]
+}

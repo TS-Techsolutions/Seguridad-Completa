@@ -1,0 +1,2445 @@
+{
+  "version": "2.0",
+  "fuente": "Detalle de Pantallas.xlsx / Hoja1",
+  "regla": "Preservar etiquetas, orden, padres y accesos del Excel corregido. Cada pantalla conserva un ID y una ruta únicos.",
+  "nodes": [
+    {
+      "node_id": "NODE-B4",
+      "celda": "B4",
+      "label": "Administración Inmuebles",
+      "level": 0,
+      "parent_id": null,
+      "order": 4,
+      "breadcrumb": [
+        "Administración Inmuebles"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C5",
+      "celda": "C5",
+      "label": "General",
+      "level": 1,
+      "parent_id": "NODE-B4",
+      "order": 5,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "General"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D6",
+      "celda": "D6",
+      "label": "Tipo de Inmueble",
+      "level": 2,
+      "parent_id": "NODE-C5",
+      "order": 6,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "General",
+        "Tipo de Inmueble"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-001",
+      "route": "/administracion-inmuebles/general/tipo-de-inmueble",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D7",
+      "celda": "D7",
+      "label": "Niveles de Piso",
+      "level": 2,
+      "parent_id": "NODE-C5",
+      "order": 7,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "General",
+        "Niveles de Piso"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-002",
+      "route": "/administracion-inmuebles/general/niveles-de-piso",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D8",
+      "celda": "D8",
+      "label": "Sección",
+      "level": 2,
+      "parent_id": "NODE-C5",
+      "order": 8,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "General",
+        "Sección"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-003",
+      "route": "/administracion-inmuebles/general/seccion",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D9",
+      "celda": "D9",
+      "label": "Rubros",
+      "level": 2,
+      "parent_id": "NODE-C5",
+      "order": 9,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "General",
+        "Rubros"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-004",
+      "route": "/administracion-inmuebles/general/rubros",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-C10",
+      "celda": "C10",
+      "label": "Inmuebles",
+      "level": 1,
+      "parent_id": "NODE-B4",
+      "order": 10,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Inmuebles"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D11",
+      "celda": "D11",
+      "label": "Detalle Inmuebles",
+      "level": 2,
+      "parent_id": "NODE-C10",
+      "order": 11,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Inmuebles",
+        "Detalle Inmuebles"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-005",
+      "route": "/administracion-inmuebles/inmuebles/detalle-inmuebles",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D12",
+      "celda": "D12",
+      "label": "Resumen General",
+      "level": 2,
+      "parent_id": "NODE-C10",
+      "order": 12,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Inmuebles",
+        "Resumen General"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-006",
+      "route": "/administracion-inmuebles/inmuebles/resumen-general",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D13",
+      "celda": "D13",
+      "label": "Carga Masiva de Inmuebles",
+      "level": 2,
+      "parent_id": "NODE-C10",
+      "order": 13,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Inmuebles",
+        "Carga Masiva de Inmuebles"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-007",
+      "route": "/administracion-inmuebles/inmuebles/carga-masiva-de-inmuebles",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D14",
+      "celda": "D14",
+      "label": "Reporte Histórico de Propietarios",
+      "level": 2,
+      "parent_id": "NODE-C10",
+      "order": 14,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Inmuebles",
+        "Reporte Histórico de Propietarios"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-008",
+      "route": "/administracion-inmuebles/inmuebles/reporte-historico-de-propietarios",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-C15",
+      "celda": "C15",
+      "label": "Notificaciones",
+      "level": 1,
+      "parent_id": "NODE-B4",
+      "order": 15,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Notificaciones"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D16",
+      "celda": "D16",
+      "label": "Configuración Destinatarios",
+      "level": 2,
+      "parent_id": "NODE-C15",
+      "order": 16,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Notificaciones",
+        "Configuración Destinatarios"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-009",
+      "route": "/administracion-inmuebles/notificaciones/configuracion-destinatarios",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D17",
+      "celda": "D17",
+      "label": "Envío Email",
+      "level": 2,
+      "parent_id": "NODE-C15",
+      "order": 17,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Notificaciones",
+        "Envío Email"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-010",
+      "route": "/administracion-inmuebles/notificaciones/envio-email",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-D18",
+      "celda": "D18",
+      "label": "Boletín",
+      "level": 2,
+      "parent_id": "NODE-C15",
+      "order": 18,
+      "breadcrumb": [
+        "Administración Inmuebles",
+        "Notificaciones",
+        "Boletín"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-011",
+      "route": "/administracion-inmuebles/notificaciones/boletin",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-B19",
+      "celda": "B19",
+      "label": "Email",
+      "level": 0,
+      "parent_id": null,
+      "order": 19,
+      "breadcrumb": [
+        "Email"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C20",
+      "celda": "C20",
+      "label": "Modificar Email Exp. Ordinarias",
+      "level": 1,
+      "parent_id": "NODE-B19",
+      "order": 20,
+      "breadcrumb": [
+        "Email",
+        "Modificar Email Exp. Ordinarias"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-012",
+      "route": "/email/modificar-email-exp-ordinarias",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-C21",
+      "celda": "C21",
+      "label": "Modificar Email Exp. Extraordinarias",
+      "level": 1,
+      "parent_id": "NODE-B19",
+      "order": 21,
+      "breadcrumb": [
+        "Email",
+        "Modificar Email Exp. Extraordinarias"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-013",
+      "route": "/email/modificar-email-exp-extraordinarias",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-C22",
+      "celda": "C22",
+      "label": "Modificar Email Recaudaciones",
+      "level": 1,
+      "parent_id": "NODE-B19",
+      "order": 22,
+      "breadcrumb": [
+        "Email",
+        "Modificar Email Recaudaciones"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-014",
+      "route": "/email/modificar-email-recaudaciones",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C23",
+      "celda": "C23",
+      "label": "Modificar Email Gestión Cobranza",
+      "level": 1,
+      "parent_id": "NODE-B19",
+      "order": 23,
+      "breadcrumb": [
+        "Email",
+        "Modificar Email Gestión Cobranza"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-015",
+      "route": "/email/modificar-email-gestion-cobranza",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-B24",
+      "celda": "B24",
+      "label": "Contabilidad",
+      "level": 0,
+      "parent_id": null,
+      "order": 24,
+      "breadcrumb": [
+        "Contabilidad"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C25",
+      "celda": "C25",
+      "label": "Financiero",
+      "level": 1,
+      "parent_id": "NODE-B24",
+      "order": 25,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D26",
+      "celda": "D26",
+      "label": "Configuración",
+      "level": 2,
+      "parent_id": "NODE-C25",
+      "order": 26,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-E27",
+      "celda": "E27",
+      "label": "Tipo Comp. Contables",
+      "level": 3,
+      "parent_id": "NODE-D26",
+      "order": 27,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Tipo Comp. Contables"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-016",
+      "route": "/contabilidad/financiero/configuracion/tipo-comp-contables",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E28",
+      "celda": "E28",
+      "label": "Establecimientos",
+      "level": 3,
+      "parent_id": "NODE-D26",
+      "order": 28,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Establecimientos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-017",
+      "route": "/contabilidad/financiero/configuracion/establecimientos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E29",
+      "celda": "E29",
+      "label": "Centro de Costos",
+      "level": 3,
+      "parent_id": "NODE-D26",
+      "order": 29,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Centro de Costos"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-F30",
+      "celda": "F30",
+      "label": "Tipos de C. Costos",
+      "level": 4,
+      "parent_id": "NODE-E29",
+      "order": 30,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Centro de Costos",
+        "Tipos de C. Costos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-018",
+      "route": "/contabilidad/financiero/configuracion/centro-de-costos/tipos-de-c-costos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-F31",
+      "celda": "F31",
+      "label": "Ingreso C. Costos",
+      "level": 4,
+      "parent_id": "NODE-E29",
+      "order": 31,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Centro de Costos",
+        "Ingreso C. Costos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-019",
+      "route": "/contabilidad/financiero/configuracion/centro-de-costos/ingreso-c-costos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E32",
+      "celda": "E32",
+      "label": "Retenciones",
+      "level": 3,
+      "parent_id": "NODE-D26",
+      "order": 32,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Retenciones"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-F33",
+      "celda": "F33",
+      "label": "Tipos Imp. Renta",
+      "level": 4,
+      "parent_id": "NODE-E32",
+      "order": 33,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Retenciones",
+        "Tipos Imp. Renta"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-020",
+      "route": "/contabilidad/financiero/configuracion/retenciones/tipos-imp-renta",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-F34",
+      "celda": "F34",
+      "label": "Tipos Ret. IVA",
+      "level": 4,
+      "parent_id": "NODE-E32",
+      "order": 34,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Retenciones",
+        "Tipos Ret. IVA"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-021",
+      "route": "/contabilidad/financiero/configuracion/retenciones/tipos-ret-iva",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E35",
+      "celda": "E35",
+      "label": "Secuencia de Documentos",
+      "level": 3,
+      "parent_id": "NODE-D26",
+      "order": 35,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Secuencia de Documentos"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-F36",
+      "celda": "F36",
+      "label": "Expensas",
+      "level": 4,
+      "parent_id": "NODE-E35",
+      "order": 36,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Secuencia de Documentos",
+        "Expensas"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-022",
+      "route": "/contabilidad/financiero/configuracion/secuencia-de-documentos/expensas",
+      "package": "PROPERTY_MANAGEMENT"
+    },
+    {
+      "node_id": "NODE-F37",
+      "celda": "F37",
+      "label": "Secuencia Terminales",
+      "level": 4,
+      "parent_id": "NODE-E35",
+      "order": 37,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Secuencia de Documentos",
+        "Secuencia Terminales"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-023",
+      "route": "/contabilidad/financiero/configuracion/secuencia-de-documentos/secuencia-terminales",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-F38",
+      "celda": "F38",
+      "label": "Comprobantes Contables",
+      "level": 4,
+      "parent_id": "NODE-E35",
+      "order": 38,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Configuración",
+        "Secuencia de Documentos",
+        "Comprobantes Contables"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-024",
+      "route": "/contabilidad/financiero/configuracion/secuencia-de-documentos/comprobantes-contables",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D39",
+      "celda": "D39",
+      "label": "Plan Contable",
+      "level": 2,
+      "parent_id": "NODE-C25",
+      "order": 39,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Plan Contable"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-E40",
+      "celda": "E40",
+      "label": "Plan Contable",
+      "level": 3,
+      "parent_id": "NODE-D39",
+      "order": 40,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Plan Contable",
+        "Plan Contable"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-025",
+      "route": "/contabilidad/financiero/plan-contable/plan-contable",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E41",
+      "celda": "E41",
+      "label": "Migrar Plan Contable",
+      "level": 3,
+      "parent_id": "NODE-D39",
+      "order": 41,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Plan Contable",
+        "Migrar Plan Contable"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-026",
+      "route": "/contabilidad/financiero/plan-contable/migrar-plan-contable",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D42",
+      "celda": "D42",
+      "label": "Comprobantes Contables",
+      "level": 2,
+      "parent_id": "NODE-C25",
+      "order": 42,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Comprobantes Contables"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-E43",
+      "celda": "E43",
+      "label": "Registro Comp. Contable",
+      "level": 3,
+      "parent_id": "NODE-D42",
+      "order": 43,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Comprobantes Contables",
+        "Registro Comp. Contable"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-027",
+      "route": "/contabilidad/financiero/comprobantes-contables/registro-comp-contable",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E44",
+      "celda": "E44",
+      "label": "Reimpresión Comp. Contable",
+      "level": 3,
+      "parent_id": "NODE-D42",
+      "order": 44,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Comprobantes Contables",
+        "Reimpresión Comp. Contable"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-028",
+      "route": "/contabilidad/financiero/comprobantes-contables/reimpresion-comp-contable",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E45",
+      "celda": "E45",
+      "label": "Modificación Comp. Contable",
+      "level": 3,
+      "parent_id": "NODE-D42",
+      "order": 45,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Comprobantes Contables",
+        "Modificación Comp. Contable"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-029",
+      "route": "/contabilidad/financiero/comprobantes-contables/modificacion-comp-contable",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E46",
+      "celda": "E46",
+      "label": "Anulación Comp. Contable",
+      "level": 3,
+      "parent_id": "NODE-D42",
+      "order": 46,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Comprobantes Contables",
+        "Anulación Comp. Contable"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-030",
+      "route": "/contabilidad/financiero/comprobantes-contables/anulacion-comp-contable",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D47",
+      "celda": "D47",
+      "label": "Libros Contables",
+      "level": 2,
+      "parent_id": "NODE-C25",
+      "order": 47,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-E48",
+      "celda": "E48",
+      "label": "Libro Mayor",
+      "level": 3,
+      "parent_id": "NODE-D47",
+      "order": 48,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Libro Mayor"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-031",
+      "route": "/contabilidad/financiero/libros-contables/libro-mayor",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E49",
+      "celda": "E49",
+      "label": "Balance General",
+      "level": 3,
+      "parent_id": "NODE-D47",
+      "order": 49,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Balance General"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-F50",
+      "celda": "F50",
+      "label": "Balance General Vertical",
+      "level": 4,
+      "parent_id": "NODE-E49",
+      "order": 50,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Balance General",
+        "Balance General Vertical"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-032",
+      "route": "/contabilidad/financiero/libros-contables/balance-general/balance-general-vertical",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-F51",
+      "celda": "F51",
+      "label": "Análisis de Saldos",
+      "level": 4,
+      "parent_id": "NODE-E49",
+      "order": 51,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Balance General",
+        "Análisis de Saldos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-033",
+      "route": "/contabilidad/financiero/libros-contables/balance-general/analisis-de-saldos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-F52",
+      "celda": "F52",
+      "label": "Balance Horizontal Acumulado",
+      "level": 4,
+      "parent_id": "NODE-E49",
+      "order": 52,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Balance General",
+        "Balance Horizontal Acumulado"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-034",
+      "route": "/contabilidad/financiero/libros-contables/balance-general/balance-horizontal-acumulado",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E53",
+      "celda": "E53",
+      "label": "Estado de Resultados",
+      "level": 3,
+      "parent_id": "NODE-D47",
+      "order": 53,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Estado de Resultados"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-035",
+      "route": "/contabilidad/financiero/libros-contables/estado-de-resultados",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E56",
+      "celda": "E56",
+      "label": "Gastos x C.C.",
+      "level": 3,
+      "parent_id": "NODE-D47",
+      "order": 56,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Gastos x C.C."
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-F57",
+      "celda": "F57",
+      "label": "Saldos Mensuales",
+      "level": 4,
+      "parent_id": "NODE-E56",
+      "order": 57,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Gastos x C.C.",
+        "Saldos Mensuales"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-036",
+      "route": "/contabilidad/financiero/libros-contables/gastos-x-c-c/saldos-mensuales",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-F58",
+      "celda": "F58",
+      "label": "Acumulados",
+      "level": 4,
+      "parent_id": "NODE-E56",
+      "order": 58,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Gastos x C.C.",
+        "Acumulados"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-037",
+      "route": "/contabilidad/financiero/libros-contables/gastos-x-c-c/acumulados",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-E59",
+      "celda": "E59",
+      "label": "Cierres",
+      "level": 3,
+      "parent_id": "NODE-D47",
+      "order": 59,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Cierres"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-F60",
+      "celda": "F60",
+      "label": "Registro de Cierres",
+      "level": 4,
+      "parent_id": "NODE-E59",
+      "order": 60,
+      "breadcrumb": [
+        "Contabilidad",
+        "Financiero",
+        "Libros Contables",
+        "Cierres",
+        "Registro de Cierres"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-038",
+      "route": "/contabilidad/financiero/libros-contables/cierres/registro-de-cierres",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-B62",
+      "celda": "B62",
+      "label": "Caja Chica",
+      "level": 0,
+      "parent_id": null,
+      "order": 62,
+      "breadcrumb": [
+        "Caja Chica"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C63",
+      "celda": "C63",
+      "label": "Registro de Caja Chica",
+      "level": 1,
+      "parent_id": "NODE-B62",
+      "order": 63,
+      "breadcrumb": [
+        "Caja Chica",
+        "Registro de Caja Chica"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-039",
+      "route": "/caja-chica/registro-de-caja-chica",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C64",
+      "celda": "C64",
+      "label": "Documentos Pendientes",
+      "level": 1,
+      "parent_id": "NODE-B62",
+      "order": 64,
+      "breadcrumb": [
+        "Caja Chica",
+        "Documentos Pendientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-040",
+      "route": "/caja-chica/documentos-pendientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-B65",
+      "celda": "B65",
+      "label": "CxP",
+      "level": 0,
+      "parent_id": null,
+      "order": 65,
+      "breadcrumb": [
+        "CxP"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C66",
+      "celda": "C66",
+      "label": "Proveedores",
+      "level": 1,
+      "parent_id": "NODE-B65",
+      "order": 66,
+      "breadcrumb": [
+        "CxP",
+        "Proveedores"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D67",
+      "celda": "D67",
+      "label": "Grupo de Proveedores",
+      "level": 2,
+      "parent_id": "NODE-C66",
+      "order": 67,
+      "breadcrumb": [
+        "CxP",
+        "Proveedores",
+        "Grupo de Proveedores"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-041",
+      "route": "/cxp/proveedores/grupo-de-proveedores",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D68",
+      "celda": "D68",
+      "label": "Registro Proveedores",
+      "level": 2,
+      "parent_id": "NODE-C66",
+      "order": 68,
+      "breadcrumb": [
+        "CxP",
+        "Proveedores",
+        "Registro Proveedores"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-042",
+      "route": "/cxp/proveedores/registro-proveedores",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D69",
+      "celda": "D69",
+      "label": "Importación Masiva de Proveedores/Clientes",
+      "level": 2,
+      "parent_id": "NODE-C66",
+      "order": 69,
+      "breadcrumb": [
+        "CxP",
+        "Proveedores",
+        "Importación Masiva de Proveedores/Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-043",
+      "route": "/cxp/proveedores/importacion-masiva-de-proveedores-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C70",
+      "celda": "C70",
+      "label": "Documentos de Soporte",
+      "level": 1,
+      "parent_id": "NODE-B65",
+      "order": 70,
+      "breadcrumb": [
+        "CxP",
+        "Documentos de Soporte"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-044",
+      "route": "/cxp/documentos-de-soporte",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C71",
+      "celda": "C71",
+      "label": "Anticipos",
+      "level": 1,
+      "parent_id": "NODE-B65",
+      "order": 71,
+      "breadcrumb": [
+        "CxP",
+        "Anticipos"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D72",
+      "celda": "D72",
+      "label": "Ingreso de Anticipos",
+      "level": 2,
+      "parent_id": "NODE-C71",
+      "order": 72,
+      "breadcrumb": [
+        "CxP",
+        "Anticipos",
+        "Ingreso de Anticipos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-045",
+      "route": "/cxp/anticipos/ingreso-de-anticipos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D73",
+      "celda": "D73",
+      "label": "Cruce de Anticipos Proveedores",
+      "level": 2,
+      "parent_id": "NODE-C71",
+      "order": 73,
+      "breadcrumb": [
+        "CxP",
+        "Anticipos",
+        "Cruce de Anticipos Proveedores"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-046",
+      "route": "/cxp/anticipos/cruce-de-anticipos-proveedores",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D74",
+      "celda": "D74",
+      "label": "Anulación de Anticipos Proveedores",
+      "level": 2,
+      "parent_id": "NODE-C71",
+      "order": 74,
+      "breadcrumb": [
+        "CxP",
+        "Anticipos",
+        "Anulación de Anticipos Proveedores"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-047",
+      "route": "/cxp/anticipos/anulacion-de-anticipos-proveedores",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D75",
+      "celda": "D75",
+      "label": "Migración Anticipos Proveedores",
+      "level": 2,
+      "parent_id": "NODE-C71",
+      "order": 75,
+      "breadcrumb": [
+        "CxP",
+        "Anticipos",
+        "Migración Anticipos Proveedores"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-048",
+      "route": "/cxp/anticipos/migracion-anticipos-proveedores",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C76",
+      "celda": "C76",
+      "label": "Notas de Crédito",
+      "level": 1,
+      "parent_id": "NODE-B65",
+      "order": 76,
+      "breadcrumb": [
+        "CxP",
+        "Notas de Crédito"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D77",
+      "celda": "D77",
+      "label": "Ingreso Nota de Crédito",
+      "level": 2,
+      "parent_id": "NODE-C76",
+      "order": 77,
+      "breadcrumb": [
+        "CxP",
+        "Notas de Crédito",
+        "Ingreso Nota de Crédito"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-049",
+      "route": "/cxp/notas-de-credito/ingreso-nota-de-credito",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D78",
+      "celda": "D78",
+      "label": "Anulación Nota de Crédito",
+      "level": 2,
+      "parent_id": "NODE-C76",
+      "order": 78,
+      "breadcrumb": [
+        "CxP",
+        "Notas de Crédito",
+        "Anulación Nota de Crédito"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-050",
+      "route": "/cxp/notas-de-credito/anulacion-nota-de-credito",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C79",
+      "celda": "C79",
+      "label": "Liquidación de Compras",
+      "level": 1,
+      "parent_id": "NODE-B65",
+      "order": 79,
+      "breadcrumb": [
+        "CxP",
+        "Liquidación de Compras"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D80",
+      "celda": "D80",
+      "label": "Ingreso Liq. De Compras",
+      "level": 2,
+      "parent_id": "NODE-C79",
+      "order": 80,
+      "breadcrumb": [
+        "CxP",
+        "Liquidación de Compras",
+        "Ingreso Liq. De Compras"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-051",
+      "route": "/cxp/liquidacion-de-compras/ingreso-liq-de-compras",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D81",
+      "celda": "D81",
+      "label": "Anulación Liq. De Compras",
+      "level": 2,
+      "parent_id": "NODE-C79",
+      "order": 81,
+      "breadcrumb": [
+        "CxP",
+        "Liquidación de Compras",
+        "Anulación Liq. De Compras"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-052",
+      "route": "/cxp/liquidacion-de-compras/anulacion-liq-de-compras",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C82",
+      "celda": "C82",
+      "label": "Retenciones",
+      "level": 1,
+      "parent_id": "NODE-B65",
+      "order": 82,
+      "breadcrumb": [
+        "CxP",
+        "Retenciones"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D83",
+      "celda": "D83",
+      "label": "Anular Retención",
+      "level": 2,
+      "parent_id": "NODE-C82",
+      "order": 83,
+      "breadcrumb": [
+        "CxP",
+        "Retenciones",
+        "Anular Retención"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-053",
+      "route": "/cxp/retenciones/anular-retencion",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C84",
+      "celda": "C84",
+      "label": "Reportes",
+      "level": 1,
+      "parent_id": "NODE-B65",
+      "order": 84,
+      "breadcrumb": [
+        "CxP",
+        "Reportes"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D85",
+      "celda": "D85",
+      "label": "Rep. Documentos Ingresados",
+      "level": 2,
+      "parent_id": "NODE-C84",
+      "order": 85,
+      "breadcrumb": [
+        "CxP",
+        "Reportes",
+        "Rep. Documentos Ingresados"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-054",
+      "route": "/cxp/reportes/rep-documentos-ingresados",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D86",
+      "celda": "D86",
+      "label": "Rep. Retenciones Emitidas",
+      "level": 2,
+      "parent_id": "NODE-C84",
+      "order": 86,
+      "breadcrumb": [
+        "CxP",
+        "Reportes",
+        "Rep. Retenciones Emitidas"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-055",
+      "route": "/cxp/reportes/rep-retenciones-emitidas",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D87",
+      "celda": "D87",
+      "label": "Rep. de Anticipos",
+      "level": 2,
+      "parent_id": "NODE-C84",
+      "order": 87,
+      "breadcrumb": [
+        "CxP",
+        "Reportes",
+        "Rep. de Anticipos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-056",
+      "route": "/cxp/reportes/rep-de-anticipos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D88",
+      "celda": "D88",
+      "label": "Rep. Saldo de Proveedores",
+      "level": 2,
+      "parent_id": "NODE-C84",
+      "order": 88,
+      "breadcrumb": [
+        "CxP",
+        "Reportes",
+        "Rep. Saldo de Proveedores"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-057",
+      "route": "/cxp/reportes/rep-saldo-de-proveedores",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D89",
+      "celda": "D89",
+      "label": "Rep. Pagos Realizados",
+      "level": 2,
+      "parent_id": "NODE-C84",
+      "order": 89,
+      "breadcrumb": [
+        "CxP",
+        "Reportes",
+        "Rep. Pagos Realizados"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-058",
+      "route": "/cxp/reportes/rep-pagos-realizados",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-B90",
+      "celda": "B90",
+      "label": "CxC",
+      "level": 0,
+      "parent_id": null,
+      "order": 90,
+      "breadcrumb": [
+        "CxC"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C91",
+      "celda": "C91",
+      "label": "Clientes",
+      "level": 1,
+      "parent_id": "NODE-B90",
+      "order": 91,
+      "breadcrumb": [
+        "CxC",
+        "Clientes"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D92",
+      "celda": "D92",
+      "label": "Registro Clientes",
+      "level": 2,
+      "parent_id": "NODE-C91",
+      "order": 92,
+      "breadcrumb": [
+        "CxC",
+        "Clientes",
+        "Registro Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-059",
+      "route": "/cxc/clientes/registro-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D93",
+      "celda": "D93",
+      "label": "Importación Masiva de Proveedores/Clientes",
+      "level": 2,
+      "parent_id": "NODE-C91",
+      "order": 93,
+      "breadcrumb": [
+        "CxC",
+        "Clientes",
+        "Importación Masiva de Proveedores/Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-060",
+      "route": "/cxc/clientes/importacion-masiva-de-proveedores-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C94",
+      "celda": "C94",
+      "label": "Recaudaciones",
+      "level": 1,
+      "parent_id": "NODE-B90",
+      "order": 94,
+      "breadcrumb": [
+        "CxC",
+        "Recaudaciones"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D95",
+      "celda": "D95",
+      "label": "Ingreso de Recaudación",
+      "level": 2,
+      "parent_id": "NODE-C94",
+      "order": 95,
+      "breadcrumb": [
+        "CxC",
+        "Recaudaciones",
+        "Ingreso de Recaudación"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-061",
+      "route": "/cxc/recaudaciones/ingreso-de-recaudacion",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D96",
+      "celda": "D96",
+      "label": "Reimpresión de Recuadación",
+      "level": 2,
+      "parent_id": "NODE-C94",
+      "order": 96,
+      "breadcrumb": [
+        "CxC",
+        "Recaudaciones",
+        "Reimpresión de Recuadación"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-062",
+      "route": "/cxc/recaudaciones/reimpresion-de-recuadacion",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D97",
+      "celda": "D97",
+      "label": "Anulación de de Recuadación",
+      "level": 2,
+      "parent_id": "NODE-C94",
+      "order": 97,
+      "breadcrumb": [
+        "CxC",
+        "Recaudaciones",
+        "Anulación de de Recuadación"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-063",
+      "route": "/cxc/recaudaciones/anulacion-de-de-recuadacion",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D98",
+      "celda": "D98",
+      "label": "Registro de Cheques a Fecha",
+      "level": 2,
+      "parent_id": "NODE-C94",
+      "order": 98,
+      "breadcrumb": [
+        "CxC",
+        "Recaudaciones",
+        "Registro de Cheques a Fecha"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-064",
+      "route": "/cxc/recaudaciones/registro-de-cheques-a-fecha",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D99",
+      "celda": "D99",
+      "label": "Carga de Depósitos Bancarios",
+      "level": 2,
+      "parent_id": "NODE-C94",
+      "order": 99,
+      "breadcrumb": [
+        "CxC",
+        "Recaudaciones",
+        "Carga de Depósitos Bancarios"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-086",
+      "route": "/cxc/recaudaciones/carga-de-depositos-bancarios",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C100",
+      "celda": "C100",
+      "label": "Ajustes",
+      "level": 1,
+      "parent_id": "NODE-B90",
+      "order": 100,
+      "breadcrumb": [
+        "CxC",
+        "Ajustes"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D101",
+      "celda": "D101",
+      "label": "Cruce de Anticipos Clientes",
+      "level": 2,
+      "parent_id": "NODE-C100",
+      "order": 101,
+      "breadcrumb": [
+        "CxC",
+        "Ajustes",
+        "Cruce de Anticipos Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-065",
+      "route": "/cxc/ajustes/cruce-de-anticipos-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D102",
+      "celda": "D102",
+      "label": "Anulación de Anticipos Clientes",
+      "level": 2,
+      "parent_id": "NODE-C100",
+      "order": 102,
+      "breadcrumb": [
+        "CxC",
+        "Ajustes",
+        "Anulación de Anticipos Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-066",
+      "route": "/cxc/ajustes/anulacion-de-anticipos-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D103",
+      "celda": "D103",
+      "label": "Anulación Cruce de Anticipos Clientes",
+      "level": 2,
+      "parent_id": "NODE-C100",
+      "order": 103,
+      "breadcrumb": [
+        "CxC",
+        "Ajustes",
+        "Anulación Cruce de Anticipos Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-067",
+      "route": "/cxc/ajustes/anulacion-cruce-de-anticipos-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D104",
+      "celda": "D104",
+      "label": "Ajuste de Cartera",
+      "level": 2,
+      "parent_id": "NODE-C100",
+      "order": 104,
+      "breadcrumb": [
+        "CxC",
+        "Ajustes",
+        "Ajuste de Cartera"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-068",
+      "route": "/cxc/ajustes/ajuste-de-cartera",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D105",
+      "celda": "D105",
+      "label": "Migración Anticipos Clientes",
+      "level": 2,
+      "parent_id": "NODE-C100",
+      "order": 105,
+      "breadcrumb": [
+        "CxC",
+        "Ajustes",
+        "Migración Anticipos Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-069",
+      "route": "/cxc/ajustes/migracion-anticipos-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C106",
+      "celda": "C106",
+      "label": "Comprobantes de Venta",
+      "level": 1,
+      "parent_id": "NODE-B90",
+      "order": 106,
+      "breadcrumb": [
+        "CxC",
+        "Comprobantes de Venta"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D107",
+      "celda": "D107",
+      "label": "Facturación",
+      "level": 2,
+      "parent_id": "NODE-C106",
+      "order": 107,
+      "breadcrumb": [
+        "CxC",
+        "Comprobantes de Venta",
+        "Facturación"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-070",
+      "route": "/cxc/comprobantes-de-venta/facturacion",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D108",
+      "celda": "D108",
+      "label": "Facturación Recurrente",
+      "level": 2,
+      "parent_id": "NODE-C106",
+      "order": 108,
+      "breadcrumb": [
+        "CxC",
+        "Comprobantes de Venta",
+        "Facturación Recurrente"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-071",
+      "route": "/cxc/comprobantes-de-venta/facturacion-recurrente",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D109",
+      "celda": "D109",
+      "label": "Notas de Venta",
+      "level": 2,
+      "parent_id": "NODE-C106",
+      "order": 109,
+      "breadcrumb": [
+        "CxC",
+        "Comprobantes de Venta",
+        "Notas de Venta"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-072",
+      "route": "/cxc/comprobantes-de-venta/notas-de-venta",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D110",
+      "celda": "D110",
+      "label": "Anulación Comp. Venta",
+      "level": 2,
+      "parent_id": "NODE-C106",
+      "order": 110,
+      "breadcrumb": [
+        "CxC",
+        "Comprobantes de Venta",
+        "Anulación Comp. Venta"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-073",
+      "route": "/cxc/comprobantes-de-venta/anulacion-comp-venta",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D111",
+      "celda": "D111",
+      "label": "Migrar Antigüedad de Cartera",
+      "level": 2,
+      "parent_id": "NODE-C106",
+      "order": 111,
+      "breadcrumb": [
+        "CxC",
+        "Comprobantes de Venta",
+        "Migrar Antigüedad de Cartera"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-074",
+      "route": "/cxc/comprobantes-de-venta/migrar-antiguedad-de-cartera",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C112",
+      "celda": "C112",
+      "label": "Gestión de Cobranza",
+      "level": 1,
+      "parent_id": "NODE-B90",
+      "order": 112,
+      "breadcrumb": [
+        "CxC",
+        "Gestión de Cobranza"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D113",
+      "celda": "D113",
+      "label": "Campañas",
+      "level": 2,
+      "parent_id": "NODE-C112",
+      "order": 113,
+      "breadcrumb": [
+        "CxC",
+        "Gestión de Cobranza",
+        "Campañas"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-075",
+      "route": "/cxc/gestion-de-cobranza/campanas",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C114",
+      "celda": "C114",
+      "label": "Retenciones",
+      "level": 1,
+      "parent_id": "NODE-B90",
+      "order": 114,
+      "breadcrumb": [
+        "CxC",
+        "Retenciones"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D115",
+      "celda": "D115",
+      "label": "Ingreso de Retenciones",
+      "level": 2,
+      "parent_id": "NODE-C114",
+      "order": 115,
+      "breadcrumb": [
+        "CxC",
+        "Retenciones",
+        "Ingreso de Retenciones"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-076",
+      "route": "/cxc/retenciones/ingreso-de-retenciones",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D116",
+      "celda": "D116",
+      "label": "Anulación de Retenciones",
+      "level": 2,
+      "parent_id": "NODE-C114",
+      "order": 116,
+      "breadcrumb": [
+        "CxC",
+        "Retenciones",
+        "Anulación de Retenciones"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-077",
+      "route": "/cxc/retenciones/anulacion-de-retenciones",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C117",
+      "celda": "C117",
+      "label": "Reportes",
+      "level": 1,
+      "parent_id": "NODE-B90",
+      "order": 117,
+      "breadcrumb": [
+        "CxC",
+        "Reportes"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D118",
+      "celda": "D118",
+      "label": "Rep. Documentos Emitidos",
+      "level": 2,
+      "parent_id": "NODE-C117",
+      "order": 118,
+      "breadcrumb": [
+        "CxC",
+        "Reportes",
+        "Rep. Documentos Emitidos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-078",
+      "route": "/cxc/reportes/rep-documentos-emitidos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D119",
+      "celda": "D119",
+      "label": "Rep. Retenciones Emitidas",
+      "level": 2,
+      "parent_id": "NODE-C117",
+      "order": 119,
+      "breadcrumb": [
+        "CxC",
+        "Reportes",
+        "Rep. Retenciones Emitidas"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-079",
+      "route": "/cxc/reportes/rep-retenciones-emitidas",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D120",
+      "celda": "D120",
+      "label": "Rep. Angitüedad de Cartera",
+      "level": 2,
+      "parent_id": "NODE-C117",
+      "order": 120,
+      "breadcrumb": [
+        "CxC",
+        "Reportes",
+        "Rep. Angitüedad de Cartera"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-080",
+      "route": "/cxc/reportes/rep-angituedad-de-cartera",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D121",
+      "celda": "D121",
+      "label": "Rep. Cartera de Clientes",
+      "level": 2,
+      "parent_id": "NODE-C117",
+      "order": 121,
+      "breadcrumb": [
+        "CxC",
+        "Reportes",
+        "Rep. Cartera de Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-081",
+      "route": "/cxc/reportes/rep-cartera-de-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D122",
+      "celda": "D122",
+      "label": "Rep. Recaudaciones",
+      "level": 2,
+      "parent_id": "NODE-C117",
+      "order": 122,
+      "breadcrumb": [
+        "CxC",
+        "Reportes",
+        "Rep. Recaudaciones"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-082",
+      "route": "/cxc/reportes/rep-recaudaciones",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D123",
+      "celda": "D123",
+      "label": "Rep. Saldo Anticipo de Clientes",
+      "level": 2,
+      "parent_id": "NODE-C117",
+      "order": 123,
+      "breadcrumb": [
+        "CxC",
+        "Reportes",
+        "Rep. Saldo Anticipo de Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-083",
+      "route": "/cxc/reportes/rep-saldo-anticipo-de-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D124",
+      "celda": "D124",
+      "label": "Rep. Cruce de Anticipo Clientes",
+      "level": 2,
+      "parent_id": "NODE-C117",
+      "order": 124,
+      "breadcrumb": [
+        "CxC",
+        "Reportes",
+        "Rep. Cruce de Anticipo Clientes"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-084",
+      "route": "/cxc/reportes/rep-cruce-de-anticipo-clientes",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-B125",
+      "celda": "B125",
+      "label": "Bancos",
+      "level": 0,
+      "parent_id": null,
+      "order": 125,
+      "breadcrumb": [
+        "Bancos"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C126",
+      "celda": "C126",
+      "label": "Cuentas Bancarias",
+      "level": 1,
+      "parent_id": "NODE-B125",
+      "order": 126,
+      "breadcrumb": [
+        "Bancos",
+        "Cuentas Bancarias"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-085",
+      "route": "/bancos/cuentas-bancarias",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C127",
+      "celda": "C127",
+      "label": "Depósitos",
+      "level": 1,
+      "parent_id": "NODE-B125",
+      "order": 127,
+      "breadcrumb": [
+        "Bancos",
+        "Depósitos"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D129",
+      "celda": "D129",
+      "label": "Anulación de Depósito",
+      "level": 2,
+      "parent_id": "NODE-C127",
+      "order": 129,
+      "breadcrumb": [
+        "Bancos",
+        "Depósitos",
+        "Anulación de Depósito"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-087",
+      "route": "/bancos/depositos/anulacion-de-deposito",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C130",
+      "celda": "C130",
+      "label": "Cheques",
+      "level": 1,
+      "parent_id": "NODE-B125",
+      "order": 130,
+      "breadcrumb": [
+        "Bancos",
+        "Cheques"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D131",
+      "celda": "D131",
+      "label": "Cambio de Cheque",
+      "level": 2,
+      "parent_id": "NODE-C130",
+      "order": 131,
+      "breadcrumb": [
+        "Bancos",
+        "Cheques",
+        "Cambio de Cheque"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-088",
+      "route": "/bancos/cheques/cambio-de-cheque",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D132",
+      "celda": "D132",
+      "label": "Reimpresión de Cheque",
+      "level": 2,
+      "parent_id": "NODE-C130",
+      "order": 132,
+      "breadcrumb": [
+        "Bancos",
+        "Cheques",
+        "Reimpresión de Cheque"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-089",
+      "route": "/bancos/cheques/reimpresion-de-cheque",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C133",
+      "celda": "C133",
+      "label": "Egresos",
+      "level": 1,
+      "parent_id": "NODE-B125",
+      "order": 133,
+      "breadcrumb": [
+        "Bancos",
+        "Egresos"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D134",
+      "celda": "D134",
+      "label": "Emisión de Egreso",
+      "level": 2,
+      "parent_id": "NODE-C133",
+      "order": 134,
+      "breadcrumb": [
+        "Bancos",
+        "Egresos",
+        "Emisión de Egreso"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-090",
+      "route": "/bancos/egresos/emision-de-egreso",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D135",
+      "celda": "D135",
+      "label": "Anulación de Egreso",
+      "level": 2,
+      "parent_id": "NODE-C133",
+      "order": 135,
+      "breadcrumb": [
+        "Bancos",
+        "Egresos",
+        "Anulación de Egreso"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-091",
+      "route": "/bancos/egresos/anulacion-de-egreso",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C136",
+      "celda": "C136",
+      "label": "Reportes",
+      "level": 1,
+      "parent_id": "NODE-B125",
+      "order": 136,
+      "breadcrumb": [
+        "Bancos",
+        "Reportes"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D137",
+      "celda": "D137",
+      "label": "Rep. Cheques Emitidos",
+      "level": 2,
+      "parent_id": "NODE-C136",
+      "order": 137,
+      "breadcrumb": [
+        "Bancos",
+        "Reportes",
+        "Rep. Cheques Emitidos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-092",
+      "route": "/bancos/reportes/rep-cheques-emitidos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D138",
+      "celda": "D138",
+      "label": "Rep. Saldo en Bancos",
+      "level": 2,
+      "parent_id": "NODE-C136",
+      "order": 138,
+      "breadcrumb": [
+        "Bancos",
+        "Reportes",
+        "Rep. Saldo en Bancos"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-093",
+      "route": "/bancos/reportes/rep-saldo-en-bancos",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D139",
+      "celda": "D139",
+      "label": "Rep. Mayor de Cuentas",
+      "level": 2,
+      "parent_id": "NODE-C136",
+      "order": 139,
+      "breadcrumb": [
+        "Bancos",
+        "Reportes",
+        "Rep. Mayor de Cuentas"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-094",
+      "route": "/bancos/reportes/rep-mayor-de-cuentas",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D140",
+      "celda": "D140",
+      "label": "Rep. Movimientos Bancarios",
+      "level": 2,
+      "parent_id": "NODE-C136",
+      "order": 140,
+      "breadcrumb": [
+        "Bancos",
+        "Reportes",
+        "Rep. Movimientos Bancarios"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-095",
+      "route": "/bancos/reportes/rep-movimientos-bancarios",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-B141",
+      "celda": "B141",
+      "label": "Tributación",
+      "level": 0,
+      "parent_id": null,
+      "order": 141,
+      "breadcrumb": [
+        "Tributación"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C142",
+      "celda": "C142",
+      "label": "Conciliación Compras",
+      "level": 1,
+      "parent_id": "NODE-B141",
+      "order": 142,
+      "breadcrumb": [
+        "Tributación",
+        "Conciliación Compras"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D143",
+      "celda": "D143",
+      "label": "Generación de Conciliación",
+      "level": 2,
+      "parent_id": "NODE-C142",
+      "order": 143,
+      "breadcrumb": [
+        "Tributación",
+        "Conciliación Compras",
+        "Generación de Conciliación"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-096",
+      "route": "/tributacion/conciliacion-compras/generacion-de-conciliacion",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-D144",
+      "celda": "D144",
+      "label": "Compras Mensuales",
+      "level": 2,
+      "parent_id": "NODE-C142",
+      "order": 144,
+      "breadcrumb": [
+        "Tributación",
+        "Conciliación Compras",
+        "Compras Mensuales"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-097",
+      "route": "/tributacion/conciliacion-compras/compras-mensuales",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C145",
+      "celda": "C145",
+      "label": "Generación de Archivos XML",
+      "level": 1,
+      "parent_id": "NODE-B141",
+      "order": 145,
+      "breadcrumb": [
+        "Tributación",
+        "Generación de Archivos XML"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D146",
+      "celda": "D146",
+      "label": "Anexo Transaccional RDEP",
+      "level": 2,
+      "parent_id": "NODE-C145",
+      "order": 146,
+      "breadcrumb": [
+        "Tributación",
+        "Generación de Archivos XML",
+        "Anexo Transaccional RDEP"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-098",
+      "route": "/tributacion/generacion-de-archivos-xml/anexo-transaccional-rdep",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C147",
+      "celda": "C147",
+      "label": "Reportes",
+      "level": 1,
+      "parent_id": "NODE-B141",
+      "order": 147,
+      "breadcrumb": [
+        "Tributación",
+        "Reportes"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-D148",
+      "celda": "D148",
+      "label": "Rep. Compras y Retenciones General",
+      "level": 2,
+      "parent_id": "NODE-C147",
+      "order": 148,
+      "breadcrumb": [
+        "Tributación",
+        "Reportes",
+        "Rep. Compras y Retenciones General"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-099",
+      "route": "/tributacion/reportes/rep-compras-y-retenciones-general",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-B149",
+      "celda": "B149",
+      "label": "Configuración General",
+      "level": 0,
+      "parent_id": null,
+      "order": 149,
+      "breadcrumb": [
+        "Configuración General"
+      ],
+      "type": "group",
+      "screen_id": null,
+      "route": null,
+      "package": null
+    },
+    {
+      "node_id": "NODE-C150",
+      "celda": "C150",
+      "label": "Configuración Empresa",
+      "level": 1,
+      "parent_id": "NODE-B149",
+      "order": 150,
+      "breadcrumb": [
+        "Configuración General",
+        "Configuración Empresa"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-100",
+      "route": "/configuracion-general/configuracion-empresa",
+      "package": "ACCOUNTING_CORE"
+    },
+    {
+      "node_id": "NODE-C151",
+      "celda": "C151",
+      "label": "Certificado Digital",
+      "level": 1,
+      "parent_id": "NODE-B149",
+      "order": 151,
+      "breadcrumb": [
+        "Configuración General",
+        "Certificado Digital"
+      ],
+      "type": "screen",
+      "screen_id": "XLS-101",
+      "route": "/configuracion-general/certificado-digital",
+      "package": "ACCOUNTING_CORE"
+    }
+  ]
+}

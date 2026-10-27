@@ -1,0 +1,11 @@
+{
+  "source": "Proyecto Seguridad",
+  "module": "Información Personal",
+  "screens": [
+    {"title": "Mi Perfil", "path": "/informacion-personal/mi-perfil", "description": "Consulta y actualiza tu fotografía, datos personales y ubicabilidad.", "columns": ["Dato", "Valor", "Estado"], "action": "Guardar información"},
+    {"title": "Novedades", "path": "/informacion-personal/novedades", "description": "Consulta las novedades registradas en tu nómina.", "columns": ["Tipo", "Fecha", "Detalle", "Estado"], "action": "Nueva Solicitud"},
+    {"title": "Vacaciones", "path": "/informacion-personal/vacaciones", "description": "Consulta saldos, solicitudes y movimientos de vacaciones.", "columns": ["Fecha", "Tipo", "Días", "Saldo", "Estado"], "action": "Nueva Solicitud"},
+    {"title": "Roles de Pago", "path": "/informacion-personal/roles-pago", "description": "Consulta y descarga tus roles de pago.", "columns": ["Periodo", "Ingresos", "Descuentos", "Neto", "Estado"], "action": "Descargar PDF"},
+    {"title": "Mi Historial", "path": "/informacion-personal/mi-historial", "description": "Consulta tu historial laboral y movimientos registrados.", "columns": ["Contrato", "Fecha Inicio", "Fecha Fin", "Motivo de Salida", "Departamento", "Cargo", "Sueldo"], "action": "Consultar historial"}
+  ]
+}

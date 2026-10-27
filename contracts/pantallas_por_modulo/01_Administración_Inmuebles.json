@@ -1,0 +1,1838 @@
+{
+  "version": "2.0",
+  "modulo": "Administración Inmuebles",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-001",
+      "fila": 6,
+      "celda": "D6",
+      "texto_original": "Tipo de Inmueble",
+      "ruta_original": "Administración Inmuebles > General > Tipo de Inmueble",
+      "objetivo": "Administrar, por empresa y condominio, los tipos de unidad que podrán asignarse a un inmueble. El objetivo es conservar un catálogo pequeño y versionable, con código único y descripción operativa, sin convertirlo en inventario. La pantalla debe permitir consulta histórica aun cuando PROPERTY_MANAGEMENT esté en READ_ONLY, pero bloquear altas y cambios cuando el módulo esté DISABLED. Cada modificación debe quedar auditada y no debe borrar un tipo ya usado por una unidad, un rubro o un ciclo.",
+      "diseno_visible": "Pantalla dedicada con encabezado que conserva el título original, selector de empresa y condominio, tabla paginada, búsqueda por código/nombre, filtro de estado y panel lateral de alta o edición. Mostrar advertencia de módulo opcional, indicador de vigencia, contador de usos y bitácora resumida. La edición de un registro usado crea una nueva vigencia o solicita inactivación; no reemplaza referencias históricas.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada y activa"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "pertenece a la empresa y está disponible para el módulo"
+        },
+        {
+          "nombre": "Código",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "único por empresa/condominio, normalizado, no vacío"
+        },
+        {
+          "nombre": "Nombre",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "longitud permitida y descripción no duplicada vigente"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "ACTIVE o INACTIVE; inactivar exige motivo"
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Condominio",
+        "Estado",
+        "Unidades asociadas",
+        "Vigencia desde",
+        "Última modificación",
+        "Usuario"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear tipo",
+          "resultado": "crea registro versionado sin asiento contable",
+          "permiso": "property.type.create"
+        },
+        {
+          "etiqueta": "Modificar borrador",
+          "resultado": "guarda cambios no publicados y deja auditoría",
+          "permiso": "property.type.update"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "impide nuevas asignaciones y conserva historia",
+          "permiso": "property.type.deactivate"
+        },
+        {
+          "etiqueta": "Consultar historial",
+          "resultado": "muestra vigencias, usos y eventos",
+          "permiso": "property.type.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y condominio; verificar módulo y permiso.",
+        "Capturar código, nombre y estado en formulario validado.",
+        "Validar unicidad, referencias existentes y versión concurrente.",
+        "Solicitar aprobación cuando la política de empresa lo exija.",
+        "Guardar la versión y registrar auditoría; no publicar asiento.",
+        "Consultar usos y vigencias desde la misma pantalla."
+      ],
+      "estados": [
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        },
+        {
+          "tipo": "registro",
+          "valores": [
+            "DRAFT",
+            "ACTIVE",
+            "INACTIVE"
+          ]
+        },
+        {
+          "tipo": "aprobación",
+          "valores": [
+            "NOT_REQUIRED",
+            "PENDING",
+            "APPROVED",
+            "REJECTED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "No genera ni modifica asientos. El código puede ser referenciado por dimensiones y reportes inmobiliarios; una inactivación no altera documentos publicados ni cargos históricos.",
+      "api_propuesta": [
+        "GET /api/v1/property/types",
+        "POST /api/v1/property/types",
+        "PATCH /api/v1/property/types/{id}",
+        "POST /api/v1/property/types/{id}/deactivate",
+        "GET /api/v1/property/types/{id}/history"
+      ],
+      "validaciones": [
+        "RLS por tenant, empresa y condominio.",
+        "Rechazar código duplicado incluso ante concurrencia.",
+        "Impedir eliminación física si existe uso; usar inactivación.",
+        "Con módulo DISABLED, lecturas históricas permitidas y escritura responde 403 MODULE_DISABLED.",
+        "La aprobación queda invalidada si cambia el contenido."
+      ],
+      "prueba_positiva": {
+        "dado": "Una empresa con módulo ENABLED y un condominio autorizado",
+        "cuando": "el usuario crea el código UNI-001 y nombre Departamento, y aprueba la versión",
+        "entonces": "el tipo queda ACTIVE, aparece en el listado y no existe movimiento contable"
+      },
+      "prueba_negativa": {
+        "dado": "Existe UNI-001 usado por una unidad",
+        "cuando": "el usuario intenta duplicarlo o eliminarlo",
+        "entonces": "la API rechaza la operación, conserva el original y explica la referencia"
+      },
+      "dependencias_ids": [
+        "XLS-002",
+        "XLS-003",
+        "XLS-005"
+      ],
+      "titulo_original": "Tipo de Inmueble",
+      "ruta_menu_original": "Administración Inmuebles > General > Tipo de Inmueble",
+      "ruta_react": "/administracion-inmuebles/general/tipo-de-inmueble",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Crear tipos de unidad con código único por empresa; impedir eliminar tipos usados.",
+      "pruebas_ids": [
+        "T-UI-XLS-001",
+        "T-PROC-XLS-001",
+        "T-NEG-XLS-001"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-002",
+      "fila": 7,
+      "celda": "D7",
+      "texto_original": "Niveles de Piso",
+      "ruta_original": "Administración Inmuebles > General > Niveles de Piso",
+      "objetivo": "Mantener los pisos de cada condominio con código y orden explícito para que las unidades puedan ubicarse y filtrarse de forma consistente. No debe asumir que todos los edificios comparten la misma numeración ni permitir códigos duplicados dentro del ámbito configurado. La ficha es de mantenimiento independiente: no se debe fusionar con Sección ni con Detalle Inmuebles, aunque compartan selectores y servicio de catálogo.",
+      "diseno_visible": "Conservar el título y ruta originales. Mostrar selector de empresa/condominio, tabla ordenable por posición y código, búsqueda, estado, acción de reordenamiento con vista previa y formulario dedicado. El orden visible debe ser persistente y auditable. Mostrar cuántas unidades usan cada piso y un enlace de consulta, no una edición embebida de unidades.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "alcance autorizado"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "condominio vigente de la empresa"
+        },
+        {
+          "nombre": "Código de piso",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "único por condominio y sin espacios extremos"
+        },
+        {
+          "nombre": "Etiqueta",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "no vacía"
+        },
+        {
+          "nombre": "Orden",
+          "tipo": "entero",
+          "obligatorio": true,
+          "validacion": "positivo y único dentro del condominio"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "ACTIVE o INACTIVE"
+        }
+      ],
+      "columnas": [
+        "Orden",
+        "Código",
+        "Etiqueta",
+        "Condominio",
+        "Unidades",
+        "Estado",
+        "Vigencia",
+        "Último cambio"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear piso",
+          "resultado": "crea piso sin afectar contabilidad",
+          "permiso": "property.floor.create"
+        },
+        {
+          "etiqueta": "Reordenar",
+          "resultado": "previsualiza y guarda una secuencia atómica",
+          "permiso": "property.floor.order"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "impide nuevas asignaciones si no hay unidades activas",
+          "permiso": "property.floor.deactivate"
+        },
+        {
+          "etiqueta": "Ver unidades",
+          "resultado": "navega a consulta filtrada de Detalle Inmuebles",
+          "permiso": "property.unit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y condominio.",
+        "Capturar código, etiqueta, orden y estado.",
+        "Validar duplicados, referencias y conflicto de versión.",
+        "Previsualizar el orden resultante si se reubica un piso.",
+        "Aprobar si la política lo exige y persistir cambios auditados.",
+        "Consultar unidades asociadas sin modificar esta ficha."
+      ],
+      "estados": [
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        },
+        {
+          "tipo": "piso",
+          "valores": [
+            "DRAFT",
+            "ACTIVE",
+            "INACTIVE"
+          ]
+        },
+        {
+          "tipo": "orden",
+          "valores": [
+            "CURRENT",
+            "PENDING_APPROVAL"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "Ninguno directo. Cambiar el orden o la etiqueta no modifica alícuotas, obligaciones, cargos ni asientos; los reportes futuros muestran la configuración vigente y los históricos conservan su referencia.",
+      "api_propuesta": [
+        "GET /api/v1/property/floors",
+        "POST /api/v1/property/floors",
+        "PATCH /api/v1/property/floors/{id}",
+        "POST /api/v1/property/floors/reorder",
+        "POST /api/v1/property/floors/{id}/deactivate"
+      ],
+      "validaciones": [
+        "El orden se guarda con bloqueo por condominio.",
+        "No permitir inactivar un piso con unidades activas sin flujo de reasignación aprobado.",
+        "Impedir escritura con módulo DISABLED y permitir lectura histórica.",
+        "Rechazar empresa o condominio fuera del alcance del usuario.",
+        "Registrar actor, motivo y valores anterior/nuevo."
+      ],
+      "prueba_positiva": {
+        "dado": "Un condominio con pisos 01 y 02",
+        "cuando": "se crea el piso 03 con orden 3 y se confirma",
+        "entonces": "el listado queda ordenado 01, 02, 03 y ninguna cuenta o asiento cambia"
+      },
+      "prueba_negativa": {
+        "dado": "Ya existe el código 02 en el condominio",
+        "cuando": "se intenta crear otro piso con código 02",
+        "entonces": "la operación falla por unicidad y no deja fila parcial"
+      },
+      "dependencias_ids": [
+        "XLS-003",
+        "XLS-005",
+        "XLS-006"
+      ],
+      "titulo_original": "Niveles de Piso",
+      "ruta_menu_original": "Administración Inmuebles > General > Niveles de Piso",
+      "ruta_react": "/administracion-inmuebles/general/niveles-de-piso",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mantener pisos por condominio y ordenar el listado; evitar códigos duplicados.",
+      "pruebas_ids": [
+        "T-UI-XLS-002",
+        "T-PROC-XLS-002",
+        "T-NEG-XLS-002"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-003",
+      "fila": 8,
+      "celda": "D8",
+      "texto_original": "Sección",
+      "ruta_original": "Administración Inmuebles > General > Sección",
+      "objetivo": "Administrar torres, bloques o secciones de un condominio y mantener la relación válida con pisos y unidades. La pantalla debe aceptar la estructura particular de cada condominio, sin imponer que una sección sea siempre una torre ni mezclar este mantenimiento con el de niveles o inmuebles. Cada sección tiene código, nombre, vigencia y, cuando aplica, piso padre; sus cambios deben preservar la historia de unidades y reportes.",
+      "diseno_visible": "Pantalla independiente con el título original, selector de empresa/condominio, árbol o tabla de secciones, filtros de estado y piso, formulario de alta/modificación y panel de dependencias. Mostrar ruta jerárquica, número de unidades y alertas de datos incompletos. El árbol es visual; las relaciones se validan en backend y no se resuelven por nombres escritos.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "condominio autorizado"
+        },
+        {
+          "nombre": "Código de sección",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "único por condominio"
+        },
+        {
+          "nombre": "Nombre",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "no vacío"
+        },
+        {
+          "nombre": "Piso asociado",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "si se informa, pertenece al mismo condominio"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "ACTIVE o INACTIVE"
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Piso",
+        "Ruta",
+        "Unidades",
+        "Estado",
+        "Vigencia",
+        "Último cambio"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear sección",
+          "resultado": "crea sección con referencias validadas",
+          "permiso": "property.section.create"
+        },
+        {
+          "etiqueta": "Modificar",
+          "resultado": "crea versión o actualiza borrador según estado",
+          "permiso": "property.section.update"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "bloquea nuevas asignaciones sin borrar historia",
+          "permiso": "property.section.deactivate"
+        },
+        {
+          "etiqueta": "Consultar dependencias",
+          "resultado": "muestra pisos y unidades relacionados",
+          "permiso": "property.section.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y condominio.",
+        "Capturar código, nombre, piso opcional y estado.",
+        "Validar pertenencia, unicidad y referencias de unidades.",
+        "Revisar vista previa de la jerarquía resultante.",
+        "Aprobar y guardar la versión con auditoría.",
+        "Consultar dependencias y vigencias posteriores."
+      ],
+      "estados": [
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        },
+        {
+          "tipo": "sección",
+          "valores": [
+            "DRAFT",
+            "ACTIVE",
+            "INACTIVE"
+          ]
+        },
+        {
+          "tipo": "relación",
+          "valores": [
+            "VALID",
+            "PENDING_REVIEW",
+            "CONFLICT"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "No publica asientos ni recalcula cargos existentes. Una nueva asignación podrá usarse en futuros ciclos; documentos históricos mantienen la sección capturada en su snapshot.",
+      "api_propuesta": [
+        "GET /api/v1/property/sections",
+        "POST /api/v1/property/sections",
+        "PATCH /api/v1/property/sections/{id}",
+        "POST /api/v1/property/sections/{id}/deactivate",
+        "GET /api/v1/property/sections/{id}/dependencies"
+      ],
+      "validaciones": [
+        "Código único por condominio y tenant.",
+        "Piso asociado obligatorio solo si la configuración del condominio lo requiere.",
+        "No inactivar con unidades vigentes sin reasignación aprobada.",
+        "Con módulo DISABLED, solo lectura histórica.",
+        "No aceptar referencias por texto libre ni cruzar empresas."
+      ],
+      "prueba_positiva": {
+        "dado": "Existe el piso 02 del condominio C1",
+        "cuando": "se registra la sección TORRE-A vinculada al piso 02",
+        "entonces": "la sección queda ACTIVE y puede seleccionarse en Detalle Inmuebles"
+      },
+      "prueba_negativa": {
+        "dado": "TORRE-A ya existe en C1",
+        "cuando": "se intenta crearla otra vez o asignarla a otro condominio",
+        "entonces": "se rechaza por unicidad o pertenencia y no cambia la jerarquía"
+      },
+      "dependencias_ids": [
+        "XLS-001",
+        "XLS-002",
+        "XLS-005"
+      ],
+      "titulo_original": "Sección",
+      "ruta_menu_original": "Administración Inmuebles > General > Sección",
+      "ruta_react": "/administracion-inmuebles/general/seccion",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mantener torres/secciones por condominio y asociar cada inmueble a una sección válida.",
+      "pruebas_ids": [
+        "T-UI-XLS-003",
+        "T-PROC-XLS-003",
+        "T-NEG-XLS-003"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-004",
+      "fila": 9,
+      "celda": "D9",
+      "texto_original": "Rubros",
+      "ruta_original": "Administración Inmuebles > General > Rubros",
+      "objetivo": "Configurar rubros ordinarios y extraordinarios que puedan alimentar presupuesto, ciclos de expensas y reportes, con cuenta contable, fondo, regla de distribución y tratamiento tributario aprobados por empresa. No fija tasas ni criterios legales en código. La pantalla es de configuración, no reemplaza el proceso de presupuesto o finalización de cargos; esos pasos se consumen desde la función adicional de ciclo sin quitar esta opción original.",
+      "diseno_visible": "Pantalla dedicada con tabla de rubros, filtros por tipo/fondo/estado, selector de cuenta contable y centro, formulario con vigencia y panel de regla. Mostrar alerta cuando falta aprobación tributaria, historial de versiones y uso en ciclos. La regla puede ser alícuota, monto fijo, consumo o mixta, pero debe estar parametrizada y explicada; no permitir guardar una distribución ambigua.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "si se informa, pertenece a empresa"
+        },
+        {
+          "nombre": "Código de rubro",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "único por alcance y vigencia"
+        },
+        {
+          "nombre": "Nombre",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "no vacío"
+        },
+        {
+          "nombre": "Tipo",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "ORDINARIO o EXTRAORDINARIO"
+        },
+        {
+          "nombre": "Fondo",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "OPERATIVO, RESERVA o EXTRAORDINARIO según política"
+        },
+        {
+          "nombre": "Cuenta contable",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "cuenta imputable vigente"
+        },
+        {
+          "nombre": "Regla de distribución",
+          "tipo": "objeto",
+          "obligatorio": true,
+          "validacion": "regla completa, precisión Decimal y versión"
+        },
+        {
+          "nombre": "Tratamiento tributario",
+          "tipo": "selector versionado",
+          "obligatorio": true,
+          "validacion": "requiere decisión aprobada; no usar tasa fija"
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Nombre",
+        "Tipo",
+        "Fondo",
+        "Cuenta",
+        "Regla",
+        "Vigente desde",
+        "Estado",
+        "Usos"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear borrador",
+          "resultado": "prepara rubro sin afectar cargos",
+          "permiso": "property.item.create"
+        },
+        {
+          "etiqueta": "Enviar a aprobación",
+          "resultado": "congela versión y crea solicitud",
+          "permiso": "property.item.submit"
+        },
+        {
+          "etiqueta": "Activar versión",
+          "resultado": "habilita uso en presupuesto/ciclo futuro",
+          "permiso": "property.item.approve"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "detiene usos nuevos y conserva históricos",
+          "permiso": "property.item.deactivate"
+        },
+        {
+          "etiqueta": "Ver usos",
+          "resultado": "navega a ciclos y reportes relacionados",
+          "permiso": "property.item.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y alcance opcional de condominio.",
+        "Capturar clasificación, fondo, cuenta, regla y tratamiento versionado.",
+        "Validar cuenta, suma de reglas, vigencia y decisión tributaria.",
+        "Previsualizar distribución sobre padrón de prueba.",
+        "Solicitar y obtener aprobación segregada.",
+        "Activar versión para futuros presupuestos y consultar usos."
+      ],
+      "estados": [
+        {
+          "tipo": "rubro",
+          "valores": [
+            "DRAFT",
+            "PENDING_APPROVAL",
+            "ACTIVE",
+            "INACTIVE"
+          ]
+        },
+        {
+          "tipo": "contable",
+          "valores": [
+            "UNMAPPED",
+            "MAPPED",
+            "BLOCKED"
+          ]
+        },
+        {
+          "tipo": "tributario",
+          "valores": [
+            "PENDING_DECISION",
+            "APPROVED",
+            "NOT_APPLICABLE"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "La configuración no contabiliza. Una versión activa resuelve cuentas y dimensiones cuando un ciclo aprobado finaliza; cambiarla no altera cargos, obligaciones ni asientos ya publicados.",
+      "api_propuesta": [
+        "GET /api/v1/property/items",
+        "POST /api/v1/property/items",
+        "PATCH /api/v1/property/items/{id}",
+        "POST /api/v1/property/items/{id}/submit",
+        "POST /api/v1/property/items/{id}/activate",
+        "POST /api/v1/property/items/{id}/deactivate"
+      ],
+      "validaciones": [
+        "No hardcodear IVA, retenciones, mora o tasas; resolver catálogos por vigencia.",
+        "Cuenta y centro pertenecen a la empresa.",
+        "La suma de reglas debe cuadrar con el total objetivo en la previsualización.",
+        "Impedir activar sin tratamiento tributario aprobado cuando aplique.",
+        "No modificar una versión usada; crear revisión nueva."
+      ],
+      "prueba_positiva": {
+        "dado": "Existe un rubro ordinario con cuenta y regla aprobadas",
+        "cuando": "se activa para el condominio C1",
+        "entonces": "aparece disponible en presupuesto y no genera asiento hasta finalizar un ciclo"
+      },
+      "prueba_negativa": {
+        "dado": "El rubro tiene cuenta inexistente o tratamiento pendiente",
+        "cuando": "se intenta activar",
+        "entonces": "queda bloqueado con errores explícitos y no puede ser usado por un ciclo"
+      },
+      "dependencias_ids": [
+        "XLS-001",
+        "XLS-005",
+        "XLS-006"
+      ],
+      "titulo_original": "Rubros",
+      "ruta_menu_original": "Administración Inmuebles > General > Rubros",
+      "ruta_react": "/administracion-inmuebles/general/rubros",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Configurar rubros ordinarios/extraordinarios con cuenta, regla de distribución y tratamiento tributario aprobado.",
+      "pruebas_ids": [
+        "T-UI-XLS-004",
+        "T-PROC-XLS-004",
+        "T-NEG-XLS-004"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-005",
+      "fila": 11,
+      "celda": "D11",
+      "texto_original": "Detalle Inmuebles",
+      "ruta_original": "Administración Inmuebles > Inmuebles > Detalle Inmuebles",
+      "objetivo": "Registrar y consultar cada unidad con código, tipo, ubicación, área, alícuota, estado, condominio y responsables con vigencia. Debe separar propietario, copropietario, residente, arrendatario y responsable de pago, admitir participaciones simultáneas y conservar snapshots históricos. No debe reasignar deudas previas automáticamente cuando cambie un titular. La pantalla dedicada mantiene el mantenimiento de unidades separado de Resumen General, carga masiva y reporte histórico.",
+      "diseno_visible": "Listado paginado con búsqueda por código, sección, piso, estado y responsable; formulario por pestañas para identidad, ubicación, superficies/alícuota y vínculos de personas; línea de tiempo de vigencias y documentos. Mostrar suma de participaciones, advertencias de solape, enlace a cargos y acceso de solo lectura cuando el módulo esté READ_ONLY. Los campos de inmueble no existen como obligatorios en operaciones del núcleo.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "condominio de la empresa"
+        },
+        {
+          "nombre": "Código de unidad",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "único por condominio y no reutilizable"
+        },
+        {
+          "nombre": "Tipo/piso/sección",
+          "tipo": "selectores",
+          "obligatorio": true,
+          "validacion": "referencias vigentes del mismo condominio"
+        },
+        {
+          "nombre": "Área",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "mayor que cero y precisión definida"
+        },
+        {
+          "nombre": "Alícuota",
+          "tipo": "decimal/versionada",
+          "obligatorio": true,
+          "validacion": "intervalo vigente y suma verificable"
+        },
+        {
+          "nombre": "Responsables y participaciones",
+          "tipo": "colección",
+          "obligatorio": true,
+          "validacion": "roles, fechas [inicio,fin), sin solapes inválidos"
+        },
+        {
+          "nombre": "Estado",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "ACTIVE, INACTIVE o HISTORICAL"
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Tipo",
+        "Piso",
+        "Sección",
+        "Área",
+        "Alícuota vigente",
+        "Responsable de pago",
+        "Estado",
+        "Desde"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear unidad",
+          "resultado": "registra unidad y vínculos iniciales",
+          "permiso": "property.unit.create"
+        },
+        {
+          "etiqueta": "Modificar borrador",
+          "resultado": "prepara nueva vigencia sin tocar historia",
+          "permiso": "property.unit.update"
+        },
+        {
+          "etiqueta": "Registrar transferencia",
+          "resultado": "crea evento y snapshot, sin mover deudas automáticamente",
+          "permiso": "property.ownership.transfer"
+        },
+        {
+          "etiqueta": "Inactivar",
+          "resultado": "cierra vigencia futura sin borrar documentos",
+          "permiso": "property.unit.deactivate"
+        },
+        {
+          "etiqueta": "Ver cargos y documentos",
+          "resultado": "navega a origen canónico",
+          "permiso": "property.unit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y condominio.",
+        "Capturar identidad, ubicación, área, alícuota y responsables.",
+        "Validar referencias, intervalos, participaciones y concurrencia.",
+        "Revisar diferencias y evidencia de aprobación.",
+        "Aprobar y guardar vigencia; emitir eventos de dominio si corresponde.",
+        "Consultar historia, cargos y documentos sin editar publicaciones."
+      ],
+      "estados": [
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        },
+        {
+          "tipo": "unidad",
+          "valores": [
+            "DRAFT",
+            "ACTIVE",
+            "INACTIVE",
+            "HISTORICAL"
+          ]
+        },
+        {
+          "tipo": "vínculo",
+          "valores": [
+            "PENDING",
+            "APPROVED",
+            "EXPIRED",
+            "DISPUTED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "El alta o cambio no crea asiento. La unidad puede dimensionar futuros cargos; los cargos finalizados conservan propietario, responsable, regla y alícuota como snapshot. Una transferencia exige proceso explícito para cualquier ajuste de deuda.",
+      "api_propuesta": [
+        "GET /api/v1/property/units",
+        "POST /api/v1/property/units",
+        "PATCH /api/v1/property/units/{id}",
+        "POST /api/v1/property/units/{id}/ownership-events",
+        "POST /api/v1/property/units/{id}/deactivate",
+        "GET /api/v1/property/units/{id}/history"
+      ],
+      "validaciones": [
+        "No solapar vínculo unidad/persona/rol/intervalo.",
+        "Verificar suma de participaciones según regla aprobada sin prohibir copropiedad.",
+        "Usar Decimal y fechas comerciales, no float ni timestamp para vigencia.",
+        "Con módulo DISABLED rechazar escritura con MODULE_DISABLED.",
+        "No editar ni borrar cargos o asientos desde esta ficha."
+      ],
+      "prueba_positiva": {
+        "dado": "Un condominio con tipo, piso, sección y dos propietarios válidos",
+        "cuando": "se crea la unidad U-101 con participaciones 60/40 y responsable de pago",
+        "entonces": "queda ACTIVE, la suma cuadra y su alta no publica deuda"
+      },
+      "prueba_negativa": {
+        "dado": "La nueva participación se solapa o supera la suma permitida",
+        "cuando": "se intenta aprobarla",
+        "entonces": "la API devuelve detalle de conflicto y conserva la vigencia anterior"
+      },
+      "dependencias_ids": [
+        "XLS-001",
+        "XLS-002",
+        "XLS-003",
+        "XLS-004",
+        "XLS-006",
+        "XLS-007",
+        "XLS-008"
+      ],
+      "titulo_original": "Detalle Inmuebles",
+      "ruta_menu_original": "Administración Inmuebles > Inmuebles > Detalle Inmuebles",
+      "ruta_react": "/administracion-inmuebles/inmuebles/detalle-inmuebles",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar unidad, área, alícuota, estado, condominio y responsables con vigencia; conservar historia.",
+      "pruebas_ids": [
+        "T-UI-XLS-005",
+        "T-PROC-XLS-005",
+        "T-NEG-XLS-005"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-006",
+      "fila": 12,
+      "celda": "D12",
+      "texto_original": "Resumen General",
+      "ruta_original": "Administración Inmuebles > Inmuebles > Resumen General",
+      "objetivo": "Presentar una vista de consulta y conciliación de unidades, alícuotas, ocupación y saldos a una fecha de corte. Debe ser un reporte navegable, no un saldo manual paralelo: los saldos provienen de cartera y movimientos publicados, y cada total debe poder abrir su origen. La pantalla permanece separada de Detalle Inmuebles y no se convierte en un tablero que esconda diferencias.",
+      "diseno_visible": "Encabezado con empresa, condominio y fecha de corte; filtros visibles, tarjetas de totales conciliables, tabla por unidad y panel de diferencias. Columnas incluyen unidad, estado, alícuota vigente al corte, responsable, cargos, aplicaciones, saldo principal, anticipos y excepciones. Cada importe tiene enlace a obligación, recibo o asiento; incluir exportación con los mismos filtros y snapshot.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "condominio permitido"
+        },
+        {
+          "nombre": "Fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "fecha comercial no futura según política"
+        },
+        {
+          "nombre": "Sección/piso",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "pertenencia al condominio"
+        },
+        {
+          "nombre": "Estado de unidad",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "enum permitido"
+        },
+        {
+          "nombre": "Mostrar saldos a favor",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "por defecto separado de deuda"
+        }
+      ],
+      "columnas": [
+        "Unidad",
+        "Tipo",
+        "Piso/sección",
+        "Estado",
+        "Alícuota al corte",
+        "Responsable",
+        "Cargos",
+        "Aplicaciones",
+        "Saldo",
+        "Anticipo",
+        "Diferencia",
+        "Origen"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "calcula vista al corte desde fuentes canónicas",
+          "permiso": "property.summary.read"
+        },
+        {
+          "etiqueta": "Ver origen",
+          "resultado": "navega a obligación, aplicación, documento o asiento",
+          "permiso": "receivables.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera archivo con filtros y snapshot idénticos",
+          "permiso": "property.summary.export"
+        },
+        {
+          "etiqueta": "Abrir diferencia",
+          "resultado": "crea incidencia auditable sin editar saldos",
+          "permiso": "property.reconciliation.investigate"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, condominio y fecha de corte.",
+        "Aplicar filtros de ubicación, estado y presentación.",
+        "Consultar cartera, snapshots y alícuotas vigentes.",
+        "Validar totales, diferencias y permisos de navegación.",
+        "Presentar resultados y permitir apertura del origen.",
+        "Exportar el mismo snapshot o registrar incidencia."
+      ],
+      "estados": [
+        {
+          "tipo": "consulta",
+          "valores": [
+            "LOADING",
+            "READY",
+            "EMPTY",
+            "ERROR"
+          ]
+        },
+        {
+          "tipo": "conciliación",
+          "valores": [
+            "BALANCED",
+            "DIFFERENCE",
+            "SOURCE_UNAVAILABLE"
+          ]
+        },
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "Solo lectura. No crea, modifica ni reversa asientos; muestra saldos derivados de receivable_item, aplicaciones y reversos efectivos al corte, separando anticipos y diferencias.",
+      "api_propuesta": [
+        "GET /api/v1/property/summaries",
+        "GET /api/v1/property/summaries/{id}/origins",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Exigir fecha de corte y empresa autorizada.",
+        "No calcular saldo definitivo en React.",
+        "Totales de pantalla y exportación deben usar el mismo snapshot.",
+        "No ocultar unidades con saldos o datos incompletos; marcarlas como excepción.",
+        "Con módulo DISABLED permitir lectura histórica explícita si existe acceso."
+      ],
+      "prueba_positiva": {
+        "dado": "Hay dos unidades, cargos y una aplicación publicada antes del corte",
+        "cuando": "se consulta el condominio con fecha de corte",
+        "entonces": "los saldos por unidad concilian con cartera y cada fila navega al origen"
+      },
+      "prueba_negativa": {
+        "dado": "La fuente de cartera está incompleta o el usuario no tiene alcance",
+        "cuando": "se solicita el resumen",
+        "entonces": "se muestra error/diferencia explícita y no se presenta un total inventado"
+      },
+      "dependencias_ids": [
+        "XLS-004",
+        "XLS-005",
+        "XLS-008"
+      ],
+      "titulo_original": "Resumen General",
+      "ruta_menu_original": "Administración Inmuebles > Inmuebles > Resumen General",
+      "ruta_react": "/administracion-inmuebles/inmuebles/resumen-general",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar unidades, alícuotas, ocupación y saldos por fecha de corte, con totales conciliables.",
+      "pruebas_ids": [
+        "T-UI-XLS-006",
+        "T-PROC-XLS-006",
+        "T-NEG-XLS-006"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-007",
+      "fila": 13,
+      "celda": "D13",
+      "texto_original": "Carga Masiva de Inmuebles",
+      "ruta_original": "Administración Inmuebles > Inmuebles > Carga Masiva de Inmuebles",
+      "objetivo": "Importar unidades y sus referencias desde una plantilla versionada, con prevalidación, errores por fila, homologación controlada y ejecución idempotente. La pantalla debe ser un proceso completo de migración, no un botón que inserta filas ni una segunda pantalla de Detalle Inmuebles. Debe conservar identificadores originales, mapa de nuevos IDs y trazabilidad de cada reintento.",
+      "diseno_visible": "Bandeja dedicada con descargar plantilla, instrucciones, selector de empresa/condominio, carga de archivo, pasos de progreso y tabla de filas. Mostrar resumen recibidas/válidas/rechazadas/confirmadas, errores por fila y columna, advertencias de homologación, botón de descarga corregible, confirmación explícita y seguimiento de job asíncrono. Permitir reintento solo de filas corregidas y mostrar hash del archivo.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "alcance autorizado"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "condominio activo"
+        },
+        {
+          "nombre": "Versión de plantilla",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "versión compatible"
+        },
+        {
+          "nombre": "Archivo XLSX/CSV",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "extensión, tamaño, hash y columnas exactas"
+        },
+        {
+          "nombre": "Modo",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "PREVIEW o UPSERT_IDEMPOTENT con clave original"
+        },
+        {
+          "nombre": "Confirmación",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "debe aceptar errores y efecto antes de ejecutar"
+        }
+      ],
+      "columnas": [
+        "Fila original",
+        "Clave original",
+        "Código unidad",
+        "Tipo",
+        "Piso",
+        "Sección",
+        "Resultado",
+        "Errores",
+        "Advertencias",
+        "ID creado",
+        "Reintento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Descargar plantilla",
+          "resultado": "obtiene versión y catálogo de columnas",
+          "permiso": "property.import.template.read"
+        },
+        {
+          "etiqueta": "Prevalidar",
+          "resultado": "crea lote y errores sin escribir unidades",
+          "permiso": "property.import.validate"
+        },
+        {
+          "etiqueta": "Corregir/reintentar filas",
+          "resultado": "reprocesa solo filas elegibles",
+          "permiso": "property.import.retry"
+        },
+        {
+          "etiqueta": "Confirmar importación",
+          "resultado": "crea/actualiza unidades idempotentemente con mapa",
+          "permiso": "property.import.confirm"
+        },
+        {
+          "etiqueta": "Consultar lote",
+          "resultado": "muestra evidencia y eventos",
+          "permiso": "property.import.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, condominio, plantilla y archivo.",
+        "Prevalidar estructura, referencias, duplicados y reglas de negocio.",
+        "Revisar errores por fila y corregir u homologar.",
+        "Confirmar únicamente filas válidas con permiso segregado.",
+        "Ejecutar job idempotente y guardar mapa de IDs/originales.",
+        "Consultar resultado, descargar errores y reintentar sin duplicar."
+      ],
+      "estados": [
+        {
+          "tipo": "lote",
+          "valores": [
+            "RECEIVED",
+            "VALIDATING",
+            "READY",
+            "CONFIRMED",
+            "PARTIAL",
+            "FAILED"
+          ]
+        },
+        {
+          "tipo": "fila",
+          "valores": [
+            "RECEIVED",
+            "VALID",
+            "WARNING",
+            "REJECTED",
+            "CONFIRMED",
+            "RETRYABLE"
+          ]
+        },
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "La prevalidación no afecta contabilidad. La confirmación tampoco publica asientos; crea dimensiones inmobiliarias para operaciones futuras y conserva datos históricos de origen. Los cargos se procesan por ciclos separados.",
+      "api_propuesta": [
+        "GET /api/v1/property/imports/templates",
+        "POST /api/v1/property/imports",
+        "GET /api/v1/imports/{id}",
+        "POST /api/v1/imports/{id}/confirm",
+        "POST /api/v1/imports/{id}/retry"
+      ],
+      "validaciones": [
+        "Rechazar columnas desconocidas o fórmulas maliciosas.",
+        "Usar hash y clave natural para idempotencia; reintentar no duplica.",
+        "Validar referencias contra empresa/condominio y catálogos vigentes.",
+        "No confirmar lote con errores bloqueantes.",
+        "Con módulo DISABLED rechazar escritura con MODULE_DISABLED y conservar consulta del lote."
+      ],
+      "prueba_positiva": {
+        "dado": "Una plantilla con 10 filas válidas y 2 con advertencia corregible",
+        "cuando": "se prevalida, corrige y confirma el lote",
+        "entonces": "se crean 10 unidades una sola vez, se registra el mapa y las advertencias quedan auditadas"
+      },
+      "prueba_negativa": {
+        "dado": "Se reenvía el mismo archivo con la misma clave original",
+        "cuando": "se confirma por segunda vez",
+        "entonces": "la operación devuelve resultado idempotente sin duplicar unidades ni asientos"
+      },
+      "dependencias_ids": [
+        "XLS-001",
+        "XLS-002",
+        "XLS-003",
+        "XLS-005"
+      ],
+      "titulo_original": "Carga Masiva de Inmuebles",
+      "ruta_menu_original": "Administración Inmuebles > Inmuebles > Carga Masiva de Inmuebles",
+      "ruta_react": "/administracion-inmuebles/inmuebles/carga-masiva-de-inmuebles",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Importar inmuebles desde plantilla con prevalidación, errores por fila y ejecución idempotente.",
+      "pruebas_ids": [
+        "T-UI-XLS-007",
+        "T-PROC-XLS-007",
+        "T-NEG-XLS-007"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-008",
+      "fila": 14,
+      "celda": "D14",
+      "texto_original": "Reporte Histórico de Propietarios",
+      "ruta_original": "Administración Inmuebles > Inmuebles > Reporte Histórico de Propietarios",
+      "objetivo": "Consultar propietarios, copropietarios, participaciones y responsables por unidad a través de un intervalo histórico, con evidencia de vigencias y eventos de transferencia. Es un reporte dedicado, no una edición de Detalle Inmuebles. Debe dejar claro que un cambio de titular no reasigna automáticamente deudas previas; cualquier ajuste requiere operación explícita, motivo, evidencia y aprobación.",
+      "diseno_visible": "Reporte con fecha desde/hasta, empresa, condominio y filtros de unidad/persona/rol. Tabla temporal con unidad, persona, rol, participación, inicio, fin, fuente y estado; línea de tiempo por unidad; totales de participaciones y alertas de solape. Incluir navegación al cargo snapshot, documento o evento de transferencia, exportación con filtros y protección de datos por permiso.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "condominio permitido"
+        },
+        {
+          "nombre": "Desde",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "no posterior a Hasta"
+        },
+        {
+          "nombre": "Hasta",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "intervalo comercial válido"
+        },
+        {
+          "nombre": "Unidad",
+          "tipo": "selector/multiselección",
+          "obligatorio": false,
+          "validacion": "pertenece al condominio"
+        },
+        {
+          "nombre": "Persona y rol",
+          "tipo": "búsqueda/selectores",
+          "obligatorio": false,
+          "validacion": "tercero autorizado y rol permitido"
+        }
+      ],
+      "columnas": [
+        "Unidad",
+        "Persona",
+        "Identificación enmascarada",
+        "Rol",
+        "Participación",
+        "Desde",
+        "Hasta",
+        "Fuente",
+        "Estado",
+        "Cargo snapshot"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar intervalo",
+          "resultado": "devuelve historia al corte solicitado",
+          "permiso": "property.ownership.history.read"
+        },
+        {
+          "etiqueta": "Ver evento",
+          "resultado": "abre evidencia y aprobación del cambio",
+          "permiso": "property.ownership.event.read"
+        },
+        {
+          "etiqueta": "Navegar a cargo",
+          "resultado": "muestra responsable congelado del documento",
+          "permiso": "receivables.read"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "genera reporte protegido con snapshot",
+          "permiso": "property.ownership.history.export"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, condominio e intervalo.",
+        "Aplicar unidad, persona y rol opcionales.",
+        "Validar permisos de datos y reconstruir vigencias.",
+        "Conciliar participaciones y marcar solapes o vacíos.",
+        "Mostrar historia, fuentes y snapshots sin editar.",
+        "Exportar o navegar al origen con auditoría."
+      ],
+      "estados": [
+        {
+          "tipo": "consulta",
+          "valores": [
+            "LOADING",
+            "READY",
+            "EMPTY",
+            "ERROR"
+          ]
+        },
+        {
+          "tipo": "vínculo",
+          "valores": [
+            "PENDING",
+            "APPROVED",
+            "EXPIRED",
+            "DISPUTED"
+          ]
+        },
+        {
+          "tipo": "privacidad",
+          "valores": [
+            "FULL",
+            "MASKED",
+            "DENIED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "Solo lectura. No cambia deuda ni propietario de cargos publicados; muestra el vínculo histórico almacenado y enlaza al snapshot responsable. Un eventual ajuste se realiza fuera del reporte mediante reverso o documento autorizado.",
+      "api_propuesta": [
+        "GET /api/v1/property/ownership-history",
+        "GET /api/v1/property/ownership-events/{id}",
+        "GET /api/v1/property/charges/{id}/snapshot",
+        "POST /api/v1/report-exports"
+      ],
+      "validaciones": [
+        "Intervalo [inicio, fin) y fechas coherentes.",
+        "Enmascarar identificación según permiso.",
+        "No inferir solidaridad ni responsabilidad legal.",
+        "Mostrar diferencias de suma sin corregir automáticamente.",
+        "No reasignar deuda por una modificación de propietario."
+      ],
+      "prueba_positiva": {
+        "dado": "Una unidad tuvo propietario A hasta junio y B desde julio",
+        "cuando": "se consulta enero-diciembre",
+        "entonces": "se muestran ambas vigencias y un cargo de mayo conserva a A como snapshot"
+      },
+      "prueba_negativa": {
+        "dado": "Un usuario sin permiso intenta exportar identificaciones completas",
+        "cuando": "solicita el reporte",
+        "entonces": "la exportación se deniega o enmascara y no expone datos fuera de alcance"
+      },
+      "dependencias_ids": [
+        "XLS-005",
+        "XLS-006"
+      ],
+      "titulo_original": "Reporte Histórico de Propietarios",
+      "ruta_menu_original": "Administración Inmuebles > Inmuebles > Reporte Histórico de Propietarios",
+      "ruta_react": "/administracion-inmuebles/inmuebles/reporte-historico-de-propietarios",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Consultar propietarios y participaciones por intervalo histórico; un cambio no reasigna automáticamente deudas previas.",
+      "pruebas_ids": [
+        "T-UI-XLS-008",
+        "T-PROC-XLS-008",
+        "T-NEG-XLS-008"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-009",
+      "fila": 16,
+      "celda": "D16",
+      "texto_original": "Configuración Destinatarios",
+      "ruta_original": "Administración Inmuebles > Notificaciones > Configuración Destinatarios",
+      "objetivo": "Definir destinatarios por unidad, rol y evento para comunicaciones inmobiliarias, respetando preferencias, base legal configurada y segregación de empresas. Es una pantalla de configuración independiente de Envío Email y Boletín: aquí se mantienen reglas y contactos; no se dispara un envío ni se edita una plantilla desde el mismo formulario. Las notificaciones generales pertenecen al núcleo; esta ficha agrega el ámbito opcional de inmuebles.",
+      "diseno_visible": "Tabla de reglas con filtros por condominio, unidad, rol, evento, canal y estado; formulario dedicado con prioridad y vigencia; previsualización de audiencia con conteos y exclusiones explicadas. Mostrar contacto enmascarado, fuente, preferencia, base legal registrada y advertencias de datos faltantes. La pantalla permite probar la resolución de audiencia sin enviar.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "Condominio/unidad",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "referencia válida del módulo"
+        },
+        {
+          "nombre": "Evento",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "evento versionado permitido"
+        },
+        {
+          "nombre": "Rol destinatario",
+          "tipo": "multiselección",
+          "obligatorio": true,
+          "validacion": "propietario, responsable, residente u otro rol autorizado"
+        },
+        {
+          "nombre": "Canal",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "EMAIL u otro canal habilitado"
+        },
+        {
+          "nombre": "Preferencia/base legal",
+          "tipo": "objeto",
+          "obligatorio": true,
+          "validacion": "registro vigente y consistente"
+        },
+        {
+          "nombre": "Vigencia",
+          "tipo": "intervalo",
+          "obligatorio": true,
+          "validacion": "sin solape de reglas equivalentes"
+        }
+      ],
+      "columnas": [
+        "Evento",
+        "Ámbito",
+        "Roles",
+        "Canal",
+        "Destinatarios resueltos",
+        "Preferencia",
+        "Vigencia",
+        "Estado",
+        "Última prueba"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear regla",
+          "resultado": "guarda configuración sin enviar",
+          "permiso": "property.notification_rule.create"
+        },
+        {
+          "etiqueta": "Modificar regla",
+          "resultado": "crea nueva vigencia auditada",
+          "permiso": "property.notification_rule.update"
+        },
+        {
+          "etiqueta": "Previsualizar audiencia",
+          "resultado": "muestra conteo y exclusiones sin envío",
+          "permiso": "property.notification.audience_preview"
+        },
+        {
+          "etiqueta": "Activar/inactivar",
+          "resultado": "controla uso futuro de la regla",
+          "permiso": "property.notification_rule.activate"
+        },
+        {
+          "etiqueta": "Ver historial",
+          "resultado": "muestra cambios y actor",
+          "permiso": "property.notification_rule.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y ámbito inmobiliario.",
+        "Capturar evento, roles, canal, preferencias y vigencia.",
+        "Resolver destinatarios y validar base legal/preferencias.",
+        "Previsualizar audiencia y exclusiones.",
+        "Aprobar y activar la versión de regla.",
+        "Consultar uso posterior desde la bandeja de envíos."
+      ],
+      "estados": [
+        {
+          "tipo": "regla",
+          "valores": [
+            "DRAFT",
+            "PENDING_APPROVAL",
+            "ACTIVE",
+            "INACTIVE"
+          ]
+        },
+        {
+          "tipo": "destinatario",
+          "valores": [
+            "RESOLVED",
+            "MISSING_CONTACT",
+            "OPTED_OUT",
+            "DENIED"
+          ]
+        },
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "No contabiliza ni modifica obligaciones. Puede consumir eventos de cargos/documentos publicados para resolver audiencia; no debe revelar saldos o datos a personas sin autorización.",
+      "api_propuesta": [
+        "GET /api/v1/property/notification-rules",
+        "POST /api/v1/property/notification-rules",
+        "PATCH /api/v1/property/notification-rules/{id}",
+        "POST /api/v1/property/notification-rules/{id}/audience-preview",
+        "POST /api/v1/property/notification-rules/{id}/activate"
+      ],
+      "validaciones": [
+        "Aislar tenant, empresa y condominio.",
+        "No activar sin evento, canal y preferencia/base legal definida.",
+        "No enviar durante previsualización.",
+        "Cambiar contenido invalida aprobación previa.",
+        "Módulo DISABLED bloquea alta/cambio y conserva lectura histórica."
+      ],
+      "prueba_positiva": {
+        "dado": "Una regla activa para evento de cargo y rol responsable",
+        "cuando": "se previsualiza la audiencia con contactos válidos",
+        "entonces": "se muestra el conteo correcto sin crear intentos de entrega"
+      },
+      "prueba_negativa": {
+        "dado": "El destinatario no tiene contacto vigente o está excluido",
+        "cuando": "se intenta activar la regla",
+        "entonces": "la pantalla marca la exclusión y no permite enviarle por esta regla"
+      },
+      "dependencias_ids": [
+        "XLS-005",
+        "XLS-010",
+        "XLS-011"
+      ],
+      "titulo_original": "Configuración Destinatarios",
+      "ruta_menu_original": "Administración Inmuebles > Notificaciones > Configuración Destinatarios",
+      "ruta_react": "/administracion-inmuebles/notificaciones/configuracion-destinatarios",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Definir destinatarios por unidad, rol y evento; respetar base legal y preferencias de comunicación.",
+      "pruebas_ids": [
+        "T-UI-XLS-009",
+        "T-PROC-XLS-009",
+        "T-NEG-XLS-009"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-010",
+      "fila": 17,
+      "celda": "D17",
+      "texto_original": "Envío Email",
+      "ruta_original": "Administración Inmuebles > Notificaciones > Envío Email",
+      "objetivo": "Preparar y ejecutar envíos de email por cola, con plantilla versionada, destinatario resuelto, registro de entrega/error y reintento seguro. La pantalla es distinta de Configuración Destinatarios y Boletín: recibe una audiencia y contenido aprobados, pero no sustituye su configuración ni permite reenviar a ciegas. Un timeout externo queda en estado incierto conciliable; reintentar no debe duplicar un envío confirmado.",
+      "diseno_visible": "Bandeja dedicada con pestañas borradores, listos, procesando, entregados, fallidos y pendientes de conciliación. Mostrar evento, plantilla/versión, audiencia congelada, cantidad, fecha, operador, intentos, proveedor y última respuesta. Acciones de previsualización, aprobación, envío a cola, seguimiento y reintento elegible; nunca una espera indefinida en pantalla.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa/condominio",
+          "tipo": "selectores",
+          "obligatorio": true,
+          "validacion": "alcance permitido"
+        },
+        {
+          "nombre": "Evento",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "evento con regla activa"
+        },
+        {
+          "nombre": "Plantilla y versión",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "versión aprobada y variables completas"
+        },
+        {
+          "nombre": "Audiencia",
+          "tipo": "referencia congelada",
+          "obligatorio": true,
+          "validacion": "resuelta por regla y no vacía sin justificación"
+        },
+        {
+          "nombre": "Asunto/cuerpo",
+          "tipo": "texto/HTML controlado",
+          "obligatorio": true,
+          "validacion": "sanitizado, variables permitidas"
+        },
+        {
+          "nombre": "Fecha de envío",
+          "tipo": "fecha-hora",
+          "obligatorio": true,
+          "validacion": "fecha válida y zona local mostrada"
+        }
+      ],
+      "columnas": [
+        "Lote",
+        "Evento",
+        "Plantilla",
+        "Destinatarios",
+        "Estado",
+        "Intentos",
+        "Entregados",
+        "Errores",
+        "Último intento",
+        "Actor"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Crear envío",
+          "resultado": "congela contenido y audiencia en borrador",
+          "permiso": "property.email.create"
+        },
+        {
+          "etiqueta": "Previsualizar",
+          "resultado": "muestra contenido por destinatario sin enviar",
+          "permiso": "property.email.preview"
+        },
+        {
+          "etiqueta": "Aprobar y encolar",
+          "resultado": "crea job/outbox idempotente",
+          "permiso": "property.email.approve"
+        },
+        {
+          "etiqueta": "Consultar resultado",
+          "resultado": "muestra entrega/error por destinatario",
+          "permiso": "property.email.read"
+        },
+        {
+          "etiqueta": "Reintentar elegibles",
+          "resultado": "reprocesa solo fallos/indeterminados conciliables",
+          "permiso": "property.email.retry"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar evento, ámbito, plantilla y regla de audiencia.",
+        "Capturar o revisar contenido y congelar destinatarios.",
+        "Validar variables, preferencias, permisos y duplicados.",
+        "Previsualizar y obtener aprobación segregada.",
+        "Encolar job tras commit y procesar con worker.",
+        "Consultar entrega, conciliar timeout y reintentar solo lo permitido."
+      ],
+      "estados": [
+        {
+          "tipo": "lote",
+          "valores": [
+            "DRAFT",
+            "PENDING_APPROVAL",
+            "QUEUED",
+            "PROCESSING",
+            "COMPLETED",
+            "PARTIAL",
+            "FAILED"
+          ]
+        },
+        {
+          "tipo": "entrega",
+          "valores": [
+            "PENDING",
+            "SENT",
+            "DELIVERED",
+            "BOUNCED",
+            "FAILED",
+            "UNKNOWN",
+            "RECONCILED"
+          ]
+        },
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "No modifica libros ni saldos. Puede transportar enlaces a cargos o documentos ya creados, pero el correo ocurre después del commit; un error de proveedor no revierte ni elimina efectos contables válidos.",
+      "api_propuesta": [
+        "GET /api/v1/property/email-sends",
+        "POST /api/v1/property/email-sends",
+        "POST /api/v1/property/email-sends/{id}/preview",
+        "POST /api/v1/property/email-sends/{id}/approve",
+        "POST /api/v1/property/email-sends/{id}/retry",
+        "GET /api/v1/jobs/{id}"
+      ],
+      "validaciones": [
+        "Usar outbox y clave idempotente por lote/destinatario/versión.",
+        "No incluir destinatarios entre empresas o clientes.",
+        "Reintentar timeout solo después de consultar estado/referencia del proveedor.",
+        "Sanitizar HTML y limitar variables.",
+        "Con módulo DISABLED bloquear nuevos envíos y permitir auditoría histórica."
+      ],
+      "prueba_positiva": {
+        "dado": "Un lote aprobado con tres destinatarios y plantilla versión 2",
+        "cuando": "el worker procesa la cola",
+        "entonces": "se registran estados individuales y un segundo intento no duplica los entregados"
+      },
+      "prueba_negativa": {
+        "dado": "El proveedor responde timeout después de aceptar un mensaje",
+        "cuando": "el operador pulsa reintentar inmediatamente",
+        "entonces": "el sistema exige conciliación de referencia y evita reenviar a ciegas"
+      },
+      "dependencias_ids": [
+        "XLS-009",
+        "XLS-011"
+      ],
+      "titulo_original": "Envío Email",
+      "ruta_menu_original": "Administración Inmuebles > Notificaciones > Envío Email",
+      "ruta_react": "/administracion-inmuebles/notificaciones/envio-email",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Enviar por cola con registro de plantilla, destinatario, entrega/error y reintento sin envío duplicado.",
+      "pruebas_ids": [
+        "T-UI-XLS-010",
+        "T-PROC-XLS-010",
+        "T-NEG-XLS-010"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-011",
+      "fila": 18,
+      "celda": "D18",
+      "texto_original": "Boletín",
+      "ruta_original": "Administración Inmuebles > Notificaciones > Boletín",
+      "objetivo": "Crear un boletín inmobiliario, previsualizar su contenido, seleccionar una audiencia aprobada y registrar su envío. La ficha conserva el proceso editorial separado de Envío Email: puede usar el servicio común de cola, pero no fusiona pantallas ni omite la revisión del contenido. La audiencia debe respetar unidad, rol, preferencias, privacidad y empresa; no se permite publicar listas nominativas de morosos.",
+      "diseno_visible": "Editor dedicado con título original, campos de asunto/cuerpo/adjuntos, versión de borrador, vista previa responsive y panel de audiencia por condominio, sección, unidad o rol. Mostrar conteo, exclusiones y motivo; permitir guardar borrador, solicitar aprobación, congelar snapshot y pasar a la bandeja de envío. La pantalla registra autor, aprobador, fecha y hash del contenido.",
+      "filtros_campos": [
+        {
+          "nombre": "Empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "Condominio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "condominio del módulo"
+        },
+        {
+          "nombre": "Título del boletín",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "no vacío y longitud permitida"
+        },
+        {
+          "nombre": "Contenido",
+          "tipo": "editor controlado",
+          "obligatorio": true,
+          "validacion": "HTML sanitizado, variables permitidas, sin datos sensibles"
+        },
+        {
+          "nombre": "Adjuntos",
+          "tipo": "colección de archivos",
+          "obligatorio": false,
+          "validacion": "tipo/tamaño/hash permitidos"
+        },
+        {
+          "nombre": "Audiencia",
+          "tipo": "filtros",
+          "obligatorio": true,
+          "validacion": "roles y preferencias resueltos"
+        },
+        {
+          "nombre": "Programación",
+          "tipo": "fecha-hora",
+          "obligatorio": true,
+          "validacion": "fecha válida; envío posterior a aprobación"
+        }
+      ],
+      "columnas": [
+        "Boletín",
+        "Condominio",
+        "Versión",
+        "Audiencia",
+        "Estado",
+        "Aprobador",
+        "Programado",
+        "Enviados",
+        "Errores",
+        "Creado por"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar borrador",
+          "resultado": "preserva versión editable y hash provisional",
+          "permiso": "property.bulletin.create"
+        },
+        {
+          "etiqueta": "Previsualizar",
+          "resultado": "renderiza contenido y audiencia sin enviar",
+          "permiso": "property.bulletin.preview"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "congela contenido y crea solicitud",
+          "permiso": "property.bulletin.submit"
+        },
+        {
+          "etiqueta": "Aprobar y programar",
+          "resultado": "crea envío aprobado en cola",
+          "permiso": "property.bulletin.approve"
+        },
+        {
+          "etiqueta": "Consultar entrega",
+          "resultado": "abre resultados por destinatario",
+          "permiso": "property.bulletin.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, condominio y audiencia inicial.",
+        "Capturar título, contenido, adjuntos y programación.",
+        "Validar HTML, variables, privacidad, destinatarios y archivos.",
+        "Previsualizar boletín y resolver exclusiones.",
+        "Solicitar/aprobar contenido y congelar snapshot.",
+        "Encolar, consultar entregas y registrar errores/reintentos."
+      ],
+      "estados": [
+        {
+          "tipo": "boletín",
+          "valores": [
+            "DRAFT",
+            "PENDING_APPROVAL",
+            "APPROVED",
+            "SCHEDULED",
+            "SENDING",
+            "SENT",
+            "PARTIAL",
+            "CANCELLED"
+          ]
+        },
+        {
+          "tipo": "audiencia",
+          "valores": [
+            "PREVIEW",
+            "FROZEN",
+            "EXPIRED",
+            "REJECTED"
+          ]
+        },
+        {
+          "tipo": "módulo",
+          "valores": [
+            "ENABLED",
+            "READ_ONLY",
+            "DISABLED"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "No contabiliza y no cambia cartera. El boletín puede referenciar un ciclo o documento para información, pero su publicación y entrega son efectos operativos posteriores e independientes del asiento.",
+      "api_propuesta": [
+        "GET /api/v1/property/bulletins",
+        "POST /api/v1/property/bulletins",
+        "PATCH /api/v1/property/bulletins/{id}",
+        "POST /api/v1/property/bulletins/{id}/preview",
+        "POST /api/v1/property/bulletins/{id}/submit",
+        "POST /api/v1/property/bulletins/{id}/approve",
+        "GET /api/v1/property/bulletins/{id}/delivery"
+      ],
+      "validaciones": [
+        "Separación de creador y aprobador cuando la política lo exige.",
+        "No enviar sin audiencia congelada y regla activa.",
+        "Excluir contactos sin preferencia/base legal válida.",
+        "Sanitizar contenido y adjuntos; bloquear fórmulas o archivos peligrosos.",
+        "Con módulo DISABLED bloquear creación/edición y conservar consulta histórica."
+      ],
+      "prueba_positiva": {
+        "dado": "Un boletín aprobado para residentes y propietarios con contactos válidos",
+        "cuando": "se programa y procesa la cola",
+        "entonces": "se registra una entrega por destinatario, el contenido queda versionado y no se publica información ajena"
+      },
+      "prueba_negativa": {
+        "dado": "El contenido contiene una variable no permitida o audiencia sin base configurada",
+        "cuando": "se solicita aprobación",
+        "entonces": "la solicitud se rechaza con errores corregibles y no se crea envío"
+      },
+      "dependencias_ids": [
+        "XLS-009",
+        "XLS-010",
+        "XLS-005"
+      ],
+      "titulo_original": "Boletín",
+      "ruta_menu_original": "Administración Inmuebles > Notificaciones > Boletín",
+      "ruta_react": "/administracion-inmuebles/notificaciones/boletin",
+      "paquete": "PROPERTY_MANAGEMENT",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Crear boletín, previsualizarlo, seleccionar audiencia y registrar envío aprobado.",
+      "pruebas_ids": [
+        "T-UI-XLS-011",
+        "T-PROC-XLS-011",
+        "T-NEG-XLS-011"
+      ],
+      "modulo": "Administración Inmuebles",
+      "nivel": 4
+    }
+  ]
+}

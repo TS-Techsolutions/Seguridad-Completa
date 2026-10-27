@@ -1,0 +1,370 @@
+{
+  "version": "2.0",
+  "modulo": "Caja Chica",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "fila": 63,
+      "celda": "C63",
+      "nivel": 3,
+      "texto_original": "Registro de Caja Chica",
+      "ruta_original": "Caja Chica > Registro de Caja Chica",
+      "id": "XLS-039",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Administrar el ciclo completo de uno o varios fondos fijos: seleccionar fondo y custodio, registrar comprobantes, preparar la rendición, aprobarla y solicitar la reposición sin volver a reconocer un gasto ya contabilizado.",
+      "diseno_visible": "Pantalla dedicada bajo el menú original, con selector de empresa y fondo, tarjeta de límite autorizado/saldo disponible, bandeja de gastos del periodo, formulario de comprobante y panel de vista previa contable. Incluye adjuntos, historial de auditoría, estados de negocio-contable-fiscal separados y resumen de reposición; los campos de condominio, inmueble y alícuota no aparecen ni son obligatorios en modo núcleo.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "pertenece al contexto autorizado del usuario"
+        },
+        {
+          "nombre": "fondo_id",
+          "tipo": "selector de fondo",
+          "obligatorio": true,
+          "validacion": "fondo activo de la empresa; muestra custodio, límite y saldo"
+        },
+        {
+          "nombre": "custodio_id",
+          "tipo": "selector de tercero/usuario",
+          "obligatorio": true,
+          "validacion": "custodio vigente según política; no se reemplaza en movimientos históricos"
+        },
+        {
+          "nombre": "fecha_documento",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "periodo abierto y no posterior a la fecha de registro"
+        },
+        {
+          "nombre": "proveedor",
+          "tipo": "búsqueda de tercero",
+          "obligatorio": false,
+          "validacion": "tercero de la misma empresa; permite soporte sin proveedor solo si política lo autoriza"
+        },
+        {
+          "nombre": "importe",
+          "tipo": "decimal USD",
+          "obligatorio": true,
+          "validacion": "mayor que cero, precisión Decimal y no supera saldo disponible"
+        },
+        {
+          "nombre": "cuenta_gasto",
+          "tipo": "selector de cuenta imputable",
+          "obligatorio": true,
+          "validacion": "cuenta activa de la empresa y compatible con plantilla vigente"
+        },
+        {
+          "nombre": "soporte",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "tipo/tamaño permitidos, hash y referencia únicos; no duplicado"
+        },
+        {
+          "nombre": "periodo_rendicion",
+          "tipo": "selector de periodo",
+          "obligatorio": true,
+          "validacion": "no existe otra rendición confirmada para fondo y periodo"
+        }
+      ],
+      "columnas": [
+        "fondo y custodio",
+        "periodo de rendición",
+        "cantidad de soportes",
+        "importe rendido",
+        "saldo antes/después",
+        "estado de negocio",
+        "estado contable",
+        "última acción y responsable"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Nuevo fondo",
+          "resultado": "crea fondo en borrador con custodio, límite y cuentas configuradas",
+          "permiso": "petty_cash.fund.create"
+        },
+        {
+          "etiqueta": "Registrar soporte",
+          "resultado": "crea gasto pendiente de validación con archivo y clave de idempotencia",
+          "permiso": "petty_cash.document.create"
+        },
+        {
+          "etiqueta": "Validar rendición",
+          "resultado": "congela selección, detecta duplicados y genera vista previa sin publicar",
+          "permiso": "petty_cash.reconciliation.validate"
+        },
+        {
+          "etiqueta": "Enviar a aprobación",
+          "resultado": "crea solicitud con versión/hash y bloquea cambios no aprobados",
+          "permiso": "petty_cash.reconciliation.submit"
+        },
+        {
+          "etiqueta": "Aprobar y reponer",
+          "resultado": "aprueba una sola vez, publica gasto y transferencia de reposición si corresponde",
+          "permiso": "petty_cash.replenishment.approve"
+        },
+        {
+          "etiqueta": "Reversar",
+          "resultado": "genera reverso enlazado; nunca edita ni elimina el asiento publicado",
+          "permiso": "petty_cash.reversal.create"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, fondo, custodio y periodo abierto; el servidor verifica permisos y versión.",
+        "Capturar cada gasto, proveedor opcional permitido, cuenta, importe, fecha y soporte; guardar como pendiente.",
+        "Validar saldo, periodo, soporte, duplicidad, suma de rendición y plantilla contable; mostrar diferencias antes de continuar.",
+        "Enviar la rendición congelada a aprobación segregada; cualquier cambio invalida la aprobación anterior.",
+        "Al aprobar, reconocer cada gasto una sola vez y generar la reposición como transferencia fondo-banco con idempotencia.",
+        "Consultar comprobantes, asiento, reposición, auditoría y saldo actualizado; una corrección posterior usa reverso."
+      ],
+      "estados": [
+        {
+          "tipo": "negocio",
+          "valores": [
+            "BORRADOR",
+            "PENDIENTE_VALIDACION",
+            "PENDIENTE_APROBACION",
+            "APROBADA",
+            "RECHAZADA",
+            "RENDIDA",
+            "REVERSADA"
+          ]
+        },
+        {
+          "tipo": "contable",
+          "valores": [
+            "NO_PUBLICADO",
+            "PREVIO",
+            "PUBLICADO",
+            "REVERSADO"
+          ]
+        },
+        {
+          "tipo": "fiscal",
+          "valores": [
+            "NO_APLICA",
+            "PENDIENTE_CONFIGURACION",
+            "SOPORTE_VALIDADO"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "El evento PETTY_CASH_EXPENSE_RECORDED debita GASTO_RUBRO y, si la configuración aprobada lo exige, IMPUESTO; acredita CAJA_CHICA. La reposición debita CAJA_CHICA y acredita BANCO. Las cuentas, tratamiento tributario y cualquier tasa provienen de catálogos versionados por vigencia, nunca de constantes. Un asiento publicado permanece inmutable; reversos y auditoría conservan el vínculo.",
+      "api_propuesta": [
+        "GET /api/v1/petty-cash/funds",
+        "POST /api/v1/petty-cash/funds",
+        "GET /api/v1/petty-cash/funds/{fund_id}/documents",
+        "POST /api/v1/petty-cash/funds/{fund_id}/documents",
+        "POST /api/v1/petty-cash/reconciliations/preview",
+        "POST /api/v1/petty-cash/reconciliations/{id}/submit",
+        "POST /api/v1/petty-cash/replenishments/{id}/approve",
+        "POST /api/v1/petty-cash/documents/{id}/reverse"
+      ],
+      "validaciones": [
+        "RLS, empresa, rol y permiso se verifican en backend; no confiar en campos enviados por React.",
+        "Importe, saldo y sumas usan numeric/Decimal; locks evitan dos reposiciones concurrentes.",
+        "Hash y referencia del soporte detectan duplicados; un reintento con la misma idempotency key devuelve el resultado existente.",
+        "No permitir publicación con fondo inactivo, custodio inválido, periodo cerrado, cuenta inactiva, soporte rechazado o diferencias no aprobadas.",
+        "La aprobación exige segregación cuando la política lo indique y contenido sin cambios desde la vista previa."
+      ],
+      "prueba_positiva": "Dado un fondo activo con saldo y un custodio autorizado, cuando se registran dos soportes válidos, se valida y aprueba la rendición, entonces cada gasto se publica una vez, la reposición queda enlazada al periodo y el saldo del fondo se actualiza sin duplicar gasto.",
+      "prueba_negativa": "Dado un soporte ya rendido o un intento de reponer un periodo confirmado, cuando el usuario confirma nuevamente, entonces la API rechaza por duplicado/idempotencia, no publica otro asiento y muestra el documento original y la causa.",
+      "dependencias_ids": [
+        "XLS-040"
+      ],
+      "titulo_original": "Registro de Caja Chica",
+      "ruta_menu_original": "Caja Chica > Registro de Caja Chica",
+      "ruta_react": "/caja-chica/registro-de-caja-chica",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Gestionar fondo fijo, custodio, gastos soportados, rendición, aprobación y reposición sin duplicar gasto.",
+      "pruebas_ids": [
+        "T-UI-XLS-039",
+        "T-PROC-XLS-039",
+        "T-NEG-XLS-039"
+      ],
+      "modulo": "Caja Chica"
+    },
+    {
+      "fila": 64,
+      "celda": "C64",
+      "nivel": 3,
+      "texto_original": "Documentos Pendientes",
+      "ruta_original": "Caja Chica > Documentos Pendientes",
+      "id": "XLS-040",
+      "paquete": "ACCOUNTING_CORE",
+      "objetivo": "Dar una bandeja operativa para localizar soportes pendientes de rendición o aprobación, resolver errores por fila y evitar que un rechazo, duplicado o falta de evidencia habilite una reposición.",
+      "diseno_visible": "Pantalla dedicada, no fusionada con Registro de Caja Chica, con pestañas Pendientes de rendir, Pendientes de aprobar, Rechazados y Duplicados bloqueados. La tabla permite filtros, selección múltiple solo para revisión, orden por antigüedad y panel lateral con soporte, historial, motivo de bloqueo, fondo/custodio y navegación al registro de origen. Muestra totales filtrados y diferencia entre importe capturado, aprobado y elegible para reposición.",
+      "filtros_campos": [
+        {
+          "nombre": "fondo_id",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "solo fondos de empresas autorizadas"
+        },
+        {
+          "nombre": "custodio_id",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "coincide con custodio vigente o histórico del documento"
+        },
+        {
+          "nombre": "estado",
+          "tipo": "multi-selección",
+          "obligatorio": true,
+          "validacion": "valores de la máquina de estados; no inferir estado contable"
+        },
+        {
+          "nombre": "desde_hasta",
+          "tipo": "rango de fechas",
+          "obligatorio": false,
+          "validacion": "fecha de documento dentro de límites permitidos"
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "tercero de la empresa activa"
+        },
+        {
+          "nombre": "referencia_soporte",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "búsqueda exacta o prefijada, sin SQL libre"
+        },
+        {
+          "nombre": "motivo_bloqueo",
+          "tipo": "multi-selección",
+          "obligatorio": false,
+          "validacion": "soporte_faltante, rechazado, duplicado, saldo_insuficiente o periodo_cerrado"
+        }
+      ],
+      "columnas": [
+        "documento/soporte",
+        "fondo",
+        "custodio",
+        "fecha",
+        "proveedor",
+        "importe",
+        "cuenta de gasto",
+        "estado de soporte",
+        "estado de aprobación",
+        "elegible para reposición",
+        "motivo de bloqueo",
+        "última actualización"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Abrir origen",
+          "resultado": "navega al registro dedicado conservando filtros y posición",
+          "permiso": "petty_cash.document.read"
+        },
+        {
+          "etiqueta": "Validar soporte",
+          "resultado": "marca evidencia válida o devuelve error concreto por documento",
+          "permiso": "petty_cash.document.validate"
+        },
+        {
+          "etiqueta": "Aprobar documento",
+          "resultado": "lo hace elegible para rendición, sin crear un segundo gasto",
+          "permiso": "petty_cash.document.approve"
+        },
+        {
+          "etiqueta": "Rechazar",
+          "resultado": "bloquea la reposición y exige motivo/evidencia",
+          "permiso": "petty_cash.document.reject"
+        },
+        {
+          "etiqueta": "Marcar duplicado",
+          "resultado": "enlaza con el soporte canónico y bloquea el duplicado",
+          "permiso": "petty_cash.document.duplicate"
+        },
+        {
+          "etiqueta": "Devolver para corregir",
+          "resultado": "mantiene historial y solicita dato o archivo faltante",
+          "permiso": "petty_cash.document.return"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y pestaña de trabajo; cargar permisos, corte y estados desde backend.",
+        "Filtrar por fondo, custodio, fecha, tercero, estado o motivo y revisar totales de la consulta.",
+        "Abrir cada soporte para comprobar archivo, hash, importe, cuenta, periodo y vínculo con el registro de origen.",
+        "Validar y, cuando corresponda, aprobar el documento con versión; los errores quedan visibles por fila.",
+        "Rechazar, devolver o marcar duplicado con motivo y enlace al soporte canónico; el sistema mantiene el bloqueo.",
+        "Actualizar elegibilidad y navegar a Registro de Caja Chica para completar rendición; nunca publicar desde una consulta repetida."
+      ],
+      "estados": [
+        {
+          "tipo": "soporte",
+          "valores": [
+            "PENDIENTE",
+            "VALIDADO",
+            "FALTANTE",
+            "RECHAZADO",
+            "DUPLICADO"
+          ]
+        },
+        {
+          "tipo": "aprobacion",
+          "valores": [
+            "NO_SOLICITADA",
+            "PENDIENTE",
+            "APROBADA",
+            "DEVUELTA"
+          ]
+        },
+        {
+          "tipo": "reposicion",
+          "valores": [
+            "BLOQUEADA",
+            "ELEGIBLE",
+            "INCLUIDA",
+            "RENDIDA"
+          ]
+        },
+        {
+          "tipo": "contable",
+          "valores": [
+            "NO_PUBLICADO",
+            "PUBLICADO",
+            "REVERSADO"
+          ]
+        }
+      ],
+      "impacto_datos_contables": "La bandeja es control y trazabilidad: validar o aprobar soporte no publica por sí solo ni crea gasto. Un documento rechazado, duplicado, sin saldo o de periodo cerrado queda excluido de reposición. Solo la rendición aprobada en XLS-039 dispara el posting de gasto y luego la transferencia de reposición; si ya existe asiento, la consulta lo muestra y no lo vuelve a contabilizar.",
+      "api_propuesta": [
+        "GET /api/v1/petty-cash/pending-documents",
+        "GET /api/v1/petty-cash/pending-documents/{id}",
+        "POST /api/v1/petty-cash/pending-documents/{id}/validate",
+        "POST /api/v1/petty-cash/pending-documents/{id}/approve",
+        "POST /api/v1/petty-cash/pending-documents/{id}/reject",
+        "POST /api/v1/petty-cash/pending-documents/{id}/mark-duplicate",
+        "POST /api/v1/petty-cash/pending-documents/{id}/return",
+        "GET /api/v1/petty-cash/pending-documents/{id}/history"
+      ],
+      "validaciones": [
+        "La consulta se limita por tenant, empresa, permisos y paginación; filtros son campos permitidos, no expresiones libres.",
+        "Cada transición exige versión actual, actor, motivo cuando corresponda y auditoría append-only.",
+        "Un duplicado debe enlazar a un documento canónico; no se elimina ni se reemplaza silenciosamente el archivo original.",
+        "La elegibilidad requiere soporte validado, aprobación requerida, fondo activo, saldo suficiente y ausencia de asiento/reposición previa.",
+        "Errores se muestran por fila y no se ocultan por un total agregado; reintentar no crea un nuevo documento."
+      ],
+      "prueba_positiva": "Dado un soporte pendiente con archivo íntegro y datos consistentes, cuando el revisor lo valida y aprueba, entonces cambia a elegible, aparece en la rendición del fondo y conserva historial; la reposición queda bloqueada hasta la aprobación de la rendición.",
+      "prueba_negativa": "Dado un soporte con el mismo hash/referencia de uno ya rendido, cuando se intenta aprobarlo para reposición, entonces se marca duplicado, se enlaza al canónico, se mantiene bloqueado y no se genera asiento ni transferencia adicional.",
+      "dependencias_ids": [
+        "XLS-039"
+      ],
+      "titulo_original": "Documentos Pendientes",
+      "ruta_menu_original": "Caja Chica > Documentos Pendientes",
+      "ruta_react": "/caja-chica/documentos-pendientes",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Listar soportes pendientes de rendir/aprobar y bloquear reposición de gastos rechazados o duplicados.",
+      "pruebas_ids": [
+        "T-UI-XLS-040",
+        "T-PROC-XLS-040",
+        "T-NEG-XLS-040"
+      ],
+      "modulo": "Caja Chica"
+    }
+  ]
+}

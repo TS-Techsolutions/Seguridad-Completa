@@ -1,0 +1,3896 @@
+{
+  "version": "2.0",
+  "modulo": "CxC",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-059",
+      "fila": 92,
+      "celda": "D92",
+      "texto_original": "Registro Clientes",
+      "ruta_original": "CxC > Clientes > Registro Clientes",
+      "objetivo": "Crear y mantener el tercero cliente y sus contactos sin confundir a la persona responsable con una unidad o propietario inmobiliario. Debe funcionar completamente en empresas que no habiliten inmuebles y conservar snapshots de identificación en documentos posteriores.",
+      "diseno_visible": "Listado paginado con búsqueda por razón social, identificación y código; panel lateral de alta/edición con pestañas Identidad, perfiles por empresa, contactos, direcciones y datos de cobro. Un bloque opcional de contexto inmobiliario aparece solo si el módulo está habilitado, nunca como requisito del formulario. La vista muestra historial de cambios y documentos relacionados.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa autorizada; no se permite cruzar tenant."
+        },
+        {
+          "nombre": "tipo de tercero",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Persona natural, sociedad u organización según catálogo configurado."
+        },
+        {
+          "nombre": "identificación",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Formato y unicidad validados por empresa; admitir identificación extranjera."
+        },
+        {
+          "nombre": "razón social/nombres",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "No vacío; conservar valor histórico al versionar."
+        },
+        {
+          "nombre": "contactos",
+          "tipo": "array de objetos",
+          "obligatorio": false,
+          "validacion": "Cada contacto requiere medio, finalidad y preferencia válida."
+        },
+        {
+          "nombre": "direcciones",
+          "tipo": "array de objetos",
+          "obligatorio": false,
+          "validacion": "País y dirección mínima; sin exigir formato ecuatoriano fuera de Ecuador."
+        },
+        {
+          "nombre": "perfil cliente",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Debe quedar activo para usarlo en CxC."
+        },
+        {
+          "nombre": "condominio/unidad",
+          "tipo": "selector opcional",
+          "obligatorio": false,
+          "validacion": "Visible y validado solo con PROPERTY_MANAGEMENT habilitado."
+        }
+      ],
+      "columnas": [
+        "Código",
+        "Identificación",
+        "Nombre/Razón social",
+        "Perfil cliente",
+        "Contacto principal",
+        "Estado",
+        "Última modificación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar borrador",
+          "resultado": "Crea versión no publicada para revisión",
+          "permiso": "cxc.terceros.crear"
+        },
+        {
+          "etiqueta": "Activar cliente",
+          "resultado": "Habilita el tercero para operaciones nuevas y registra auditoría",
+          "permiso": "cxc.terceros.activar"
+        },
+        {
+          "etiqueta": "Editar",
+          "resultado": "Crea nueva versión; no cambia snapshots históricos",
+          "permiso": "cxc.terceros.editar"
+        },
+        {
+          "etiqueta": "Ver historial",
+          "resultado": "Muestra versiones, actor y documentos congelados",
+          "permiso": "cxc.terceros.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y buscar coincidencias de identificación antes de iniciar.",
+        "Capturar identidad, perfil cliente, contactos y direcciones; añadir contexto inmobiliario solo si aplica.",
+        "Validar unicidad, formatos, permisos y coincidencias de terceros existentes.",
+        "Guardar o enviar a aprobación según política; activar solo tras completar datos requeridos.",
+        "Publicar el perfil cliente y emitir evento para búsquedas de CxC.",
+        "Consultar el tercero y sus snapshots sin alterar documentos previos."
+      ],
+      "estados": [
+        "Borrador",
+        "Pendiente de aprobación",
+        "Activo",
+        "Inactivo",
+        "Bloqueado por duplicidad"
+      ],
+      "impacto_datos_contables": "No genera asiento por sí solo ni saldo de cartera. El tercero habilita referencias para receivable_item; identidad fiscal, nombre y dirección se copian como snapshot al documento o asiento de origen. La edición no reescribe facturas, cobros, retenciones ni reportes históricos. Los campos de inmueble son opcionales y no agregan FKs obligatorias al núcleo.",
+      "api_propuesta": [
+        "GET /api/v1/third-parties?role=customer",
+        "POST /api/v1/third-parties",
+        "PATCH /api/v1/third-parties/{id}",
+        "POST /api/v1/third-parties/{id}/activate",
+        "GET /api/v1/third-parties/{id}/history"
+      ],
+      "validaciones": [
+        "Detectar coincidencia exacta y probable antes de permitir alta.",
+        "Exigir segregación cuando quien crea no puede autoaprobar.",
+        "Validar empresa activa, versión esperada y contacto principal único.",
+        "Auditar cambios de identificación y mantener snapshots inmutables."
+      ],
+      "prueba_positiva": "Dado un tercero sin coincidencias activas, cuando el usuario completa identidad y perfil cliente válidos y guarda, entonces se crea un cliente activo o pendiente según política, queda disponible para CxC y sus datos se muestran en el historial.",
+      "prueba_negativa": "Dado un tercero ya existente con la misma identificación en la empresa, cuando se intenta guardar otro registro, entonces se bloquea el alta, se muestra la coincidencia y no se crea duplicado ni movimiento contable.",
+      "dependencias_ids": [],
+      "titulo_original": "Registro Clientes",
+      "ruta_menu_original": "CxC > Clientes > Registro Clientes",
+      "ruta_react": "/cxc/clientes/registro-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar cliente y contactos; separar persona de unidad/propietario y conservar identificación histórica en documentos.",
+      "pruebas_ids": [
+        "T-UI-XLS-059",
+        "T-PROC-XLS-059",
+        "T-NEG-XLS-059"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-060",
+      "fila": 93,
+      "celda": "D93",
+      "texto_original": "Importación Masiva de Proveedores/Clientes",
+      "ruta_original": "CxC > Clientes > Importación Masiva de Proveedores/Clientes",
+      "objetivo": "Importar en un único lote proveedores y clientes desde CxC, reutilizando el maestro de terceros para impedir duplicados aunque la carga se origine en CxP. La pantalla debe permitir plantilla, prevalidación, errores por fila, corrección y reintento idempotente.",
+      "diseno_visible": "Bandeja de importaciones con selector de tipo de archivo y perfil de columnas, enlace para descargar plantilla, carga multipart, resumen de filas y tabla de errores descargable. Separar pestañas Recibidas, Homologación, Rechazadas y Confirmadas; permitir corregir solo filas no confirmadas y ver el hash del archivo.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada del lote."
+        },
+        {
+          "nombre": "archivo",
+          "tipo": "archivo CSV/XLSX",
+          "obligatorio": true,
+          "validacion": "Extensión, tamaño, hash e identificación de plantilla permitidos."
+        },
+        {
+          "nombre": "roles a importar",
+          "tipo": "multiselección",
+          "obligatorio": true,
+          "validacion": "Cliente, proveedor o ambos; al menos uno."
+        },
+        {
+          "nombre": "modo de coincidencia",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Identificación/código; reglas visibles y no destructivas."
+        },
+        {
+          "nombre": "hoja y encabezados",
+          "tipo": "selector/texto",
+          "obligatorio": false,
+          "validacion": "Coinciden con la plantilla versionada."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": false,
+          "validacion": "Requerida para datos históricos; no puede preceder política de migración."
+        },
+        {
+          "nombre": "confirmar filas válidas",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Solo después de revisar el resumen; nunca confirma rechazadas."
+        }
+      ],
+      "columnas": [
+        "Fila",
+        "Identificación",
+        "Nombre",
+        "Roles",
+        "Resultado",
+        "Código creado/encontrado",
+        "Detalle de error"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Descargar plantilla",
+          "resultado": "Entrega plantilla versionada con ejemplo no productivo",
+          "permiso": "cxc.migracion.plantilla"
+        },
+        {
+          "etiqueta": "Prevalidar",
+          "resultado": "Crea lote y clasifica filas sin crear terceros activos",
+          "permiso": "cxc.migracion.importar"
+        },
+        {
+          "etiqueta": "Homologar",
+          "resultado": "Asocia coincidencias o solicita decisión por fila",
+          "permiso": "cxc.migracion.homologar"
+        },
+        {
+          "etiqueta": "Confirmar válidas",
+          "resultado": "Crea o actualiza perfiles permitidos con resumen",
+          "permiso": "cxc.migracion.confirmar"
+        },
+        {
+          "etiqueta": "Reintentar errores",
+          "resultado": "Procesa solo filas corregidas con mismo lote/hash",
+          "permiso": "cxc.migracion.reintentar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Cargado",
+        "Prevalidando",
+        "Con errores",
+        "Listo para confirmar",
+        "Confirmado parcial",
+        "Confirmado",
+        "Fallido"
+      ],
+      "impacto_datos_contables": "La prevalidación no contabiliza. La confirmación puede crear terceros y perfiles cliente/proveedor, pero no genera ventas, compras, cobros ni saldos. Si existe un tercero coincidente, se reutiliza su identidad y se agrega el perfil autorizado; se registra mapa de fila a UUID. Un reintento no duplica terceros ni efectos auxiliares.",
+      "api_propuesta": [
+        "POST /api/v1/imports/third-parties",
+        "GET /api/v1/imports/{id}",
+        "POST /api/v1/imports/{id}/homologations",
+        "POST /api/v1/imports/{id}/confirm",
+        "POST /api/v1/imports/{id}/retry"
+      ],
+      "validaciones": [
+        "Validar encabezados, tipos, obligatorios y duplicados internos.",
+        "Detectar duplicados contra maestro por empresa e identificación.",
+        "No actualizar datos sensibles existentes sin regla y evidencia.",
+        "Rechazar filas con terceros ambiguos hasta homologación explícita.",
+        "Registrar hash, usuario, plantilla, errores y conteos por estado."
+      ],
+      "prueba_positiva": "Dado un archivo válido con una fila nueva y otra coincidente, cuando se prevalidan, homologan y confirman, entonces se crea un solo tercero nuevo, se reutiliza el coincidente, se asignan roles y el lote queda conciliado sin duplicados.",
+      "prueba_negativa": "Dado un archivo reintentado con la misma fila ya confirmada, cuando se pulsa reintentar, entonces la fila se omite como idempotente; si una fila tiene identificación inválida, queda rechazada con error por fila y no afecta a las demás.",
+      "dependencias_ids": [
+        "XLS-059"
+      ],
+      "titulo_original": "Importación Masiva de Proveedores/Clientes",
+      "ruta_menu_original": "CxC > Clientes > Importación Masiva de Proveedores/Clientes",
+      "ruta_react": "/cxc/clientes/importacion-masiva-de-proveedores-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Exponer importador único de terceros desde CxC y CxP; mismo archivo no debe crear duplicados.",
+      "pruebas_ids": [
+        "T-UI-XLS-060",
+        "T-PROC-XLS-060",
+        "T-NEG-XLS-060"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-061",
+      "fila": 95,
+      "celda": "D95",
+      "texto_original": "Ingreso de Recaudación",
+      "ruta_original": "CxC > Recaudaciones > Ingreso de Recaudación",
+      "objetivo": "Registrar un ingreso de recaudación en caja, banco, transferencia, depósito identificado o cheque, permitiendo aplicar parcialmente a una o varias obligaciones del mismo tercero y dejando el excedente como anticipo. El asiento debe quedar balanceado y la operación idempotente.",
+      "diseno_visible": "Pantalla transaccional con encabezado de empresa, tercero, fecha comercial y recibo; grilla de medios de pago y grilla de aplicaciones a receivable_item con saldo antes/después. Mostrar vista previa contable, total recibido, total aplicado, anticipo y diferencias; soportes e historial al pie.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa y periodo abierto."
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Cliente activo en la empresa."
+        },
+        {
+          "nombre": "fecha de cobro",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Dentro de periodo abierto; no futura según política."
+        },
+        {
+          "nombre": "medio de pago",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Caja, banco, transferencia, depósito o cheque recibido."
+        },
+        {
+          "nombre": "importe",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "Mayor que cero; precisión monetaria del backend."
+        },
+        {
+          "nombre": "aplicaciones",
+          "tipo": "array de documentos",
+          "obligatorio": false,
+          "validacion": "Mismo tercero/empresa, sin superar saldo aplicable."
+        },
+        {
+          "nombre": "soporte",
+          "tipo": "archivo/referencia",
+          "obligatorio": false,
+          "validacion": "Hash y tipo de soporte cuando corresponda."
+        },
+        {
+          "nombre": "cheque posfechado",
+          "tipo": "objeto opcional",
+          "obligatorio": false,
+          "validacion": "Número, banco, vencimiento y custodia si aplica."
+        }
+      ],
+      "columnas": [
+        "Número recibo",
+        "Fecha",
+        "Cliente",
+        "Total recibido",
+        "Aplicado",
+        "Anticipo",
+        "Medio",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar borrador",
+          "resultado": "Conserva captura sin asiento publicado",
+          "permiso": "cxc.recaudaciones.crear"
+        },
+        {
+          "etiqueta": "Previsualizar asiento",
+          "resultado": "Calcula cuentas y diferencias sin publicar",
+          "permiso": "cxc.recaudaciones.previsualizar"
+        },
+        {
+          "etiqueta": "Confirmar cobro",
+          "resultado": "Publica cobro, aplicaciones y anticipo en una transacción",
+          "permiso": "cxc.recaudaciones.confirmar"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "Abre representación del mismo recibo sin contabilizar",
+          "permiso": "cxc.recaudaciones.reimprimir"
+        },
+        {
+          "etiqueta": "Anular",
+          "resultado": "Envía al flujo separado de reverso sujeto a dependencias",
+          "permiso": "cxc.recaudaciones.anular"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Pendiente de aprobación",
+        "Confirmado",
+        "Aplicado parcial",
+        "Anticipo disponible",
+        "Reversado",
+        "Bloqueado por conciliación"
+      ],
+      "impacto_datos_contables": "Publica débito a caja/banco o cuenta puente según medio y crédito a cartera por aplicaciones; el excedente acredita anticipos de cliente, no ingresos nuevos. Cada aplicación actualiza el saldo canónico bajo lock y versionado. El asiento, recibo y aplicaciones se publican juntos; no requiere inmueble ni alícuota.",
+      "api_propuesta": [
+        "GET /api/v1/receivables/items?third_party_id={id}",
+        "POST /api/v1/receipts",
+        "POST /api/v1/receipts/{id}/preview",
+        "POST /api/v1/receipts/{id}/confirm",
+        "GET /api/v1/receipts/{id}"
+      ],
+      "validaciones": [
+        "Verificar periodo abierto, empresa y tercero.",
+        "Impedir aplicación mayor al saldo disponible bajo bloqueo.",
+        "Exigir suma de medios igual al total recibido.",
+        "Validar idempotency key y versión de cada obligación.",
+        "No considerar cheque no compensado como efectivo disponible.",
+        "Exigir soporte y aprobación si la política lo determina."
+      ],
+      "prueba_positiva": "Dado un cliente con dos obligaciones abiertas y un cobro superior a una de ellas, cuando se aplican importes parciales y se confirma, entonces se publica un asiento balanceado, se actualizan ambas obligaciones y el remanente queda como anticipo consultable.",
+      "prueba_negativa": "Dado un doble clic o una segunda confirmación con la misma clave, cuando el servidor procesa la solicitud, entonces devuelve el recibo ya confirmado sin duplicar asiento, aplicaciones ni anticipo; una aplicación que excede saldo es rechazada atómicamente.",
+      "dependencias_ids": [
+        "XLS-059"
+      ],
+      "titulo_original": "Ingreso de Recaudación",
+      "ruta_menu_original": "CxC > Recaudaciones > Ingreso de Recaudación",
+      "ruta_react": "/cxc/recaudaciones/ingreso-de-recaudacion",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar cobro parcial/múltiple y anticipo remanente, con medio de pago y asiento balanceado.",
+      "pruebas_ids": [
+        "T-UI-XLS-061",
+        "T-PROC-XLS-061",
+        "T-NEG-XLS-061"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-062",
+      "fila": 96,
+      "celda": "D96",
+      "texto_original": "Reimpresión de Recuadación",
+      "ruta_original": "CxC > Recaudaciones > Reimpresión de Recuadación",
+      "objetivo": "Reimprimir el comprobante de recaudación conservando número, aplicaciones, medios de pago, soportes visibles y marca de reversado cuando exista. La operación es documental y nunca crea una segunda contabilización.",
+      "diseno_visible": "Bandeja de búsqueda por número, cliente, rango de fechas, medio y estado; vista previa del recibo con versión imprimible/PDF, código de verificación interno, desglose de aplicaciones, anticipo y reversos. Mostrar advertencia fija de que reimprimir no contabiliza.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "número de recibo",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "Coincidencia exacta o parcial normalizada."
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Solo clientes visibles para la empresa."
+        },
+        {
+          "nombre": "desde/hasta",
+          "tipo": "rango de fechas",
+          "obligatorio": false,
+          "validacion": "Rango válido y limitado por permiso."
+        },
+        {
+          "nombre": "medio",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "Filtra medio original."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Incluye confirmado, reversado y parcial."
+        },
+        {
+          "nombre": "motivo de reimpresión",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Obligatorio para auditoría; no altera documento."
+        }
+      ],
+      "columnas": [
+        "Número",
+        "Fecha",
+        "Cliente",
+        "Aplicaciones",
+        "Anticipo",
+        "Medio",
+        "Estado contable",
+        "Estado fiscal",
+        "Última impresión"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Buscar",
+          "resultado": "Lista recibos autorizados para consulta",
+          "permiso": "cxc.recaudaciones.consultar"
+        },
+        {
+          "etiqueta": "Ver detalle",
+          "resultado": "Muestra snapshot y trazabilidad completa",
+          "permiso": "cxc.recaudaciones.consultar"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "Genera copia identificada como reimpresión y audita actor",
+          "permiso": "cxc.recaudaciones.reimprimir"
+        },
+        {
+          "etiqueta": "Descargar",
+          "resultado": "Entrega archivo temporal con control de acceso",
+          "permiso": "cxc.recaudaciones.reimprimir"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Confirmado",
+        "Aplicado parcial",
+        "Anticipo",
+        "Reversado",
+        "No encontrado"
+      ],
+      "impacto_datos_contables": "No hay impacto contable, fiscal ni de saldo. Se registra evento de consulta/reimpresión, usuario, fecha, motivo, versión de plantilla y hash del archivo generado. El documento refleja el estado actual e histórico del recibo, pero no reejecuta sus aplicaciones ni vuelve a publicar movimientos.",
+      "api_propuesta": [
+        "GET /api/v1/receipts",
+        "GET /api/v1/receipts/{id}",
+        "POST /api/v1/receipts/{id}/reprints"
+      ],
+      "validaciones": [
+        "Aplicar filtros con alcance de empresa y permisos.",
+        "Bloquear edición de importes, tercero, fecha y aplicaciones desde esta pantalla.",
+        "Marcar claramente reversado y enlazar el reverso.",
+        "No ejecutar endpoints de confirmación desde la acción de impresión.",
+        "Auditar cada generación y permitir trazabilidad del archivo."
+      ],
+      "prueba_positiva": "Dado un recibo confirmado con una aplicación y anticipo, cuando el usuario autorizado solicita reimpresión, entonces se genera una copia con los mismos importes y una marca de reimpresión, sin nuevo asiento ni cambio de saldo.",
+      "prueba_negativa": "Dado un recibo inexistente o un usuario sin permiso, cuando se consulta o se intenta descargar, entonces no se revela información y se devuelve resultado controlado sin generar archivo ni evento contable.",
+      "dependencias_ids": [
+        "XLS-061"
+      ],
+      "titulo_original": "Reimpresión de Recuadación",
+      "ruta_menu_original": "CxC > Recaudaciones > Reimpresión de Recuadación",
+      "ruta_react": "/cxc/recaudaciones/reimpresion-de-recuadacion",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reimprimir recibo de cobro con aplicaciones, medio de pago y marca de reversado cuando corresponda.",
+      "pruebas_ids": [
+        "T-UI-XLS-062",
+        "T-PROC-XLS-062",
+        "T-NEG-XLS-062"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-063",
+      "fila": 97,
+      "celda": "D97",
+      "texto_original": "Anulación de de Recuadación",
+      "ruta_original": "CxC > Recaudaciones > Anulación de de Recuadación",
+      "objetivo": "Reversar una recaudación y sus aplicaciones de forma atómica, verificando primero dependencias como depósito o conciliación bancaria. La anulación fiscal, si el recibo tiene documento fiscal relacionado, se mantiene como flujo separado y no se presume una API pública.",
+      "diseno_visible": "Pantalla dedicada de búsqueda y reverso: resumen inmutable del recibo, aplicaciones, medio, depósitos/conciliaciones dependientes y documentos relacionados. El usuario selecciona motivo, evidencia y fecha efectiva; una vista previa muestra qué saldos y cuentas se restituirán antes de aprobar.",
+      "filtros_campos": [
+        {
+          "nombre": "recibo",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Debe estar confirmado y pertenecer a empresa activa."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "selector/texto",
+          "obligatorio": true,
+          "validacion": "Catálogo de motivos y explicación mínima."
+        },
+        {
+          "nombre": "fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Periodo abierto y no anterior a dependencias válidas."
+        },
+        {
+          "nombre": "evidencia",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Soporte con hash y tipo."
+        },
+        {
+          "nombre": "resolver dependencias",
+          "tipo": "checkbox",
+          "obligatorio": true,
+          "validacion": "No permite continuar si depósito/conciliación sigue activo."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Segregación y permiso según importe."
+        },
+        {
+          "nombre": "comentario fiscal",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "Solo seguimiento; no ejecuta anulación fiscal automáticamente."
+        }
+      ],
+      "columnas": [
+        "Recibo",
+        "Estado",
+        "Aplicado",
+        "Anticipo",
+        "Depósito relacionado",
+        "Conciliación",
+        "Reverso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Evaluar dependencias",
+          "resultado": "Identifica operaciones bancarias que deben resolverse primero",
+          "permiso": "cxc.recaudaciones.anular"
+        },
+        {
+          "etiqueta": "Previsualizar reverso",
+          "resultado": "Muestra aplicaciones y cuentas a restituir",
+          "permiso": "cxc.recaudaciones.anular"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Crea solicitud con evidencia y hash",
+          "permiso": "cxc.recaudaciones.aprobar"
+        },
+        {
+          "etiqueta": "Confirmar reverso",
+          "resultado": "Revierte cobro y aplicaciones atómicamente",
+          "permiso": "cxc.recaudaciones.anular"
+        },
+        {
+          "etiqueta": "Consultar resultado",
+          "resultado": "Enlaza recibo, reverso y tareas fiscales separadas",
+          "permiso": "cxc.recaudaciones.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Elegible",
+        "Dependencia pendiente",
+        "Aprobación pendiente",
+        "Reversado",
+        "Rechazado",
+        "Bloqueado"
+      ],
+      "impacto_datos_contables": "Publica un asiento reverso enlazado al original y revierte aplicaciones para restituir cartera y/o anticipo. Si el medio ya impactó banco conciliado, la operación se bloquea hasta resolver esa dependencia. El efecto fiscal, si corresponde, se registra como estado independiente; no se presenta como autorización automática.",
+      "api_propuesta": [
+        "GET /api/v1/receipts/{id}/reversal-impact",
+        "POST /api/v1/receipts/{id}/reversal-preview",
+        "POST /api/v1/receipts/{id}/reversal-requests",
+        "POST /api/v1/receipts/{id}/reverse",
+        "GET /api/v1/receipts/{id}/dependencies"
+      ],
+      "validaciones": [
+        "Bloquear recibos ya reversados o con periodo cerrado.",
+        "Comprobar dependencia bancaria y conciliación antes de publicar.",
+        "Exigir motivo, soporte, aprobación e idempotencia.",
+        "Mantener enlace original-reverso y no editar asiento publicado.",
+        "Recalcular saldos bajo lock y verificar balance cero de la operación."
+      ],
+      "prueba_positiva": "Dado un recibo confirmado no depositado con aplicaciones, cuando el aprobador confirma el reverso, entonces las aplicaciones se deshacen en una transacción, el saldo de cartera/anticipo se restituye y queda un asiento reverso enlazado.",
+      "prueba_negativa": "Dado un recibo incluido en una conciliación cerrada, cuando se solicita anulación, entonces la pantalla muestra la dependencia y bloquea la publicación; no modifica saldos ni crea un reverso parcial.",
+      "dependencias_ids": [
+        "XLS-061",
+        "XLS-064"
+      ],
+      "titulo_original": "Anulación de de Recuadación",
+      "ruta_menu_original": "CxC > Recaudaciones > Anulación de de Recuadación",
+      "ruta_react": "/cxc/recaudaciones/anulacion-de-de-recuadacion",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reversar cobro y aplicaciones de forma atómica; resolver antes depósito/conciliación dependientes.",
+      "pruebas_ids": [
+        "T-UI-XLS-063",
+        "T-PROC-XLS-063",
+        "T-NEG-XLS-063"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-064",
+      "fila": 98,
+      "celda": "D98",
+      "texto_original": "Registro de Cheques a Fecha",
+      "ruta_original": "CxC > Recaudaciones > Registro de Cheques a Fecha",
+      "objetivo": "Registrar y custodiar cheques posfechados recibidos, con vencimiento, banco, responsable y estados separados del efectivo disponible. El cheque debe poder asociarse a una recaudación sin convertirse en cobro bancario compensado antes de tiempo.",
+      "diseno_visible": "Bandeja de cheques con filtros por custodia, vencimiento y cliente; formulario con número, banco, importe y cuenta puente; línea de tiempo Custodia–Posfechado–Depositado–Compensado/Devuelto. Mostrar enlace al recibo y alerta de no disponibilidad como efectivo mientras no se compense.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa."
+        },
+        {
+          "nombre": "cliente",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Tercero cliente activo."
+        },
+        {
+          "nombre": "número de cheque",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Único por banco/emisor/empresa según regla."
+        },
+        {
+          "nombre": "banco emisor",
+          "tipo": "texto/selector",
+          "obligatorio": true,
+          "validacion": "Catálogo o texto homologado."
+        },
+        {
+          "nombre": "importe",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "Mayor que cero y coincidente con medio de pago."
+        },
+        {
+          "nombre": "fecha de vencimiento",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Posterior o igual a fecha de recepción."
+        },
+        {
+          "nombre": "custodio",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Usuario con custodia asignada."
+        },
+        {
+          "nombre": "recibo relacionado",
+          "tipo": "referencia",
+          "obligatorio": false,
+          "validacion": "Debe pertenecer al mismo cliente y empresa."
+        }
+      ],
+      "columnas": [
+        "Cheque",
+        "Cliente",
+        "Importe",
+        "Vencimiento",
+        "Custodio",
+        "Estado",
+        "Recibo",
+        "Depósito"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Registrar",
+          "resultado": "Crea cheque en custodia y cuenta puente",
+          "permiso": "tesoreria.cheques.recibidos.crear"
+        },
+        {
+          "etiqueta": "Depositar",
+          "resultado": "Enlaza depósito y cambia custodia, sin nuevo ingreso",
+          "permiso": "tesoreria.cheques.recibidos.depositar"
+        },
+        {
+          "etiqueta": "Marcar compensado",
+          "resultado": "Confirma disponibilidad según conciliación",
+          "permiso": "tesoreria.cheques.recibidos.compensar"
+        },
+        {
+          "etiqueta": "Marcar devuelto",
+          "resultado": "Registra devolución y tarea de cobranza",
+          "permiso": "tesoreria.cheques.recibidos.devolver"
+        },
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Muestra eventos y recibo relacionado",
+          "permiso": "tesoreria.cheques.recibidos.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Custodia",
+        "Posfechado",
+        "Depositado",
+        "Compensado",
+        "Devuelto",
+        "Reversado"
+      ],
+      "impacto_datos_contables": "El registro inicial usa una cuenta puente/no disponible definida por configuración y no reconoce efectivo compensado. Depositar traslada fondos en tránsito sin generar ingreso. Compensar puede reclasificar según plantilla aprobada. Devolver conserva historial y habilita gestión posterior; no se duplica el cobro ni se edita el recibo original.",
+      "api_propuesta": [
+        "POST /api/v1/treasury/received-cheques",
+        "PATCH /api/v1/treasury/received-cheques/{id}/deposit",
+        "POST /api/v1/treasury/received-cheques/{id}/clear",
+        "POST /api/v1/treasury/received-cheques/{id}/return",
+        "GET /api/v1/treasury/received-cheques"
+      ],
+      "validaciones": [
+        "Validar unicidad, fechas, importe y vínculo al recibo.",
+        "No permitir estado compensado sin evidencia bancaria o conciliación.",
+        "Separar dirección RECEIVED de cheques emitidos.",
+        "Impedir editar importe o emisor después de depositar; usar corrección autorizada.",
+        "Aplicar transición idempotente y auditar custodios."
+      ],
+      "prueba_positiva": "Dado un cheque posfechado recibido como medio de un cobro, cuando se registra y luego se deposita, entonces queda en custodia/depósito, no aumenta efectivo disponible antes de compensación y conserva trazabilidad al recibo.",
+      "prueba_negativa": "Dado un cheque ya compensado, cuando se intenta editar importe o retrocederlo directamente a custodia, entonces se bloquea la edición y se exige un flujo de devolución/reverso con evidencia.",
+      "dependencias_ids": [
+        "XLS-061",
+        "XLS-063"
+      ],
+      "titulo_original": "Registro de Cheques a Fecha",
+      "ruta_menu_original": "CxC > Recaudaciones > Registro de Cheques a Fecha",
+      "ruta_react": "/cxc/recaudaciones/registro-de-cheques-a-fecha",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar cheque posfechado con vencimiento, custodia y estados; no tratarlo como efectivo disponible.",
+      "pruebas_ids": [
+        "T-UI-XLS-064",
+        "T-PROC-XLS-064",
+        "T-NEG-XLS-064"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-086",
+      "celda": "D99",
+      "texto_original": "Carga de Depósitos Bancarios",
+      "ruta_original": "CxC > Recaudaciones > Carga de Depósitos Bancarios",
+      "objetivo": "Agrupar recaudaciones, efectivo o cheques en tránsito seleccionados y transferirlos a una cuenta bancaria sin registrar un nuevo ingreso. El depósito debe conservar origen, composición, custodios, comprobantes y trazabilidad hasta la conciliación.",
+      "diseno_visible": "Pantalla dedicada con bandeja de recaudaciones disponibles, selector de empresa y cuenta bancaria, rango de fechas, moneda y estado de custodia. La vista previa presenta una cabecera de depósito, líneas agrupadas por origen, medio, tercero, documento y valor, además de total, diferencias y soporte. Un panel de validación marca partidas ya depositadas, bloqueadas o con moneda incompatible. La confirmación muestra el asiento de transferencia caja/cheques en tránsito a banco, el número de depósito y su estado de conciliación. No se muestran campos inmobiliarios obligatorios; un origen de expensa, si existe, llega como referencia opcional.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "empresa autorizada"
+        },
+        {
+          "nombre": "cuenta_bancaria",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "cuenta ACTIVA y moneda compatible"
+        },
+        {
+          "nombre": "fecha_deposito",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "periodo abierto y no futura según política"
+        },
+        {
+          "nombre": "origenes",
+          "tipo": "multiseleccion",
+          "obligatorio": true,
+          "validacion": "recaudaciones disponibles y no aplicadas a otro depósito"
+        },
+        {
+          "nombre": "medio",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "EFECTIVO, CHEQUE o TRANSFERENCIA_EN_TRANSITO"
+        },
+        {
+          "nombre": "referencia_bancaria",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "máximo 120 caracteres; no duplicada en la cuenta"
+        },
+        {
+          "nombre": "soportes",
+          "tipo": "archivos",
+          "obligatorio": false,
+          "validacion": "tipos permitidos, hash y tamaño controlados"
+        }
+      ],
+      "columnas": [
+        "Origen",
+        "Fecha recaudación",
+        "Tercero",
+        "Documento",
+        "Medio",
+        "Valor",
+        "Estado",
+        "Referencia"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Preparar depósito",
+          "resultado": "crea borrador con partidas bloqueadas para doble selección",
+          "permiso": "banks.deposit.create"
+        },
+        {
+          "etiqueta": "Validar composición",
+          "resultado": "calcula total y reporta líneas incompatibles",
+          "permiso": "banks.deposit.validate"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "envía el depósito validado al flujo de aprobación",
+          "permiso": "banks.deposit.submit"
+        },
+        {
+          "etiqueta": "Confirmar ingreso",
+          "resultado": "publica transferencia a banco y marca origen depositado",
+          "permiso": "banks.deposit.post"
+        },
+        {
+          "etiqueta": "Consultar soporte",
+          "resultado": "abre documentos y auditoría sin modificar importes",
+          "permiso": "banks.deposit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa, cuenta bancaria y partidas de recaudación elegibles.",
+        "Capturar fecha, medio, referencia, composición y soportes del depósito.",
+        "Validar moneda, periodo, disponibilidad, duplicados, suma y permisos.",
+        "Presentar vista previa contable y obtener aprobación segregada.",
+        "Publicar una transferencia desde efectivo/cheques en tránsito al banco con idempotencia.",
+        "Dejar el depósito pendiente de conciliación y permitir consulta del origen."
+      ],
+      "estados": [
+        "BORRADOR",
+        "VALIDANDO",
+        "PENDIENTE_APROBACION",
+        "PUBLICADO",
+        "CONCILIADO",
+        "ANULADO"
+      ],
+      "impacto_datos_contables": "El depósito no reconoce ingreso, cartera ni impuesto. Solo transfiere el saldo desde caja o cheques en tránsito hacia la cuenta bancaria, enlazando cada origen y generando un asiento publicado una vez. La conciliación posterior relaciona extracto y libro; cualquier diferencia se trata mediante ajuste aprobado, nunca cambiando el valor original.",
+      "api_propuesta": [
+        "GET /api/v1/treasury/deposits/eligible",
+        "POST /api/v1/treasury/deposits",
+        "POST /api/v1/treasury/deposits/{id}/validate",
+        "POST /api/v1/treasury/deposits/{id}/submit",
+        "POST /api/v1/treasury/deposits/{id}/post",
+        "GET /api/v1/treasury/deposits/{id}"
+      ],
+      "validaciones": [
+        "Bloquear una recaudación ya incluida en otro depósito no anulado.",
+        "Exigir igualdad exacta entre total de líneas y total del depósito con Decimal.",
+        "No permitir publicar en periodo cerrado ni con cuenta inactiva.",
+        "Usar clave idempotente y lock para evitar doble publicación.",
+        "Conservar soporte, snapshot y hash de la vista previa."
+      ],
+      "prueba_positiva": {
+        "dado": "dos recaudaciones disponibles por USD 100 y USD 50 y una cuenta bancaria activa",
+        "cuando": "el usuario las selecciona, aprueba y confirma el depósito",
+        "entonces": "se publica una transferencia USD 150, los orígenes quedan DEPOSITADOS y no aparece un ingreso adicional"
+      },
+      "prueba_negativa": {
+        "dado": "una recaudación ya depositada o una suma de líneas inconsistente",
+        "cuando": "se intenta validar o confirmar",
+        "entonces": "la operación se rechaza sin asiento ni cambio de estado en las partidas"
+      },
+      "dependencias_ids": [
+        "XLS-085",
+        "XLS-087",
+        "XLS-093",
+        "XLS-095"
+      ],
+      "titulo_original": "Ingreso de Depósito",
+      "ruta_menu_original": "CxC > Recaudaciones > Carga de Depósitos Bancarios",
+      "ruta_react": "/cxc/recaudaciones/carga-de-depositos-bancarios",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Agrupar recaudaciones por depositar y generar transferencia contable a banco sin registrar nuevo ingreso.",
+      "pruebas_ids": [
+        "T-UI-XLS-086",
+        "T-PROC-XLS-086",
+        "T-NEG-XLS-086"
+      ],
+      "modulo": "CxC",
+      "fila": 99,
+      "nivel": 4
+    },
+    {
+      "id": "XLS-065",
+      "fila": 101,
+      "celda": "D101",
+      "texto_original": "Cruce de Anticipos Clientes",
+      "ruta_original": "CxC > Ajustes > Cruce de Anticipos Clientes",
+      "objetivo": "Aplicar un anticipo disponible de cliente contra uno o varios cargos del mismo responsable y empresa, con bloqueo concurrente, límite de saldo y trazabilidad completa del cruce. El flujo no debe crear un segundo cobro.",
+      "diseno_visible": "Pantalla de cruce con selección de cliente, panel de anticipos disponibles y panel de documentos elegibles. La grilla muestra importe a aplicar, saldo antes/después, fecha efectiva y vista previa de asiento; se advierte si el contexto inmobiliario es opcional y no requerido.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa y periodo abierto."
+        },
+        {
+          "nombre": "cliente",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Mismo responsable del anticipo y documentos."
+        },
+        {
+          "nombre": "anticipo",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Saldo disponible positivo y no bloqueado."
+        },
+        {
+          "nombre": "documentos destino",
+          "tipo": "array",
+          "obligatorio": true,
+          "validacion": "Obligaciones del mismo tercero/empresa."
+        },
+        {
+          "nombre": "importe por documento",
+          "tipo": "array decimal",
+          "obligatorio": true,
+          "validacion": "Suma no supera anticipo ni saldo destino."
+        },
+        {
+          "nombre": "fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Válida para corte y periodo abierto."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Explica cruce manual si aplica."
+        }
+      ],
+      "columnas": [
+        "Anticipo",
+        "Documento destino",
+        "Saldo anticipo antes",
+        "Aplicado",
+        "Saldo destino antes",
+        "Saldo después",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Cargar saldos",
+          "resultado": "Recupera anticipos y obligaciones bajo versión",
+          "permiso": "cxc.anticipos.consultar"
+        },
+        {
+          "etiqueta": "Previsualizar cruce",
+          "resultado": "Calcula aplicaciones y cuentas sin publicar",
+          "permiso": "cxc.anticipos.previsualizar"
+        },
+        {
+          "etiqueta": "Confirmar cruce",
+          "resultado": "Publica aplicación atómica con locks",
+          "permiso": "cxc.anticipos.cruzar"
+        },
+        {
+          "etiqueta": "Reimprimir constancia",
+          "resultado": "Genera evidencia sin contabilizar",
+          "permiso": "cxc.anticipos.reimprimir"
+        },
+        {
+          "etiqueta": "Anular cruce",
+          "resultado": "Abre reverso específico del cruce",
+          "permiso": "cxc.anticipos.anular"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Elegible",
+        "Aprobación pendiente",
+        "Aplicado parcial",
+        "Aplicado total",
+        "Reversado",
+        "Rechazado"
+      ],
+      "impacto_datos_contables": "Reduce el saldo disponible del anticipo y la obligación destino mediante settlement_application, sin generar ingreso o efectivo nuevo. El asiento mueve el crédito de anticipos a cartera según la plantilla aprobada; la operación queda enlazada a ambos auxiliares. No requiere inmueble, condominio ni alícuota.",
+      "api_propuesta": [
+        "GET /api/v1/customer-advances?available=true",
+        "GET /api/v1/receivables/items?eligible_for_advance=true",
+        "POST /api/v1/advance-crossings/preview",
+        "POST /api/v1/advance-crossings",
+        "GET /api/v1/advance-crossings/{id}"
+      ],
+      "validaciones": [
+        "Bloquear filas de anticipo y destino durante confirmación.",
+        "Validar tercero, empresa, moneda y saldo actual.",
+        "Rechazar suma mayor que cualquier límite bajo lock.",
+        "No permitir cruce contra documento anulado o cerrado.",
+        "Respetar idempotency key y conservar aplicaciones históricas."
+      ],
+      "prueba_positiva": "Dado un anticipo con saldo disponible y dos obligaciones del mismo cliente, cuando se aplican importes dentro de ambos saldos y se confirma, entonces el anticipo disminuye, las obligaciones se reducen y el asiento de traslado queda balanceado y trazable.",
+      "prueba_negativa": "Dado que otro usuario consume el anticipo antes de confirmar, cuando se intenta cruzar el importe original, entonces la versión no coincide, se rechaza todo el lote y no queda aplicación parcial.",
+      "dependencias_ids": [
+        "XLS-061",
+        "XLS-066",
+        "XLS-067"
+      ],
+      "titulo_original": "Cruce de Anticipos Clientes",
+      "ruta_menu_original": "CxC > Ajustes > Cruce de Anticipos Clientes",
+      "ruta_react": "/cxc/ajustes/cruce-de-anticipos-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Aplicar anticipo cliente a cargos del mismo responsable/empresa con bloqueo concurrente y límite de saldo.",
+      "pruebas_ids": [
+        "T-UI-XLS-065",
+        "T-PROC-XLS-065",
+        "T-NEG-XLS-065"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-066",
+      "fila": 102,
+      "celda": "D102",
+      "texto_original": "Anulación de Anticipos Clientes",
+      "ruta_original": "CxC > Ajustes > Anulación de Anticipos Clientes",
+      "objetivo": "Reversar un anticipo recibido respetando sus aplicaciones y movimientos bancarios relacionados. La anulación debe producir un reverso controlado, no borrar el anticipo ni forzar cambios sobre documentos ya publicados.",
+      "diseno_visible": "Pantalla de búsqueda de anticipos recibidos con resumen de cobro origen, saldo disponible, aplicaciones, medio y dependencias bancarias. El formulario de reverso captura motivo, evidencia y fecha; una vista previa separa el importe aún disponible del ya aplicado y muestra las acciones requeridas.",
+      "filtros_campos": [
+        {
+          "nombre": "anticipo",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Debe existir y pertenecer a empresa activa."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "selector/texto",
+          "obligatorio": true,
+          "validacion": "Motivo catalogado y comentario."
+        },
+        {
+          "nombre": "evidencia",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Soporte obligatorio con hash."
+        },
+        {
+          "nombre": "fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Periodo abierto y válida para dependencias."
+        },
+        {
+          "nombre": "aplicaciones",
+          "tipo": "solo lectura",
+          "obligatorio": true,
+          "validacion": "Se muestran todas y su estado."
+        },
+        {
+          "nombre": "dependencias bancarias",
+          "tipo": "solo lectura",
+          "obligatorio": true,
+          "validacion": "Depósito/conciliación que condiciona el reverso."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Permiso y segregación aplicables."
+        }
+      ],
+      "columnas": [
+        "Anticipo",
+        "Recibido",
+        "Aplicado",
+        "Disponible",
+        "Banco/depósito",
+        "Estado",
+        "Reverso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Analizar impacto",
+          "resultado": "Calcula saldo, aplicaciones y dependencias",
+          "permiso": "cxc.anticipos.anular"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Registra solicitud y evidencia",
+          "permiso": "cxc.anticipos.aprobar"
+        },
+        {
+          "etiqueta": "Previsualizar reverso",
+          "resultado": "Muestra asiento y restituciones",
+          "permiso": "cxc.anticipos.anular"
+        },
+        {
+          "etiqueta": "Confirmar reverso",
+          "resultado": "Revierte el origen según reglas atómicas",
+          "permiso": "cxc.anticipos.anular"
+        },
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Navega al cobro, cruces y reverso",
+          "permiso": "cxc.anticipos.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Elegible",
+        "Dependencia pendiente",
+        "Aprobación pendiente",
+        "Reversado parcial",
+        "Reversado total",
+        "Rechazado"
+      ],
+      "impacto_datos_contables": "El reverso reduce o elimina el saldo de anticipo y revierte el efecto del recibo origen, restituyendo aplicaciones solo cuando el flujo lo permite. Si hubo cruces, se enlazan al proceso de anulación de cruce; si hubo banco conciliado, se bloquea hasta resolverlo. Nunca se elimina el asiento publicado.",
+      "api_propuesta": [
+        "GET /api/v1/customer-advances/{id}/reversal-impact",
+        "POST /api/v1/customer-advances/{id}/reversal-preview",
+        "POST /api/v1/customer-advances/{id}/reversal-requests",
+        "POST /api/v1/customer-advances/{id}/reverse"
+      ],
+      "validaciones": [
+        "Validar saldo, aplicaciones, reversos previos y periodo.",
+        "Bloquear publicación con dependencia bancaria no resuelta.",
+        "Exigir aprobación, evidencia e idempotencia.",
+        "Recalcular auxiliares bajo lock y comprobar balance.",
+        "Mantener relación origen-reverso y auditoría completa."
+      ],
+      "prueba_positiva": "Dado un anticipo parcialmente disponible sin dependencia bancaria pendiente, cuando se aprueba su reverso, entonces se reversa el origen y el saldo auxiliar queda consistente, con asiento enlazado y aplicaciones históricas intactas.",
+      "prueba_negativa": "Dado un anticipo ya aplicado mediante un cruce no revertido, cuando se solicita anulación directa, entonces se bloquea y se dirige al flujo de anulación de cruces sin crear reverso incompleto.",
+      "dependencias_ids": [
+        "XLS-061",
+        "XLS-065",
+        "XLS-067"
+      ],
+      "titulo_original": "Anulación de Anticipos Clientes",
+      "ruta_menu_original": "CxC > Ajustes > Anulación de Anticipos Clientes",
+      "ruta_react": "/cxc/ajustes/anulacion-de-anticipos-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reversar anticipo recibido respetando aplicaciones y movimientos bancarios relacionados.",
+      "pruebas_ids": [
+        "T-UI-XLS-066",
+        "T-PROC-XLS-066",
+        "T-NEG-XLS-066"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-067",
+      "fila": 103,
+      "celda": "D103",
+      "texto_original": "Anulación Cruce de Anticipos Clientes",
+      "ruta_original": "CxC > Ajustes > Anulación Cruce de Anticipos Clientes",
+      "objetivo": "Reversar específicamente la aplicación de un anticipo a documentos de cliente, restituyendo deuda y saldo disponible sin duplicar cobro ni alterar el recibo original. Debe dejar trazabilidad a la aplicación que se deshace.",
+      "diseno_visible": "Pantalla enfocada en cruces confirmados: filtros por anticipo, cliente, documento, fecha y estado; detalle de líneas con importe aplicado, saldo antes/después y asiento. El usuario elige líneas reversibles, informa motivo/evidencia y ve el resultado esperado antes de confirmar.",
+      "filtros_campos": [
+        {
+          "nombre": "cruce",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Cruce confirmado y no reversado."
+        },
+        {
+          "nombre": "líneas a revertir",
+          "tipo": "multiselección",
+          "obligatorio": true,
+          "validacion": "Solo aplicaciones elegibles."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Explicación de reverso."
+        },
+        {
+          "nombre": "evidencia",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Soporte con hash."
+        },
+        {
+          "nombre": "fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Periodo abierto."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Permiso de reverso y segregación."
+        },
+        {
+          "nombre": "referencia bancaria",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "Requerida si existe dependencia bancaria."
+        }
+      ],
+      "columnas": [
+        "Cruce",
+        "Anticipo",
+        "Documento",
+        "Aplicado",
+        "Saldo anticipo antes/después",
+        "Saldo documento antes/después",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Seleccionar líneas",
+          "resultado": "Carga líneas y valida elegibilidad",
+          "permiso": "cxc.anticipos.cruces.consultar"
+        },
+        {
+          "etiqueta": "Previsualizar",
+          "resultado": "Calcula restitución y reverso",
+          "permiso": "cxc.anticipos.cruces.previsualizar"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Crea solicitud con evidencia",
+          "permiso": "cxc.anticipos.aprobar"
+        },
+        {
+          "etiqueta": "Confirmar anulación",
+          "resultado": "Revierte aplicación atómicamente",
+          "permiso": "cxc.anticipos.cruces.anular"
+        },
+        {
+          "etiqueta": "Consultar origen",
+          "resultado": "Navega a anticipo y documentos",
+          "permiso": "cxc.anticipos.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Confirmado",
+        "Parcialmente reversible",
+        "Aprobación pendiente",
+        "Reversado",
+        "Bloqueado",
+        "Rechazado"
+      ],
+      "impacto_datos_contables": "Revierte settlement_application y publica el asiento inverso: el anticipo recupera disponibilidad y el documento destino recupera saldo exigible. El cobro origen permanece confirmado salvo que un flujo separado lo anule. No se modifica ni borra el asiento original y se preservan cortes históricos.",
+      "api_propuesta": [
+        "GET /api/v1/advance-crossings/{id}",
+        "POST /api/v1/advance-crossings/{id}/reversal-preview",
+        "POST /api/v1/advance-crossings/{id}/reversal-requests",
+        "POST /api/v1/advance-crossings/{id}/reverse"
+      ],
+      "validaciones": [
+        "Bloquear cruce ya revertido o incluido en cierre incompatible.",
+        "Verificar versión y saldo con lock.",
+        "No permitir importe superior al aplicado.",
+        "Exigir motivo, evidencia y aprobación.",
+        "Validar que el asiento inverso balancee y enlace al original."
+      ],
+      "prueba_positiva": "Dado un cruce confirmado de 100 a una factura, cuando se revierte esa línea con aprobación, entonces el anticipo aumenta 100, la factura recupera 100 y se publica un reverso enlazado sin nuevo cobro.",
+      "prueba_negativa": "Dado que la línea fue revertida previamente, cuando se intenta anularla de nuevo, entonces la pantalla rechaza la operación idempotentemente y no cambia ningún auxiliar.",
+      "dependencias_ids": [
+        "XLS-065",
+        "XLS-066"
+      ],
+      "titulo_original": "Anulación Cruce de Anticipos Clientes",
+      "ruta_menu_original": "CxC > Ajustes > Anulación Cruce de Anticipos Clientes",
+      "ruta_react": "/cxc/ajustes/anulacion-cruce-de-anticipos-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reversar aplicación de anticipo y restituir deuda/disponible sin duplicar cobro.",
+      "pruebas_ids": [
+        "T-UI-XLS-067",
+        "T-PROC-XLS-067",
+        "T-NEG-XLS-067"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-068",
+      "fila": 104,
+      "celda": "D104",
+      "texto_original": "Ajuste de Cartera",
+      "ruta_original": "CxC > Ajustes > Ajuste de Cartera",
+      "objetivo": "Registrar un ajuste de cartera con motivo, evidencia, cuenta y aprobación proporcional al importe, distinguiendo castigo, condonación, diferencia de redondeo u otra categoría aprobada. No debe convertirse en edición silenciosa del saldo.",
+      "diseno_visible": "Formulario transaccional con selección de obligación, tipo de ajuste, importe, fecha y cuenta contrapartida parametrizada. Panel de evidencia, regla de aprobación y vista previa contable; listado de solicitudes pendientes con doble aprobación cuando la política lo requiera.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa y periodo abierto."
+        },
+        {
+          "nombre": "obligación",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Receivable_item vigente."
+        },
+        {
+          "nombre": "tipo de ajuste",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Catálogo aprobado; no usar texto libre como categoría."
+        },
+        {
+          "nombre": "importe",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "Mayor que cero y dentro del saldo/regla del tipo."
+        },
+        {
+          "nombre": "cuenta contrapartida",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Cuenta imputable autorizada."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Justificación suficiente."
+        },
+        {
+          "nombre": "evidencia",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Documento con hash."
+        },
+        {
+          "nombre": "fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Válida para el corte."
+        }
+      ],
+      "columnas": [
+        "Ajuste",
+        "Cliente",
+        "Documento",
+        "Tipo",
+        "Importe",
+        "Cuenta",
+        "Aprobación",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Previsualizar",
+          "resultado": "Muestra impacto en auxiliar y asiento",
+          "permiso": "cxc.ajustes.previsualizar"
+        },
+        {
+          "etiqueta": "Solicitar",
+          "resultado": "Envía a aprobación con snapshot",
+          "permiso": "cxc.ajustes.crear"
+        },
+        {
+          "etiqueta": "Aprobar",
+          "resultado": "Aprueba según umbral y segregación",
+          "permiso": "cxc.ajustes.aprobar"
+        },
+        {
+          "etiqueta": "Publicar",
+          "resultado": "Registra ajuste y asiento una vez",
+          "permiso": "cxc.ajustes.publicar"
+        },
+        {
+          "etiqueta": "Reversar",
+          "resultado": "Abre reverso enlazado; no edita publicado",
+          "permiso": "cxc.ajustes.reversar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Aprobación 1",
+        "Aprobación 2",
+        "Publicado",
+        "Reversado",
+        "Rechazado"
+      ],
+      "impacto_datos_contables": "Ajusta el saldo de cartera y publica contrapartida conforme a la plantilla de la categoría. No cambia directamente el importe original de la factura. El ajuste queda trazable al documento, cuenta, evidencia y aprobaciones; un error posterior se corrige con reverso, respetando cierres.",
+      "api_propuesta": [
+        "POST /api/v1/receivable-adjustments/preview",
+        "POST /api/v1/receivable-adjustments",
+        "POST /api/v1/receivable-adjustments/{id}/approve",
+        "POST /api/v1/receivable-adjustments/{id}/post",
+        "POST /api/v1/receivable-adjustments/{id}/reverse"
+      ],
+      "validaciones": [
+        "Validar categoría, cuenta, importe, periodo y saldo.",
+        "Aplicar umbral configurable sin hardcodear políticas.",
+        "Impedir autoaprobación y cambios después de aprobar.",
+        "No permitir publicar en periodo cerrado.",
+        "Verificar asiento balanceado e idempotencia."
+      ],
+      "prueba_positiva": "Dado un documento abierto y un ajuste aprobado con evidencia y cuenta válida, cuando se publica, entonces el saldo de cartera y el asiento se actualizan una sola vez y el historial muestra la regla y aprobadores.",
+      "prueba_negativa": "Dado un importe fuera del límite o una cuenta no imputable, cuando se intenta aprobar/publicar, entonces se rechaza la solicitud completa y no se modifica cartera ni mayor.",
+      "dependencias_ids": [
+        "XLS-074",
+        "XLS-080"
+      ],
+      "titulo_original": "Ajuste de Cartera",
+      "ruta_menu_original": "CxC > Ajustes > Ajuste de Cartera",
+      "ruta_react": "/cxc/ajustes/ajuste-de-cartera",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar ajuste de cartera con motivo, evidencia, cuenta y doble aprobación según importe.",
+      "pruebas_ids": [
+        "T-UI-XLS-068",
+        "T-PROC-XLS-068",
+        "T-NEG-XLS-068"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-069",
+      "fila": 105,
+      "celda": "D105",
+      "texto_original": "Migración Anticipos Clientes",
+      "ruta_original": "CxC > Ajustes > Migración Anticipos Clientes",
+      "objetivo": "Migrar anticipos de clientes existentes al corte, preservando fecha, tercero, importe, saldo y referencias históricas, y conciliándolos contra un asiento inicial único. La importación debe ser revisable y no crear ingresos ni cobros ficticios.",
+      "diseno_visible": "Asistente por etapas: plantilla, carga, prevalidación, homologación de terceros/cuentas, conciliación y confirmación. Mostrar diferencias por fila, saldo total importado, asiento inicial propuesto y mapa de identificadores originales a UUID. Permitir reintento solo de filas no confirmadas.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa destino autorizada."
+        },
+        {
+          "nombre": "archivo",
+          "tipo": "CSV/XLSX",
+          "obligatorio": true,
+          "validacion": "Plantilla versionada con hash."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Define saldo inicial y debe estar en periodo de migración."
+        },
+        {
+          "nombre": "tercero origen",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Identificación o clave a homologar."
+        },
+        {
+          "nombre": "saldo recibido",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "No negativo y con precisión monetaria."
+        },
+        {
+          "nombre": "fecha original",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "No posterior al corte sin justificación."
+        },
+        {
+          "nombre": "cuenta inicial",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Cuenta aprobada para contrapartida."
+        },
+        {
+          "nombre": "soportes",
+          "tipo": "archivo/array",
+          "obligatorio": false,
+          "validacion": "Referencias históricas opcionales."
+        }
+      ],
+      "columnas": [
+        "Fila",
+        "Tercero origen",
+        "Tercero homologado",
+        "Saldo",
+        "Fecha",
+        "Estado",
+        "Error",
+        "Mapa"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Descargar plantilla",
+          "resultado": "Entrega campos y reglas de corte",
+          "permiso": "cxc.migracion.plantilla"
+        },
+        {
+          "etiqueta": "Cargar/prevalidar",
+          "resultado": "Clasifica filas sin asiento",
+          "permiso": "cxc.migracion.importar"
+        },
+        {
+          "etiqueta": "Homologar",
+          "resultado": "Resuelve terceros y cuentas ambiguos",
+          "permiso": "cxc.migracion.homologar"
+        },
+        {
+          "etiqueta": "Conciliar",
+          "resultado": "Compara total de filas con asiento inicial",
+          "permiso": "cxc.migracion.conciliar"
+        },
+        {
+          "etiqueta": "Confirmar",
+          "resultado": "Crea anticipos y publica un asiento único",
+          "permiso": "cxc.migracion.confirmar"
+        },
+        {
+          "etiqueta": "Reintentar",
+          "resultado": "Procesa correcciones sin duplicar",
+          "permiso": "cxc.migracion.reintentar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Cargado",
+        "Con errores",
+        "Homologación pendiente",
+        "Conciliado",
+        "Confirmado",
+        "Confirmado parcial",
+        "Fallido"
+      ],
+      "impacto_datos_contables": "Antes de confirmar no hay impacto. Al confirmar, se crean saldos de anticipos con fecha y origen migratorio, y un asiento inicial único balanceado contra la cuenta aprobada. Las filas confirmadas no se vuelven a contabilizar en reintentos. Los anticipos quedan disponibles para cruces posteriores y no se presentan como recaudaciones del periodo actual.",
+      "api_propuesta": [
+        "POST /api/v1/imports/customer-advances",
+        "GET /api/v1/imports/{id}",
+        "POST /api/v1/imports/{id}/homologations",
+        "POST /api/v1/imports/{id}/reconcile",
+        "POST /api/v1/imports/{id}/confirm"
+      ],
+      "validaciones": [
+        "Validar corte, fechas, identificaciones y saldos.",
+        "Exigir suma de filas igual al asiento inicial propuesto.",
+        "No permitir confirmar filas sin tercero/cuenta homologados.",
+        "Registrar origen, hash, actor y mapa de IDs.",
+        "Usar idempotencia por lote y fila."
+      ],
+      "prueba_positiva": "Dado un lote válido con dos anticipos homologados y total conciliado, cuando se confirma, entonces se crean dos saldos con sus fechas originales y un solo asiento inicial balanceado, sin duplicación en un reintento.",
+      "prueba_negativa": "Dado que el total de filas no coincide con el asiento o falta homologar un tercero, cuando se intenta confirmar, entonces el lote queda bloqueado, muestra diferencias y no crea anticipos ni asiento parcial.",
+      "dependencias_ids": [
+        "XLS-059",
+        "XLS-065"
+      ],
+      "titulo_original": "Migración Anticipos Clientes",
+      "ruta_menu_original": "CxC > Ajustes > Migración Anticipos Clientes",
+      "ruta_react": "/cxc/ajustes/migracion-anticipos-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Importar anticipos clientes al corte y conciliarlos contra asiento inicial único.",
+      "pruebas_ids": [
+        "T-UI-XLS-069",
+        "T-PROC-XLS-069",
+        "T-NEG-XLS-069"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-070",
+      "fila": 107,
+      "celda": "D107",
+      "texto_original": "Facturación",
+      "ruta_original": "CxC > Comprobantes de Venta > Facturación",
+      "objetivo": "Crear una factura de venta desde una operación aprobada, con cálculo basado en catálogo tributario vigente y configuración por empresa, firma y transmisión XML/RIDE real cuando esté habilitada. Separar estados contable y fiscal y no usar servicios SRI simulados en producción.",
+      "diseno_visible": "Pantalla de factura con encabezado de cliente, líneas de productos/servicios, impuestos calculados desde configuración versionada, vencimiento y forma de pago. Pestañas Vista previa contable, XML/artefactos, Estado fiscal y auditoría; el envío externo se ejecuta como trabajo rastreable.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Perfil tributario y secuencial configurados."
+        },
+        {
+          "nombre": "cliente",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Identificación y snapshot fiscal válidos."
+        },
+        {
+          "nombre": "fecha emisión",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Periodo abierto y secuencial disponible."
+        },
+        {
+          "nombre": "líneas",
+          "tipo": "array de objetos",
+          "obligatorio": true,
+          "validacion": "Producto/servicio, cantidad, precio y tratamiento fiscal."
+        },
+        {
+          "nombre": "condición de pago",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Contado/crédito y vencimiento coherentes."
+        },
+        {
+          "nombre": "impuestos",
+          "tipo": "calculado",
+          "obligatorio": true,
+          "validacion": "Tarifa y retención desde matriz vigente; no editable como constante."
+        },
+        {
+          "nombre": "soportes",
+          "tipo": "archivo/array",
+          "obligatorio": false,
+          "validacion": "Evidencia operacional."
+        },
+        {
+          "nombre": "XML/RIDE",
+          "tipo": "artefactos",
+          "obligatorio": false,
+          "validacion": "Solo tras generación/firma/autorización reales."
+        }
+      ],
+      "columnas": [
+        "Número",
+        "Cliente",
+        "Fecha",
+        "Subtotal",
+        "Impuestos",
+        "Total",
+        "Estado contable",
+        "Estado fiscal",
+        "Vencimiento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar borrador",
+          "resultado": "Conserva documento sin publicar",
+          "permiso": "ventas.facturas.crear"
+        },
+        {
+          "etiqueta": "Validar/preview",
+          "resultado": "Calcula impuestos, asiento y XML candidato",
+          "permiso": "ventas.facturas.previsualizar"
+        },
+        {
+          "etiqueta": "Emitir",
+          "resultado": "Publica contabilidad e inicia flujo fiscal real",
+          "permiso": "ventas.facturas.emitir"
+        },
+        {
+          "etiqueta": "Consultar XML/RIDE",
+          "resultado": "Descarga artefactos disponibles y respuestas",
+          "permiso": "tributacion.documentos.consultar"
+        },
+        {
+          "etiqueta": "Reversar/anular",
+          "resultado": "Abre flujos separados según estado",
+          "permiso": "ventas.facturas.anular"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Validada",
+        "Contable publicada",
+        "Fiscal pendiente",
+        "Enviada",
+        "Autorizada",
+        "No autorizada",
+        "Reversada"
+      ],
+      "impacto_datos_contables": "Al emitir se crea o vincula una única obligación receivable_item, se publica ingreso/impuestos con cuentas configuradas y se conserva snapshot fiscal. Estado contable y fiscal son independientes: una falla externa no borra el asiento. Las tarifas nunca se codifican en pantalla; provienen de vigencia aprobada.",
+      "api_propuesta": [
+        "POST /api/v1/sales/invoices/preview",
+        "POST /api/v1/sales/invoices",
+        "POST /api/v1/tax/documents/{id}/submit",
+        "GET /api/v1/tax/documents/{id}",
+        "GET /api/v1/sales/invoices/{id}"
+      ],
+      "validaciones": [
+        "Validar secuencial, identificación, periodo, líneas y total.",
+        "Recalcular en backend con Decimal y matriz vigente.",
+        "Validar firma, XSD, respuesta y autorización por separado.",
+        "No publicar sin cuentas y snapshot completos.",
+        "No crear segunda obligación al reintentar transmisión."
+      ],
+      "prueba_positiva": "Dado un borrador válido y una configuración tributaria vigente, cuando se valida y emite, entonces se publica una factura con obligación única, asiento balanceado y trabajo fiscal real con XML/RIDE o estado de error trazable.",
+      "prueba_negativa": "Dado un XML rechazado o un timeout externo, cuando se reintenta el trabajo, entonces se conserva un único documento y asiento, se registra otro intento y no se crea una segunda factura ni se marca autorizada sin respuesta.",
+      "dependencias_ids": [
+        "XLS-059",
+        "XLS-071",
+        "XLS-072"
+      ],
+      "titulo_original": "Facturación",
+      "ruta_menu_original": "CxC > Comprobantes de Venta > Facturación",
+      "ruta_react": "/cxc/comprobantes-de-venta/facturacion",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Crear factura desde operación aprobada, calcular tributos vigentes, firmar XML y entregar XML/RIDE autorizado.",
+      "pruebas_ids": [
+        "T-UI-XLS-070",
+        "T-PROC-XLS-070",
+        "T-NEG-XLS-070"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-071",
+      "fila": 108,
+      "celda": "D108",
+      "texto_original": "Facturación Recurrente",
+      "ruta_original": "CxC > Comprobantes de Venta > Facturación Recurrente",
+      "objetivo": "Generar cargos y/o facturas recurrentes por periodo sin duplicados, separando cargo de expensa no fiscal y comprobante fiscal cuando la configuración aprobada lo requiera. Debe operar en el núcleo sin exigir inmueble y permitir previsualización y reintento seguro.",
+      "diseno_visible": "Bandeja de planes recurrentes con calendario de periodos, versión de plantilla y vista previa de candidatos. La ejecución muestra filas omitidas por duplicidad, cargos, facturas fiscales, errores y dependencias; un panel opcional enlaza unidad/condominio solo cuando corresponde.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa."
+        },
+        {
+          "nombre": "plan recurrente",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Plan activo y versión aprobada."
+        },
+        {
+          "nombre": "periodo comercial",
+          "tipo": "periodo",
+          "obligatorio": true,
+          "validacion": "Único por plan y periodo."
+        },
+        {
+          "nombre": "fecha de emisión/vencimiento",
+          "tipo": "fechas",
+          "obligatorio": true,
+          "validacion": "Reglas del plan y periodo abierto."
+        },
+        {
+          "nombre": "cliente/padrón",
+          "tipo": "filtro o snapshot",
+          "obligatorio": true,
+          "validacion": "Conjunto estable de destinatarios."
+        },
+        {
+          "nombre": "modo cargo/factura",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Regla aprobada separa documentos."
+        },
+        {
+          "nombre": "vista previa hash",
+          "tipo": "texto calculado",
+          "obligatorio": true,
+          "validacion": "Debe coincidir al confirmar."
+        },
+        {
+          "nombre": "inmueble",
+          "tipo": "selector opcional",
+          "obligatorio": false,
+          "validacion": "Solo para empresa/módulo que lo necesite."
+        }
+      ],
+      "columnas": [
+        "Plan",
+        "Periodo",
+        "Candidatos",
+        "Cargos",
+        "Facturas",
+        "Omitidos por duplicidad",
+        "Errores",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Previsualizar",
+          "resultado": "Calcula lote y hash sin publicar",
+          "permiso": "ventas.recurrencia.previsualizar"
+        },
+        {
+          "etiqueta": "Aprobar lote",
+          "resultado": "Congela snapshot y requiere permiso",
+          "permiso": "ventas.recurrencia.aprobar"
+        },
+        {
+          "etiqueta": "Generar",
+          "resultado": "Crea obligaciones/documentos una sola vez",
+          "permiso": "ventas.recurrencia.generar"
+        },
+        {
+          "etiqueta": "Reintentar fallidas",
+          "resultado": "Reprocesa solo filas elegibles",
+          "permiso": "ventas.recurrencia.reintentar"
+        },
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Navega a origen y resultado",
+          "permiso": "ventas.recurrencia.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Previsualizado",
+        "Aprobación pendiente",
+        "Publicado parcial",
+        "Publicado",
+        "Con errores",
+        "Omitido duplicado"
+      ],
+      "impacto_datos_contables": "Cada periodo produce una clave única por empresa, plan y periodo. Un cargo no fiscal y una factura que lo representa se enlazan a una sola obligación canónica. La publicación genera asientos según plantilla; reintentos devuelven el resultado existente. Campos inmobiliarios son opcionales y no acoplan el núcleo.",
+      "api_propuesta": [
+        "POST /api/v1/recurring-billing/preview",
+        "POST /api/v1/recurring-billing/{id}/approve",
+        "POST /api/v1/recurring-billing/{id}/generate",
+        "POST /api/v1/recurring-billing/{id}/retry",
+        "GET /api/v1/recurring-billing/{id}"
+      ],
+      "validaciones": [
+        "Validar unicidad plan-periodo antes de generar.",
+        "Congelar clientes, importes y reglas en snapshot.",
+        "No mezclar cargo fiscal y no fiscal sin relación explícita.",
+        "Verificar todas las filas antes de marcar lote finalizado.",
+        "Recalcular saldos y usar idempotencia por candidato."
+      ],
+      "prueba_positiva": "Dado un plan aprobado para un periodo sin ejecuciones previas, cuando se genera el lote, entonces cada cliente elegible obtiene un único cargo/factura según regla, el asiento queda balanceado y una segunda ejecución devuelve el lote existente.",
+      "prueba_negativa": "Dado un periodo ya generado o una plantilla modificada después de la vista previa, cuando se confirma con hash antiguo, entonces se rechaza la operación y no se crean documentos duplicados.",
+      "dependencias_ids": [
+        "XLS-070",
+        "XLS-059"
+      ],
+      "titulo_original": "Facturación Recurrente",
+      "ruta_menu_original": "CxC > Comprobantes de Venta > Facturación Recurrente",
+      "ruta_react": "/cxc/comprobantes-de-venta/facturacion-recurrente",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Generar cargos/facturas por periodo sin duplicados; separar cargo de expensa de comprobante fiscal según regla validada.",
+      "pruebas_ids": [
+        "T-UI-XLS-071",
+        "T-PROC-XLS-071",
+        "T-NEG-XLS-071"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-072",
+      "fila": 109,
+      "celda": "D109",
+      "texto_original": "Notas de Venta",
+      "ruta_original": "CxC > Comprobantes de Venta > Notas de Venta",
+      "objetivo": "Registrar notas de venta únicamente cuando el perfil tributario y la configuración aprobada las permitan, sin tratarlas como equivalentes automáticos a una factura electrónica. La pantalla debe conservar el documento, obligación y estado de revisión.",
+      "diseno_visible": "Formulario independiente de notas de venta con cliente, líneas, subtotal/impuestos según catálogo, condición de pago y motivo. Mostrar etiqueta visible de documento no equivalente a factura electrónica, estado contable separado y validación de perfil antes de habilitar emisión.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Perfil tributario debe permitir nota de venta."
+        },
+        {
+          "nombre": "cliente",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Identificación y snapshot válidos."
+        },
+        {
+          "nombre": "fecha",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Periodo abierto."
+        },
+        {
+          "nombre": "líneas",
+          "tipo": "array de objetos",
+          "obligatorio": true,
+          "validacion": "Descripción, cantidad, precio y clasificación."
+        },
+        {
+          "nombre": "tratamiento tributario",
+          "tipo": "calculado/selector",
+          "obligatorio": true,
+          "validacion": "Solo valores permitidos por perfil y vigencia."
+        },
+        {
+          "nombre": "forma de pago",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Configuración válida."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Justificación comercial."
+        },
+        {
+          "nombre": "soporte",
+          "tipo": "archivo",
+          "obligatorio": false,
+          "validacion": "Evidencia opcional según política."
+        }
+      ],
+      "columnas": [
+        "Número",
+        "Cliente",
+        "Fecha",
+        "Subtotal",
+        "Tributos",
+        "Total",
+        "Estado contable",
+        "Perfil validado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Guardar",
+          "resultado": "Crea borrador independiente",
+          "permiso": "ventas.notas-venta.crear"
+        },
+        {
+          "etiqueta": "Validar perfil",
+          "resultado": "Confirma aplicabilidad sin emitir",
+          "permiso": "ventas.notas-venta.validar"
+        },
+        {
+          "etiqueta": "Emitir",
+          "resultado": "Publica nota y obligación según configuración",
+          "permiso": "ventas.notas-venta.emitir"
+        },
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Muestra documento y asiento",
+          "permiso": "ventas.notas-venta.consultar"
+        },
+        {
+          "etiqueta": "Reversar",
+          "resultado": "Abre reverso autorizado",
+          "permiso": "ventas.notas-venta.reversar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Perfil validado",
+        "Aprobación pendiente",
+        "Emitida",
+        "Reversada",
+        "Bloqueada por perfil"
+      ],
+      "impacto_datos_contables": "Publica el asiento de venta y una obligación de cartera conforme a la plantilla aplicable; no promete XML/autorización si el documento no pertenece al flujo electrónico. El documento conserva snapshot de perfil, líneas y tratamiento. No depende de inmueble ni inventario.",
+      "api_propuesta": [
+        "POST /api/v1/sales/notes/preview",
+        "POST /api/v1/sales/notes",
+        "GET /api/v1/sales/notes/{id}",
+        "POST /api/v1/sales/notes/{id}/reverse"
+      ],
+      "validaciones": [
+        "Validar perfil antes de mostrar emitir como disponible.",
+        "No reutilizar numeración fiscal incompatible.",
+        "Recalcular importes en backend.",
+        "Separar estado contable de cualquier estado fiscal.",
+        "Bloquear emisión si tratamiento no está configurado para vigencia."
+      ],
+      "prueba_positiva": "Dado un perfil habilitado y una nota con líneas válidas, cuando se valida y emite, entonces se genera el documento, obligación y asiento balanceado, identificado como nota de venta y no como factura electrónica.",
+      "prueba_negativa": "Dado un perfil no habilitado, cuando el usuario intenta emitir, entonces la pantalla bloquea la acción, explica la configuración faltante y no publica documento ni asiento.",
+      "dependencias_ids": [
+        "XLS-070",
+        "XLS-059"
+      ],
+      "titulo_original": "Notas de Venta",
+      "ruta_menu_original": "CxC > Comprobantes de Venta > Notas de Venta",
+      "ruta_react": "/cxc/comprobantes-de-venta/notas-de-venta",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar nota de venta únicamente cuando perfil tributario lo permita; no suponer equivalencia con factura electrónica.",
+      "pruebas_ids": [
+        "T-UI-XLS-072",
+        "T-PROC-XLS-072",
+        "T-NEG-XLS-072"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-073",
+      "fila": 110,
+      "celda": "D110",
+      "texto_original": "Anulación Comp. Venta",
+      "ruta_original": "CxC > Comprobantes de Venta > Anulación Comp. Venta",
+      "objetivo": "Gestionar la anulación de comprobantes de venta conservando dos flujos: reverso contable y gestión fiscal/documental. La pantalla debe evaluar documento, plazo/configuración vigente y canal disponible sin asumir una API pública de anulación.",
+      "diseno_visible": "Bandeja de comprobantes con pestañas Estado contable y Estado fiscal, detalle de factura/nota, obligación, autorizaciones y solicitudes previas. El usuario selecciona motivo y evidencia; el sistema ofrece reverso interno y, si aplica, tarea para canal fiscal documentado, nunca un mock presentado como producción.",
+      "filtros_campos": [
+        {
+          "nombre": "documento",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Comprobante emitido de empresa activa."
+        },
+        {
+          "nombre": "tipo de solicitud",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Reverso contable, gestión fiscal o ambos, separados."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Explicación y categoría."
+        },
+        {
+          "nombre": "fecha solicitud",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Valida para regla configurada y auditoría."
+        },
+        {
+          "nombre": "evidencia",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Soporte con hash."
+        },
+        {
+          "nombre": "canal fiscal",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "Solo capacidades configuradas; puede requerir operador."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Permiso y segregación."
+        }
+      ],
+      "columnas": [
+        "Documento",
+        "Clave/número",
+        "Cliente",
+        "Estado contable",
+        "Estado fiscal",
+        "Solicitud",
+        "Plazo/configuración",
+        "Resultado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Evaluar",
+          "resultado": "Calcula elegibilidad y dependencias",
+          "permiso": "tributacion.anulaciones.evaluar"
+        },
+        {
+          "etiqueta": "Previsualizar reverso",
+          "resultado": "Muestra impacto contable separado",
+          "permiso": "ventas.documentos.reversar"
+        },
+        {
+          "etiqueta": "Solicitar fiscal",
+          "resultado": "Crea tarea/solicitud por canal permitido",
+          "permiso": "tributacion.anulaciones.solicitar"
+        },
+        {
+          "etiqueta": "Confirmar reverso",
+          "resultado": "Publica asiento inverso si aprobado",
+          "permiso": "ventas.documentos.reversar"
+        },
+        {
+          "etiqueta": "Registrar respuesta",
+          "resultado": "Actualiza evidencia fiscal sin inventar autorización",
+          "permiso": "tributacion.anulaciones.registrar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Elegible",
+        "Reverso pendiente",
+        "Tarea fiscal pendiente",
+        "Reversada contablemente",
+        "Anulada fiscalmente",
+        "Rechazada",
+        "Bloqueada"
+      ],
+      "impacto_datos_contables": "El reverso contable reduce/revierte obligación, ingresos e impuestos según plantilla y queda enlazado al comprobante. La gestión fiscal solo actualiza estado tras evidencia de canal permitido; puede quedar pendiente sin deshacer el asiento automáticamente. No se editan ni borran documentos publicados.",
+      "api_propuesta": [
+        "GET /api/v1/tax/documents/{id}/cancellation-impact",
+        "POST /api/v1/tax/cancellation-requests",
+        "POST /api/v1/sales/documents/{id}/reversal-preview",
+        "POST /api/v1/sales/documents/{id}/reverse",
+        "POST /api/v1/tax/cancellation-requests/{id}/result"
+      ],
+      "validaciones": [
+        "Separar validaciones fiscal y contable.",
+        "No inventar endpoint SRI ni afirmar automatización sin capacidad configurada.",
+        "Verificar periodo, documento autorizado, dependencias y aprobación.",
+        "Mantener estados y evidencias inmutables.",
+        "Idempotencia para solicitud y reverso."
+      ],
+      "prueba_positiva": "Dado un comprobante publicado y elegible, cuando se aprueba el reverso y se registra la respuesta del canal fiscal permitido, entonces existe un asiento inverso enlazado y estados contable/fiscal separados con evidencia.",
+      "prueba_negativa": "Dado un documento fuera de regla o sin canal fiscal configurado, cuando se intenta anularlo, entonces se bloquea la parte no permitida, se explica la tarea manual si corresponde y no se marca anulado ni se publica reverso parcial.",
+      "dependencias_ids": [
+        "XLS-070",
+        "XLS-072"
+      ],
+      "titulo_original": "Anulación Comp. Venta",
+      "ruta_menu_original": "CxC > Comprobantes de Venta > Anulación Comp. Venta",
+      "ruta_react": "/cxc/comprobantes-de-venta/anulacion-comp-venta",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Gestionar anulación fiscal según documento/plazo aplicable y reverso contable separado con seguimiento.",
+      "pruebas_ids": [
+        "T-UI-XLS-073",
+        "T-PROC-XLS-073",
+        "T-NEG-XLS-073"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-074",
+      "fila": 111,
+      "celda": "D111",
+      "texto_original": "Migrar Antigüedad de Cartera",
+      "ruta_original": "CxC > Comprobantes de Venta > Migrar Antigüedad de Cartera",
+      "objetivo": "Importar documentos abiertos y pagos previos para reconstruir antigüedad de cartera usando fechas originales y vencimientos suministrados, sin inventar fechas. El lote debe homologar terceros, conciliar totales y permitir reintento sin duplicar obligaciones.",
+      "diseno_visible": "Asistente de migración con plantilla de documentos, pagos y aplicaciones; pestañas de validación, homologación y conciliación. La vista de antigüedad de prueba compara bandas al corte y muestra filas sin vencimiento, inconsistencias o saldo residual antes de confirmar.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa destino."
+        },
+        {
+          "nombre": "archivo documentos",
+          "tipo": "CSV/XLSX",
+          "obligatorio": true,
+          "validacion": "Plantilla versionada."
+        },
+        {
+          "nombre": "archivo pagos/aplicaciones",
+          "tipo": "CSV/XLSX",
+          "obligatorio": false,
+          "validacion": "Claves de relación verificables."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Corte de migración."
+        },
+        {
+          "nombre": "fecha emisión original",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Se conserva y valida."
+        },
+        {
+          "nombre": "fecha vencimiento original",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Obligatoria si existe; no se inventa."
+        },
+        {
+          "nombre": "saldo abierto",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "Conciliado con original menos pagos."
+        },
+        {
+          "nombre": "cuenta inicial",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Contrapartida aprobada."
+        }
+      ],
+      "columnas": [
+        "Fila",
+        "Documento origen",
+        "Tercero",
+        "Emisión",
+        "Vencimiento",
+        "Original",
+        "Pagado",
+        "Saldo",
+        "Banda al corte",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Cargar plantilla",
+          "resultado": "Crea lote sin publicar",
+          "permiso": "cxc.migracion.importar"
+        },
+        {
+          "etiqueta": "Prevalidar",
+          "resultado": "Detecta fechas, duplicados y saldos",
+          "permiso": "cxc.migracion.validar"
+        },
+        {
+          "etiqueta": "Homologar",
+          "resultado": "Asocia terceros y claves origen",
+          "permiso": "cxc.migracion.homologar"
+        },
+        {
+          "etiqueta": "Conciliar",
+          "resultado": "Compara documentos, pagos y asiento",
+          "permiso": "cxc.migracion.conciliar"
+        },
+        {
+          "etiqueta": "Confirmar",
+          "resultado": "Crea obligaciones y asiento inicial",
+          "permiso": "cxc.migracion.confirmar"
+        },
+        {
+          "etiqueta": "Reintentar",
+          "resultado": "Corrige filas pendientes sin duplicar",
+          "permiso": "cxc.migracion.reintentar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Cargado",
+        "Con errores",
+        "Homologación pendiente",
+        "Conciliado",
+        "Confirmado",
+        "Parcial",
+        "Fallido"
+      ],
+      "impacto_datos_contables": "La confirmación crea receivable_item con fechas y saldos históricos, aplicaciones de pagos previos y un asiento inicial conciliado. No genera ventas actuales ni altera antigüedad histórica. El reporte posterior deriva bandas desde vencimiento original y separa anticipos/saldos a favor. Cada origen conserva hash y mapa.",
+      "api_propuesta": [
+        "POST /api/v1/imports/receivable-aging",
+        "GET /api/v1/imports/{id}",
+        "POST /api/v1/imports/{id}/validate",
+        "POST /api/v1/imports/{id}/reconcile",
+        "POST /api/v1/imports/{id}/confirm"
+      ],
+      "validaciones": [
+        "Rechazar vencimiento inventado o ausente cuando sea necesario.",
+        "Validar unicidad por empresa, tercero, tipo y número.",
+        "Conciliar total original, pagos, saldo y asiento.",
+        "No confirmar filas ambiguas o sin homologación.",
+        "Proteger reintentos por lote/fila."
+      ],
+      "prueba_positiva": "Dado un lote con documentos, fechas originales y pagos conciliados, cuando se confirma, entonces se reconstruyen saldos y aplicaciones con antigüedad correcta al corte y un asiento inicial balanceado, sin duplicar en reintento.",
+      "prueba_negativa": "Dado un documento sin fecha de vencimiento requerida o con saldo que no cuadra, cuando se prevalida, entonces la fila queda rechazada con detalle y el lote no publica asiento parcial.",
+      "dependencias_ids": [
+        "XLS-068",
+        "XLS-080",
+        "XLS-081"
+      ],
+      "titulo_original": "Migrar Antigüedad de Cartera",
+      "ruta_menu_original": "CxC > Comprobantes de Venta > Migrar Antigüedad de Cartera",
+      "ruta_react": "/cxc/comprobantes-de-venta/migrar-antiguedad-de-cartera",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Importar documentos abiertos con fechas originales y pagos previos para reconstruir antigüedad sin inventar vencimientos.",
+      "pruebas_ids": [
+        "T-UI-XLS-074",
+        "T-PROC-XLS-074",
+        "T-NEG-XLS-074"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-075",
+      "fila": 113,
+      "celda": "D113",
+      "texto_original": "Campañas",
+      "ruta_original": "CxC > Gestión de Cobranza > Campañas",
+      "objetivo": "Segmentar cartera, aprobar campañas de cobranza, enviar recordatorios y registrar promesas de pago con privacidad, preferencias de comunicación y saldo congelado al envío. Las campañas generales no dependen de expensas ni portal de residentes.",
+      "diseno_visible": "Panel de campañas con constructor de filtros, vista previa de destinatarios y saldo al corte, plantilla versionada, canales y ventana de envío. La tabla de resultados separa elegibles, excluidos, enviados, rebotados y promesas; nunca muestra destinatarios entre clientes.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Congela saldos usados por campaña."
+        },
+        {
+          "nombre": "segmento",
+          "tipo": "filtros",
+          "obligatorio": true,
+          "validacion": "Vencimiento, saldo, responsable y estado."
+        },
+        {
+          "nombre": "plantilla",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Versión aprobada y variables permitidas."
+        },
+        {
+          "nombre": "canal",
+          "tipo": "multiselección",
+          "obligatorio": true,
+          "validacion": "Canales configurados y preferencia válida."
+        },
+        {
+          "nombre": "ventana de envío",
+          "tipo": "fecha/hora",
+          "obligatorio": true,
+          "validacion": "Rango permitido y zona horaria."
+        },
+        {
+          "nombre": "promesa",
+          "tipo": "objeto opcional",
+          "obligatorio": false,
+          "validacion": "Fecha e importe, no contabiliza por sí sola."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Aprobación de campaña."
+        }
+      ],
+      "columnas": [
+        "Campaña",
+        "Corte",
+        "Segmento",
+        "Destinatarios",
+        "Enviados",
+        "Rebotados",
+        "Promesas",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Previsualizar segmento",
+          "resultado": "Congela conteo y saldo sin enviar",
+          "permiso": "cxc.cobranza.previsualizar"
+        },
+        {
+          "etiqueta": "Aprobar",
+          "resultado": "Publica snapshot y plantilla aprobados",
+          "permiso": "cxc.cobranza.aprobar"
+        },
+        {
+          "etiqueta": "Enviar",
+          "resultado": "Crea trabajos de entrega y registra intentos",
+          "permiso": "cxc.cobranza.enviar"
+        },
+        {
+          "etiqueta": "Registrar promesa",
+          "resultado": "Guarda compromiso con permiso",
+          "permiso": "cxc.cobranza.promesas"
+        },
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Muestra resultados sin exponer terceros",
+          "permiso": "cxc.cobranza.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Previsualizada",
+        "Aprobación pendiente",
+        "Programada",
+        "Enviando",
+        "Completada",
+        "Cancelada"
+      ],
+      "impacto_datos_contables": "No genera asiento ni cambia saldos. Registra snapshot de cartera, intentos de entrega, rebotes, preferencias, base/propósito configurados y promesas. Una promesa puede alimentar seguimiento, pero no convierte automáticamente una expectativa en cobro, ajuste o ingreso.",
+      "api_propuesta": [
+        "POST /api/v1/collections/campaigns/preview",
+        "POST /api/v1/collections/campaigns",
+        "POST /api/v1/collections/campaigns/{id}/approve",
+        "POST /api/v1/collections/campaigns/{id}/send",
+        "POST /api/v1/collections/promises"
+      ],
+      "validaciones": [
+        "Excluir terceros sin canal o preferencia válida.",
+        "No incluir datos de un cliente en otro destinatario.",
+        "Congelar saldo y segmento antes de aprobación.",
+        "Idempotencia de envío para evitar mensajes duplicados.",
+        "Auditar plantilla, variables, actor y resultados."
+      ],
+      "prueba_positiva": "Dado un segmento aprobado con saldo congelado y preferencias válidas, cuando se envía la campaña, entonces se crean trabajos por destinatario, se registran resultados y una promesa queda visible sin modificar cartera ni mayor.",
+      "prueba_negativa": "Dado un destinatario sin preferencia o con campaña ya enviada, cuando se intenta enviar nuevamente, entonces se excluye o devuelve resultado idempotente, sin mensaje duplicado ni efecto contable.",
+      "dependencias_ids": [
+        "XLS-080",
+        "XLS-081"
+      ],
+      "titulo_original": "Campañas",
+      "ruta_menu_original": "CxC > Gestión de Cobranza > Campañas",
+      "ruta_react": "/cxc/gestion-de-cobranza/campanas",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Segmentar cartera, aprobar campaña, enviar recordatorios y registrar promesas de pago respetando privacidad.",
+      "pruebas_ids": [
+        "T-UI-XLS-075",
+        "T-PROC-XLS-075",
+        "T-NEG-XLS-075"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-076",
+      "fila": 115,
+      "celda": "D115",
+      "texto_original": "Ingreso de Retenciones",
+      "ruta_original": "CxC > Retenciones > Ingreso de Retenciones",
+      "objetivo": "Registrar o importar una retención recibida del cliente, validar soporte y aplicarla a una factura y al crédito tributario una sola vez. La dirección del documento es RECEIVED y no debe confundirse con retenciones emitidas desde CxP.",
+      "diseno_visible": "Pantalla con selector visible Recibidas/Emitidas para contexto, fijada en Recibidas dentro de CxC; formulario de emisor, comprobante, bases/valores configurados, factura destino, soporte y estado de aplicación. Mostrar cálculo desde catálogo vigente sin tasas hardcodeadas y vista previa contable.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa activa y perfil receptor."
+        },
+        {
+          "nombre": "cliente/emisor",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Tercero cliente y snapshot."
+        },
+        {
+          "nombre": "número/clave",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Identidad del comprobante y duplicidad."
+        },
+        {
+          "nombre": "fecha",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Fecha válida para documento y corte."
+        },
+        {
+          "nombre": "bases y valores",
+          "tipo": "array decimal",
+          "obligatorio": true,
+          "validacion": "Catálogo/vigencia; no aceptar porcentajes arbitrarios."
+        },
+        {
+          "nombre": "factura destino",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Obligación del mismo cliente, saldo compatible."
+        },
+        {
+          "nombre": "soporte/XML",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Hash y validación estructural si existe."
+        },
+        {
+          "nombre": "importe aplicado",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "validacion": "No supera retención disponible ni crédito permitido."
+        }
+      ],
+      "columnas": [
+        "Retención",
+        "Cliente",
+        "Comprobante",
+        "Fecha",
+        "Base/valor",
+        "Factura",
+        "Aplicado",
+        "Crédito tributario",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Registrar",
+          "resultado": "Crea retención recibida pendiente",
+          "permiso": "cxc.retenciones.recibidas.crear"
+        },
+        {
+          "etiqueta": "Importar soporte",
+          "resultado": "Valida archivo y datos sin aplicar",
+          "permiso": "cxc.retenciones.recibidas.importar"
+        },
+        {
+          "etiqueta": "Previsualizar aplicación",
+          "resultado": "Muestra reducción de cartera/crédito",
+          "permiso": "cxc.retenciones.recibidas.previsualizar"
+        },
+        {
+          "etiqueta": "Aplicar",
+          "resultado": "Publica efecto una sola vez",
+          "permiso": "cxc.retenciones.recibidas.aplicar"
+        },
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Navega a factura y reporte",
+          "permiso": "cxc.retenciones.recibidas.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Borrador",
+        "Pendiente de soporte",
+        "Validada",
+        "Aplicada parcial",
+        "Aplicada total",
+        "Rechazada",
+        "Reversada"
+      ],
+      "impacto_datos_contables": "La retención recibida reduce la obligación del cliente según configuración y reconoce el crédito tributario correspondiente; no duplica factura ni cobro. Se guarda en maestro único `withholding` con dirección RECEIVED, snapshot de valores y soporte. Cualquier reverso se ejecuta en pantalla separada.",
+      "api_propuesta": [
+        "POST /api/v1/withholdings/received",
+        "POST /api/v1/withholdings/{id}/validate",
+        "POST /api/v1/withholdings/{id}/apply",
+        "GET /api/v1/withholdings/{id}",
+        "GET /api/v1/receivables/items/{id}"
+      ],
+      "validaciones": [
+        "Validar emisor, clave/número, duplicado, soporte y vigencia.",
+        "Resolver bases/porcentajes desde catálogo configurado; no constantes.",
+        "Impedir aplicar más de una vez bajo lock.",
+        "Separar dirección RECEIVED y estado contable/fiscal.",
+        "Conciliar factura, retención, crédito y asiento."
+      ],
+      "prueba_positiva": "Dado un soporte válido y una factura del mismo cliente, cuando se valida y aplica la retención recibida, entonces se reduce la obligación una vez, se registra crédito tributario y el asiento queda balanceado con trazabilidad.",
+      "prueba_negativa": "Dado el mismo comprobante ya aplicado o un valor superior al disponible, cuando se intenta aplicar nuevamente, entonces la operación se rechaza sin nuevo crédito, asiento ni modificación de saldo.",
+      "dependencias_ids": [
+        "XLS-070",
+        "XLS-077"
+      ],
+      "titulo_original": "Ingreso de Retenciones",
+      "ruta_menu_original": "CxC > Retenciones > Ingreso de Retenciones",
+      "ruta_react": "/cxc/retenciones/ingreso-de-retenciones",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar/importar retención del cliente, validar soporte y aplicarla a factura y crédito tributario una sola vez.",
+      "pruebas_ids": [
+        "T-UI-XLS-076",
+        "T-PROC-XLS-076",
+        "T-NEG-XLS-076"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-077",
+      "fila": 116,
+      "celda": "D116",
+      "texto_original": "Anulación de Retenciones",
+      "ruta_original": "CxC > Retenciones > Anulación de Retenciones",
+      "objetivo": "Reversar una retención recibida y su aplicación con evidencia, manteniendo separado el flujo de anulación fiscal del emisor ajeno. La operación debe restituir el saldo de la factura y el crédito tributario sin editar el documento publicado.",
+      "diseno_visible": "Bandeja de retenciones recibidas aplicadas con detalle de factura, soporte, valores, crédito y estado. Formulario de reverso con motivo, evidencia, dependencia de documentos y aprobación; panel de seguimiento fiscal indica que la empresa no tramita anulación como emisor de esa retención.",
+      "filtros_campos": [
+        {
+          "nombre": "retención",
+          "tipo": "búsqueda",
+          "obligatorio": true,
+          "validacion": "Dirección RECEIVED y aplicación existente."
+        },
+        {
+          "nombre": "factura",
+          "tipo": "solo lectura",
+          "obligatorio": true,
+          "validacion": "Factura relacionada y saldo impactado."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "selector/texto",
+          "obligatorio": true,
+          "validacion": "Causa y explicación."
+        },
+        {
+          "nombre": "evidencia",
+          "tipo": "archivo",
+          "obligatorio": true,
+          "validacion": "Soporte de reverso."
+        },
+        {
+          "nombre": "fecha efectiva",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Periodo abierto."
+        },
+        {
+          "nombre": "aprobador",
+          "tipo": "usuario",
+          "obligatorio": true,
+          "validacion": "Segregación requerida."
+        },
+        {
+          "nombre": "tarea emisor",
+          "tipo": "referencia",
+          "obligatorio": false,
+          "validacion": "Seguimiento externo; no supone API pública."
+        }
+      ],
+      "columnas": [
+        "Retención",
+        "Factura",
+        "Valor",
+        "Crédito tributario",
+        "Aplicado",
+        "Estado",
+        "Reverso"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Evaluar impacto",
+          "resultado": "Calcula restitución y dependencias",
+          "permiso": "cxc.retenciones.recibidas.anular"
+        },
+        {
+          "etiqueta": "Previsualizar",
+          "resultado": "Muestra reverso contable y saldo",
+          "permiso": "cxc.retenciones.recibidas.previsualizar"
+        },
+        {
+          "etiqueta": "Solicitar aprobación",
+          "resultado": "Registra solicitud y evidencia",
+          "permiso": "cxc.retenciones.aprobar"
+        },
+        {
+          "etiqueta": "Confirmar reverso",
+          "resultado": "Revierte aplicación atómicamente",
+          "permiso": "cxc.retenciones.recibidas.reversar"
+        },
+        {
+          "etiqueta": "Consultar seguimiento",
+          "resultado": "Enlaza soporte y responsable externo",
+          "permiso": "cxc.retenciones.consultar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Aplicada",
+        "Aprobación pendiente",
+        "Reversada",
+        "Bloqueada",
+        "Rechazada"
+      ],
+      "impacto_datos_contables": "Revierte la aplicación de la retención, restituye la obligación y revierte el crédito tributario mediante asiento enlazado. El estado fiscal/externo queda como seguimiento separado; no se solicita anulación en una API no documentada ni se afirma resultado del emisor. El publicado original permanece intacto.",
+      "api_propuesta": [
+        "GET /api/v1/withholdings/{id}/reversal-impact",
+        "POST /api/v1/withholdings/{id}/reversal-preview",
+        "POST /api/v1/withholdings/{id}/reversal-requests",
+        "POST /api/v1/withholdings/{id}/reverse"
+      ],
+      "validaciones": [
+        "Validar dirección RECEIVED y aplicación única.",
+        "Comprobar periodo, soporte, aprobación y dependencias.",
+        "No permitir reverso de documento inexistente o ya revertido.",
+        "Mantener estados contable/externo separados.",
+        "Verificar restitución y asiento balanceado."
+      ],
+      "prueba_positiva": "Dado un withholding recibido aplicado a una factura, cuando se aprueba su reverso, entonces la factura recupera el saldo, el crédito tributario se revierte y queda evidencia enlazada sin tramitar anulación como emisor.",
+      "prueba_negativa": "Dado un comprobante emitido por un tercero que el sistema no puede anular fiscalmente, cuando el usuario intenta usar una acción de anulación automática, entonces se bloquea esa acción y se ofrece seguimiento manual sin afectar el reverso contable aprobado.",
+      "dependencias_ids": [
+        "XLS-076",
+        "XLS-070"
+      ],
+      "titulo_original": "Anulación de Retenciones",
+      "ruta_menu_original": "CxC > Retenciones > Anulación de Retenciones",
+      "ruta_react": "/cxc/retenciones/anulacion-de-retenciones",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Reversar retención recibida y su aplicación con evidencia; no tramitar anulación fiscal como emisor ajeno.",
+      "pruebas_ids": [
+        "T-UI-XLS-077",
+        "T-PROC-XLS-077",
+        "T-NEG-XLS-077"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-078",
+      "fila": 118,
+      "celda": "D118",
+      "texto_original": "Rep. Documentos Emitidos",
+      "ruta_original": "CxC > Reportes > Rep. Documentos Emitidos",
+      "objetivo": "Listar documentos emitidos de CxC por tipo, fecha, cliente, responsable y estados contable/fiscal, separando cargos no fiscales de comprobantes fiscales. Cada fila debe navegar al origen y los totales deben conciliar con cartera y mayor.",
+      "diseno_visible": "Reporte con filtros de empresa, intervalo, tipo, responsable, cliente, origen fiscal/no fiscal y estados separados. Tabla exportable con columnas concretas, fila de totales y enlaces a documento, obligación, asiento y XML/RIDE cuando exista. Mostrar advertencia de snapshot y corte.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "desde/hasta",
+          "tipo": "rango de fechas",
+          "obligatorio": true,
+          "validacion": "Intervalo explícito y válido."
+        },
+        {
+          "nombre": "tipo documento",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Factura, nota, cargo u otros configurados."
+        },
+        {
+          "nombre": "estado contable",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Borrador, publicado, reversado."
+        },
+        {
+          "nombre": "estado fiscal",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Pendiente, autorizado, no autorizado u otros."
+        },
+        {
+          "nombre": "cliente/responsable",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Alcance de empresa."
+        },
+        {
+          "nombre": "origen fiscal/no fiscal",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "Separación visible."
+        },
+        {
+          "nombre": "corte/exportación",
+          "tipo": "fecha/formato",
+          "obligatorio": true,
+          "validacion": "Mismo snapshot para pantalla y archivo."
+        }
+      ],
+      "columnas": [
+        "Documento",
+        "Tipo/origen",
+        "Fecha",
+        "Cliente",
+        "Responsable",
+        "Total",
+        "Estado contable",
+        "Estado fiscal",
+        "Obligación",
+        "Asiento"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Ejecuta reporte con snapshot y totales",
+          "permiso": "reportes.cxc.documentos_emitidos.consultar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo con mismos filtros y permisos",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir origen",
+          "resultado": "Navega al documento transaccional",
+          "permiso": "reportes.navegar_origen"
+        },
+        {
+          "etiqueta": "Abrir obligación/asiento",
+          "resultado": "Muestra auxiliares y mayor",
+          "permiso": "reportes.navegar_contabilidad"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Preparando",
+        "Listo",
+        "Sin resultados",
+        "Exportando",
+        "Error"
+      ],
+      "impacto_datos_contables": "Es solo consulta: no genera asientos. Incluye movimientos publicados y reversos efectivos según corte, separa estado contable de fiscal y evita sumar dos veces un cargo y la factura que lo representa. Los totales deben cuadrar con receivable_item y mayor; los enlaces respetan empresa/permisos.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxc/issued-documents",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/sales/documents/{id}",
+        "GET /api/v1/receivables/items/{id}"
+      ],
+      "validaciones": [
+        "Exigir from/to o corte explícito.",
+        "Aplicar filtros de empresa y permisos en backend.",
+        "Usar mismos filtros/columnas en exportación.",
+        "Conciliar totales por tipo/origen con cartera.",
+        "Excluir borradores de totales publicados salvo filtro explícito."
+      ],
+      "prueba_positiva": "Dado un intervalo con una factura autorizada y un cargo no fiscal relacionado, cuando se consulta, entonces aparecen separados, el total no duplica la obligación y cada fila navega a documento, auxiliar y asiento.",
+      "prueba_negativa": "Dado un usuario sin acceso a otra empresa, cuando intenta cambiar el parámetro de empresa o abrir un ID ajeno, entonces recibe denegación sin filtrar datos ni alterar totales.",
+      "dependencias_ids": [
+        "XLS-070",
+        "XLS-071",
+        "XLS-080",
+        "XLS-081"
+      ],
+      "titulo_original": "Rep. Documentos Emitidos",
+      "ruta_menu_original": "CxC > Reportes > Rep. Documentos Emitidos",
+      "ruta_react": "/cxc/reportes/rep-documentos-emitidos",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Listar documentos emitidos por tipo, estado contable/fiscal y responsable, incluyendo cargos no fiscales separados.",
+      "pruebas_ids": [
+        "T-UI-XLS-078",
+        "T-PROC-XLS-078",
+        "T-NEG-XLS-078"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-079",
+      "fila": 119,
+      "celda": "D119",
+      "texto_original": "Rep. Retenciones Emitidas",
+      "ruta_original": "CxC > Reportes > Rep. Retenciones Emitidas",
+      "objetivo": "Conservar el acceso original titulado exactamente “Rep. Retenciones Emitidas” y ofrecer dentro de la pantalla un selector o subtítulo visible para distinguir Emitidas y Recibidas. En CxC el resultado operativo por defecto es Recibidas; Emitidas se consulta mediante alcance autorizado, sin reemplazar el título original.",
+      "diseno_visible": "Ruta y encabezado muestran literalmente “Rep. Retenciones Emitidas”; debajo aparece “Dirección del reporte: Emitidas / Recibidas” con pestañas separadas. La pestaña CxC/Recibidas filtra retenciones aplicadas a ventas y enlaza factura/crédito; la pestaña Emitidas advierte que pertenece normalmente a CxP y no mezcla datos. Filtros y totales son independientes.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "dirección",
+          "tipo": "pestañas selector",
+          "obligatorio": true,
+          "validacion": "Emitidas o Recibidas; no combinar resultados."
+        },
+        {
+          "nombre": "desde/hasta",
+          "tipo": "rango de fechas",
+          "obligatorio": true,
+          "validacion": "Corte explícito."
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Cliente para recibidas o proveedor para emitidas."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Validada, aplicada, reversada y fiscal/contable."
+        },
+        {
+          "nombre": "tipo/clave",
+          "tipo": "texto/selector",
+          "obligatorio": false,
+          "validacion": "Identificador y clasificación."
+        },
+        {
+          "nombre": "exportación",
+          "tipo": "formato",
+          "obligatorio": true,
+          "validacion": "Mismo filtro y pestaña."
+        },
+        {
+          "nombre": "corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Fecha de evaluación."
+        }
+      ],
+      "columnas": [
+        "Dirección",
+        "Retención",
+        "Tercero",
+        "Documento relacionado",
+        "Fecha",
+        "Base/valor",
+        "Aplicado",
+        "Crédito/obligación",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Cambiar pestaña",
+          "resultado": "Consulta dirección separada sin sustituir título",
+          "permiso": "reportes.retenciones.direccion"
+        },
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula filas y totales de la pestaña activa",
+          "permiso": "reportes.retenciones.consultar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo con dirección explícita",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir origen",
+          "resultado": "Navega a withholding, factura o compra",
+          "permiso": "reportes.navegar_origen"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Preparando",
+        "Listo",
+        "Sin resultados",
+        "Exportando",
+        "Error"
+      ],
+      "impacto_datos_contables": "No publica ni revierte movimientos. Recibidas se concilian con obligaciones de CxC y crédito tributario; emitidas se consultan como dirección distinta y no se inventa una retención recibida. Los estados y totales permanecen separados para no duplicar el efecto contable.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxc/withholdings?direction=RECEIVED",
+        "GET /api/v1/reports/cxp/withholdings?direction=ISSUED",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/withholdings/{id}"
+      ],
+      "validaciones": [
+        "No renombrar ni ocultar el acceso original.",
+        "Hacer obligatoria la selección de dirección.",
+        "Restringir Emitidas por permisos de CxP.",
+        "Conciliar totales con maestro único y auxiliar correcto.",
+        "No permitir exportar ambas direcciones como una sola suma."
+      ],
+      "prueba_positiva": "Dado el reporte abierto desde el menú original, cuando se mantiene la pestaña Recibidas y se consulta un periodo, entonces el encabezado conserva “Rep. Retenciones Emitidas”, la subtitulación explica la dirección y las filas enlazan a facturas de CxC.",
+      "prueba_negativa": "Dado que el usuario intenta mezclar Emitidas y Recibidas o acceder a Emitidas sin permiso, cuando consulta, entonces el sistema separa/bloquea el resultado y no presenta totales combinados.",
+      "dependencias_ids": [
+        "XLS-076",
+        "XLS-077",
+        "XLS-078"
+      ],
+      "titulo_original": "Rep. Retenciones Emitidas",
+      "ruta_menu_original": "CxC > Reportes > Rep. Retenciones Emitidas",
+      "ruta_react": "/cxc/reportes/rep-retenciones-emitidas",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Conservar Rep. Retenciones Emitidas en E118 y su ruta CxC; explicar dirección con selector Emitidas/Recibidas sin duplicar documentos ni efectos.",
+      "pruebas_ids": [
+        "T-UI-XLS-079",
+        "T-PROC-XLS-079",
+        "T-NEG-XLS-079"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-080",
+      "fila": 120,
+      "celda": "D120",
+      "texto_original": "Rep. Angitüedad de Cartera",
+      "ruta_original": "CxC > Reportes > Rep. Angitüedad de Cartera",
+      "objetivo": "Calcular antigüedad de cartera al corte por vencimiento original, con bandas configurables y separación explícita de anticipos y saldos a favor. El reporte debe permitir navegar a cada obligación y conciliar totales con cartera.",
+      "diseno_visible": "Reporte con fecha de corte obligatoria, bandas configurables visibles, filtros por tercero, responsable, origen y estado. Mostrar tarjetas de total vencido/no vencido, anticipos y saldos a favor; tabla por obligación con banda, días calculados, saldo y enlaces a aplicaciones/reversos.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Corte no ambiguo."
+        },
+        {
+          "nombre": "bandas",
+          "tipo": "array de rangos",
+          "obligatorio": true,
+          "validacion": "Rangos no solapados y configuración versionada."
+        },
+        {
+          "nombre": "cliente/responsable",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Filtro de cartera."
+        },
+        {
+          "nombre": "origen",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Factura, cargo, migración u otros."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Abierta, parcial, vencida."
+        },
+        {
+          "nombre": "incluir anticipos",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Se muestran en sección separada."
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Pantalla/exportación con snapshot."
+        }
+      ],
+      "columnas": [
+        "Tercero",
+        "Documento",
+        "Vencimiento original",
+        "Días al corte",
+        "Banda",
+        "Original",
+        "Aplicado",
+        "Ajustes",
+        "Saldo",
+        "Sección"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula bandas y totales conciliables",
+          "permiso": "reportes.cxc.aging.consultar"
+        },
+        {
+          "etiqueta": "Configurar bandas",
+          "resultado": "Propone versión con auditoría, no altera históricos",
+          "permiso": "reportes.cxc.aging.configurar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo con mismos filtros",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir obligación",
+          "resultado": "Navega a detalle y aplicaciones",
+          "permiso": "reportes.navegar_origen"
+        },
+        {
+          "etiqueta": "Abrir anticipo",
+          "resultado": "Navega a saldo a favor separado",
+          "permiso": "reportes.navegar_anticipo"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Preparando",
+        "Listo",
+        "Sin resultados",
+        "Exportando",
+        "Error de configuración"
+      ],
+      "impacto_datos_contables": "No genera asiento. El saldo se deriva de importe original, ajustes, aplicaciones y reversos efectivos al corte; se muestran anticipos/saldos a favor fuera de bandas. Las bandas predeterminadas son configurables por empresa sin codificar tasas ni alterar documentos históricos. Totales concilian con receivable_item.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxc/aging",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/receivables/items/{id}",
+        "GET /api/v1/customer-advances"
+      ],
+      "validaciones": [
+        "Exigir bandas ordenadas, no solapadas y vigentes.",
+        "Calcular con fecha de vencimiento original, no crear vencimientos.",
+        "Aplicar fecha efectiva de reversos y pagos al corte.",
+        "Conciliar total de detalle con resumen y auxiliar.",
+        "Separar saldo a favor/anticipo de vencido."
+      ],
+      "prueba_positiva": "Dado un corte con obligaciones en dos bandas y un anticipo disponible, cuando se consulta, entonces las obligaciones se agrupan por vencimiento original, el anticipo queda separado y la suma concilia con cartera.",
+      "prueba_negativa": "Dado bandas solapadas o una obligación sin fecha requerida, cuando se intenta calcular, entonces el reporte muestra error de preparación y no asigna una banda inventada.",
+      "dependencias_ids": [
+        "XLS-074",
+        "XLS-081",
+        "XLS-083"
+      ],
+      "titulo_original": "Rep. Angitüedad de Cartera",
+      "ruta_menu_original": "CxC > Reportes > Rep. Angitüedad de Cartera",
+      "ruta_react": "/cxc/reportes/rep-angituedad-de-cartera",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Calcular antigüedad al corte por vencimiento original en bandas configurables; separar anticipos y saldos a favor.",
+      "pruebas_ids": [
+        "T-UI-XLS-080",
+        "T-PROC-XLS-080",
+        "T-NEG-XLS-080"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-081",
+      "fila": 121,
+      "celda": "D121",
+      "texto_original": "Rep. Cartera de Clientes",
+      "ruta_original": "CxC > Reportes > Rep. Cartera de Clientes",
+      "objetivo": "Mostrar la cartera de clientes por tercero y, si existe el módulo opcional, por unidad/condominio, conciliando el total con el mayor. Los campos inmobiliarios deben ser filtros/enlaces opcionales y no requisitos del núcleo.",
+      "diseno_visible": "Reporte jerárquico tercero → obligaciones → dimensión opcional de inmueble, con selector de incluir contexto inmobiliario solo cuando esté habilitado. Encabezado muestra corte, moneda y empresa; tabla incluye saldos, aplicaciones, ajustes, anticipos separados y enlaces a origen, asiento y unidad cuando corresponda.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Corte obligatorio."
+        },
+        {
+          "nombre": "tercero",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Filtro opcional."
+        },
+        {
+          "nombre": "condominio/unidad",
+          "tipo": "selector opcional",
+          "obligatorio": false,
+          "validacion": "Visible solo con módulo habilitado."
+        },
+        {
+          "nombre": "estado cartera",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Abierta, parcial, saldada, reversada."
+        },
+        {
+          "nombre": "origen",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Fiscal/no fiscal/migración."
+        },
+        {
+          "nombre": "incluir anticipos",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Sección separada."
+        },
+        {
+          "nombre": "conciliación mayor",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Exige cuentas y diferencias visibles."
+        }
+      ],
+      "columnas": [
+        "Tercero",
+        "Unidad/condominio opcional",
+        "Documentos",
+        "Original",
+        "Aplicado",
+        "Ajustes",
+        "Saldo",
+        "Anticipo",
+        "Diferencia mayor"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Genera cartera jerárquica al corte",
+          "permiso": "reportes.cxc.portfolio.consultar"
+        },
+        {
+          "etiqueta": "Conciliar mayor",
+          "resultado": "Muestra total auxiliar, mayor y diferencias",
+          "permiso": "reportes.cxc.portfolio.conciliar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Entrega detalle y resumen con snapshot",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir origen",
+          "resultado": "Navega a documento, obligación o asiento",
+          "permiso": "reportes.navegar_origen"
+        },
+        {
+          "etiqueta": "Abrir unidad",
+          "resultado": "Navega a contexto vertical si existe",
+          "permiso": "reportes.navegar_property"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Preparando",
+        "Listo",
+        "Sin resultados",
+        "Diferencia detectada",
+        "Exportando"
+      ],
+      "impacto_datos_contables": "Es consulta. La cartera se deriva del auxiliar canónico; la dimensión de inmueble solo agrega enlace y agrupación validada por extensión, nunca saldo manual. Anticipos se presentan aparte. La conciliación muestra diferencias en vez de ocultarlas y no publica ajustes automáticamente.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxc/customer-portfolio",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/receivables/items",
+        "GET /api/v1/reports/reconciliation/general-ledger"
+      ],
+      "validaciones": [
+        "No exigir condominium_id ni property_unit_id en núcleo.",
+        "Filtrar dimensión opcional solo con autorización de módulo.",
+        "Conciliar detalle, auxiliar y mayor al mismo corte.",
+        "Separar anticipos y saldos a favor.",
+        "Bloquear exportación cruzada de empresas."
+      ],
+      "prueba_positiva": "Dado un cliente con factura, cobro parcial y anticipo, sin inmuebles habilitados, cuando se consulta, entonces la cartera funciona sin campos inmobiliarios, muestra saldo y anticipo separados y concilia con el mayor.",
+      "prueba_negativa": "Dado un filtro de unidad con módulo deshabilitado, cuando se consulta, entonces se rechaza el filtro con mensaje de configuración y el reporte general sigue disponible sin exigir esa dimensión.",
+      "dependencias_ids": [
+        "XLS-059",
+        "XLS-061",
+        "XLS-080",
+        "XLS-083"
+      ],
+      "titulo_original": "Rep. Cartera de Clientes",
+      "ruta_menu_original": "CxC > Reportes > Rep. Cartera de Clientes",
+      "ruta_react": "/cxc/reportes/rep-cartera-de-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar cartera por tercero/unidad/condominio y conciliar total con mayor.",
+      "pruebas_ids": [
+        "T-UI-XLS-081",
+        "T-PROC-XLS-081",
+        "T-NEG-XLS-081"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-082",
+      "fila": 122,
+      "celda": "D122",
+      "texto_original": "Rep. Recaudaciones",
+      "ruta_original": "CxC > Reportes > Rep. Recaudaciones",
+      "objetivo": "Mostrar recaudaciones y aplicaciones por fecha, caja/banco y estado, con totales de recibido/aplicado/anticipo y acceso al recibo. El reporte es de consulta y debe distinguir reversos sin volver a contabilizar.",
+      "diseno_visible": "Reporte con intervalo y corte, filtros por medio, caja, banco, cliente, responsable y estado. Tabla de recibos con desglose de aplicaciones y reversos; panel de totales concilia con movimientos publicados y enlace directo a reimpresión o detalle original.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "desde/hasta",
+          "tipo": "rango",
+          "obligatorio": true,
+          "validacion": "Intervalo válido."
+        },
+        {
+          "nombre": "caja/banco",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "Cuenta o canal del medio."
+        },
+        {
+          "nombre": "cliente",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Filtro opcional."
+        },
+        {
+          "nombre": "medio",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Caja, transferencia, depósito, cheque."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Confirmado, parcial, anticipo, reversado."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Para saldos efectivos."
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Exportación igual a pantalla."
+        }
+      ],
+      "columnas": [
+        "Recibo",
+        "Fecha",
+        "Cliente",
+        "Medio",
+        "Caja/banco",
+        "Recibido",
+        "Aplicado",
+        "Anticipo",
+        "Reversos",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula recaudaciones y aplicaciones",
+          "permiso": "reportes.cxc.recaudaciones.consultar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Entrega archivo con totales conciliables",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir recibo",
+          "resultado": "Navega al origen y dependencias",
+          "permiso": "reportes.navegar_origen"
+        },
+        {
+          "etiqueta": "Reimprimir",
+          "resultado": "Lleva a pantalla dedicada sin contabilizar",
+          "permiso": "reportes.reimpresion"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Preparando",
+        "Listo",
+        "Sin resultados",
+        "Exportando",
+        "Error de conciliación"
+      ],
+      "impacto_datos_contables": "No genera asientos. Presenta recaudación original, aplicaciones y anticipos según fecha efectiva; reversos se muestran como eventos enlazados y no como un nuevo cobro. Los totales deben conciliar con recibos confirmados y mayor/caja/banco conforme al filtro, con diferencias visibles.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxc/collections",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/receipts/{id}",
+        "GET /api/v1/receipts/{id}/reprints"
+      ],
+      "validaciones": [
+        "Exigir fechas y empresa.",
+        "Separar cobro confirmado de cheque no compensado.",
+        "Aplicar reversos según fecha efectiva.",
+        "Verificar totales de medios contra recibos.",
+        "Mantener navegación con permisos y no reejecutar acciones."
+      ],
+      "prueba_positiva": "Dado un periodo con cobro aplicado, anticipo y un recibo reversado, cuando se consulta, entonces se muestran sus componentes separados, los totales concilian y cada fila abre el recibo sin crear un nuevo movimiento.",
+      "prueba_negativa": "Dado que el filtro solicita una caja de otra empresa, cuando se consulta, entonces se deniega el acceso y el reporte no revela filas ni totales parciales.",
+      "dependencias_ids": [
+        "XLS-061",
+        "XLS-062",
+        "XLS-063",
+        "XLS-064"
+      ],
+      "titulo_original": "Rep. Recaudaciones",
+      "ruta_menu_original": "CxC > Reportes > Rep. Recaudaciones",
+      "ruta_react": "/cxc/reportes/rep-recaudaciones",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar recaudaciones y aplicaciones por fecha, caja/banco y estado con acceso al recibo.",
+      "pruebas_ids": [
+        "T-UI-XLS-082",
+        "T-PROC-XLS-082",
+        "T-NEG-XLS-082"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-083",
+      "fila": 123,
+      "celda": "D123",
+      "texto_original": "Rep. Saldo Anticipo de Clientes",
+      "ruta_original": "CxC > Reportes > Rep. Saldo Anticipo de Clientes",
+      "objetivo": "Mostrar el saldo de anticipos recibidos, aplicados y disponibles por cliente a una fecha de corte, con desglose por origen y navegación a cruces, reversos y recibos. No mezclar anticipos con ingresos ni cartera vencida.",
+      "diseno_visible": "Reporte por cliente con tarjetas recibido/aplicado/disponible y tabla de movimientos de anticipo al corte. Filtros por fecha, origen, estado y cliente; cada línea enlaza a recibo, cruce, reverso y asiento. Mostrar diferencias de conciliación si el saldo cacheado no coincide con el cálculo canónico.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "fecha de corte",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "Corte explícito."
+        },
+        {
+          "nombre": "cliente",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Filtro opcional."
+        },
+        {
+          "nombre": "origen",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Cobro, migración, reverso."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Disponible, aplicado, reversado."
+        },
+        {
+          "nombre": "incluir movimientos",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Detalle histórico al corte."
+        },
+        {
+          "nombre": "moneda",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Moneda de empresa."
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Snapshot igual a pantalla."
+        }
+      ],
+      "columnas": [
+        "Cliente",
+        "Recibido",
+        "Aplicado",
+        "Reversado",
+        "Disponible",
+        "Último movimiento",
+        "Origen",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Calcula saldo recibido/aplicado/disponible",
+          "permiso": "reportes.cxc.advances.consultar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Genera archivo con detalle y totales",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir recibo",
+          "resultado": "Navega al origen del anticipo",
+          "permiso": "reportes.navegar_origen"
+        },
+        {
+          "etiqueta": "Abrir cruce/reverso",
+          "resultado": "Navega al proceso específico",
+          "permiso": "reportes.navegar_anticipo"
+        },
+        {
+          "etiqueta": "Conciliar",
+          "resultado": "Muestra diferencia entre derivación y cache",
+          "permiso": "reportes.conciliar"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Preparando",
+        "Listo",
+        "Sin resultados",
+        "Diferencia detectada",
+        "Exportando"
+      ],
+      "impacto_datos_contables": "No genera asiento ni saldo manual. El disponible se deriva de anticipos recibidos, cruces y reversos efectivos al corte; se separa del saldo de documentos. Si existe caché versionada, se compara y se muestra la diferencia para corrección técnica, no se edita desde el reporte.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxc/customer-advance-balances",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/customer-advances",
+        "GET /api/v1/advance-crossings"
+      ],
+      "validaciones": [
+        "Calcular con fecha efectiva y snapshot al corte.",
+        "No incluir cobros anulados como disponibles.",
+        "Conciliar recibido-aplicado-reversado.",
+        "Separar clientes y empresas.",
+        "Navegar en modo consulta a operaciones con permisos."
+      ],
+      "prueba_positiva": "Dado un cliente con anticipo recibido 100, cruce 40 y reverso 10 efectivo al corte, cuando se consulta, entonces el reporte muestra recibido, aplicado y disponible derivados, con enlaces a cada evento y sin mezclarlo con cartera vencida.",
+      "prueba_negativa": "Dado un saldo solicitado para una fecha anterior a un evento futuro, cuando se consulta, entonces el evento futuro se excluye y el resultado no usa el saldo actual ni inventa una aplicación.",
+      "dependencias_ids": [
+        "XLS-061",
+        "XLS-065",
+        "XLS-066",
+        "XLS-067"
+      ],
+      "titulo_original": "Rep. Saldo Anticipo de Clientes",
+      "ruta_menu_original": "CxC > Reportes > Rep. Saldo Anticipo de Clientes",
+      "ruta_react": "/cxc/reportes/rep-saldo-anticipo-de-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar anticipo recibido/aplicado/disponible por cliente a fecha de corte.",
+      "pruebas_ids": [
+        "T-UI-XLS-083",
+        "T-PROC-XLS-083",
+        "T-NEG-XLS-083"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    },
+    {
+      "id": "XLS-084",
+      "fila": 124,
+      "celda": "D124",
+      "texto_original": "Rep. Cruce de Anticipo Clientes",
+      "ruta_original": "CxC > Reportes > Rep. Cruce de Anticipo Clientes",
+      "objetivo": "Mostrar la trazabilidad de cruces de anticipos de clientes, documentos afectados, usuarios, fechas, importes y reversos. El reporte debe permitir auditar el recorrido completo sin ejecutar nuevamente la aplicación.",
+      "diseno_visible": "Reporte de auditoría con filtros por cliente, anticipo, documento, fecha, actor y estado. Tabla principal de cruces y panel expandible de líneas, asiento, versión, aprobaciones y reversos; enlaces a pantallas dedicadas de cruce/anulación, siempre en modo consulta al navegar desde el informe.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada."
+        },
+        {
+          "nombre": "desde/hasta",
+          "tipo": "rango",
+          "obligatorio": true,
+          "validacion": "Intervalo de eventos."
+        },
+        {
+          "nombre": "cliente",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Filtro opcional."
+        },
+        {
+          "nombre": "anticipo/documento",
+          "tipo": "búsqueda",
+          "obligatorio": false,
+          "validacion": "Identificador de origen o destino."
+        },
+        {
+          "nombre": "actor",
+          "tipo": "selector",
+          "obligatorio": false,
+          "validacion": "Usuario con eventos."
+        },
+        {
+          "nombre": "estado",
+          "tipo": "multiselección",
+          "obligatorio": false,
+          "validacion": "Aplicado, parcial, reversado, rechazado."
+        },
+        {
+          "nombre": "incluir reversos",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "validacion": "Muestra cadena completa."
+        },
+        {
+          "nombre": "formato",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Exportación con mismos filtros."
+        }
+      ],
+      "columnas": [
+        "Cruce",
+        "Fecha",
+        "Cliente",
+        "Anticipo",
+        "Documento afectado",
+        "Aplicado",
+        "Actor",
+        "Aprobaciones",
+        "Reverso",
+        "Estado"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Consultar",
+          "resultado": "Genera trazabilidad completa al corte/intervalo",
+          "permiso": "reportes.cxc.advance-crossings.consultar"
+        },
+        {
+          "etiqueta": "Expandir cadena",
+          "resultado": "Muestra origen, aplicación y reverso",
+          "permiso": "reportes.cxc.advance-crossings.consultar"
+        },
+        {
+          "etiqueta": "Exportar",
+          "resultado": "Entrega auditoría con snapshot",
+          "permiso": "reportes.exportar"
+        },
+        {
+          "etiqueta": "Abrir origen",
+          "resultado": "Navega a anticipo/documento en consulta",
+          "permiso": "reportes.navegar_origen"
+        },
+        {
+          "etiqueta": "Abrir reverso",
+          "resultado": "Navega al proceso de anulación",
+          "permiso": "reportes.navegar_reverso"
+        }
+      ],
+      "pasos_proceso": [
+        "Seleccionar empresa y localizar el registro, lote o documento de origen.",
+        "Capturar los datos propios de la operación y adjuntar soportes cuando correspondan.",
+        "Validar identidad, periodo, saldos, duplicidad, configuración y permisos en backend.",
+        "Solicitar o completar la aprobación requerida conservando versión y evidencia.",
+        "Aplicar el efecto de negocio de forma idempotente, atómica y trazable.",
+        "Consultar el resultado, estados, auditoría y navegación al origen relacionado."
+      ],
+      "estados": [
+        "Preparando",
+        "Listo",
+        "Sin resultados",
+        "Exportando",
+        "Error de integridad"
+      ],
+      "impacto_datos_contables": "Es un reporte sin efecto contable. Lee settlement_application, anticipos, documentos y reversos enlazados; muestra importes y estados sin recalcular ni publicar. Permite conciliar total aplicado y restituido, y evidencia diferencias de integridad para investigación. La exportación conserva el snapshot y permisos de consulta.",
+      "api_propuesta": [
+        "GET /api/v1/reports/cxc/advance-crossings",
+        "POST /api/v1/report-exports",
+        "GET /api/v1/advance-crossings/{id}",
+        "GET /api/v1/advance-crossings/{id}/history"
+      ],
+      "validaciones": [
+        "Exigir intervalo o corte y empresa.",
+        "Verificar que cada cruce tenga origen/destino inequívocos.",
+        "Mostrar reverso enlazado sin duplicarlo como cruce nuevo.",
+        "Restringir datos por tenant/empresa y actor autorizado.",
+        "No habilitar confirmar/anular desde el reporte."
+      ],
+      "prueba_positiva": "Dado un cruce aplicado y luego revertido, cuando se consulta con incluir reversos, entonces aparece la cadena anticipo-documento-reverso, sus aprobadores y totales conciliables, con enlaces de solo lectura.",
+      "prueba_negativa": "Dado un intento de invocar una acción de confirmación desde una URL del reporte, cuando el backend recibe la solicitud sin permiso transaccional, entonces la rechaza y conserva el reporte sin efecto contable.",
+      "dependencias_ids": [
+        "XLS-065",
+        "XLS-067",
+        "XLS-083"
+      ],
+      "titulo_original": "Rep. Cruce de Anticipo Clientes",
+      "ruta_menu_original": "CxC > Reportes > Rep. Cruce de Anticipo Clientes",
+      "ruta_react": "/cxc/reportes/rep-cruce-de-anticipo-clientes",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Mostrar trazabilidad de cruces de anticipo cliente, documentos afectados y reversos.",
+      "pruebas_ids": [
+        "T-UI-XLS-084",
+        "T-PROC-XLS-084",
+        "T-NEG-XLS-084"
+      ],
+      "modulo": "CxC",
+      "nivel": 4
+    }
+  ]
+}

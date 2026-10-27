@@ -1,0 +1,317 @@
+{
+  "version": "2.0",
+  "modulo": "Configuración General",
+  "estado": "ESPECIFICACIÓN; no auditado ni ejecutado",
+  "pantallas": [
+    {
+      "id": "XLS-100",
+      "fila": 150,
+      "celda": "C150",
+      "texto_original": "Configuración Empresa",
+      "ruta_original": "Configuración General > Configuración Empresa",
+      "objetivo": "Registrar empresa, RUC o identificación, perfil fiscal, ejercicio, políticas y módulos por empresa. El núcleo debe funcionar sin condominio, inmueble ni alícuota; PROPERTY_MANAGEMENT es opcional y su desactivación conserva historia.",
+      "diseno_visible": "Pantalla propia desde el menú original y URL derivada por el padre, sin fusionarla. Formulario en Identidad, Perfil fiscal, Ejercicio/políticas y Módulos. Encabezado con empresa activa, versión, estado y responsable. Muestra vista previa de cambios, estados de carga/error/vacío, historial y estado ENABLED/READ_ONLY/DISABLED del módulo inmobiliario.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa activa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa del tenant y alcance del usuario."
+        },
+        {
+          "nombre": "razón social",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "No vacío; conserva versiones."
+        },
+        {
+          "nombre": "RUC o identificación",
+          "tipo": "texto",
+          "obligatorio": true,
+          "validacion": "Único por tenant; admite identificación extranjera."
+        },
+        {
+          "nombre": "nombre comercial",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "No reemplaza razón social histórica."
+        },
+        {
+          "nombre": "dirección fiscal",
+          "tipo": "objeto",
+          "obligatorio": true,
+          "validacion": "Dirección estructurada y país requerido."
+        },
+        {
+          "nombre": "moneda base",
+          "tipo": "selector ISO",
+          "obligatorio": true,
+          "validacion": "Una moneda; cambio con aprobación."
+        },
+        {
+          "nombre": "perfil fiscal",
+          "tipo": "selector versionado",
+          "obligatorio": true,
+          "validacion": "Vigencia sin solapamiento; sin tasas hardcodeadas."
+        },
+        {
+          "nombre": "calidades tributarias",
+          "tipo": "multi-selector",
+          "obligatorio": false,
+          "validacion": "Cada calidad lleva vigencia y evidencia."
+        },
+        {
+          "nombre": "inicio del ejercicio",
+          "tipo": "fecha",
+          "obligatorio": true,
+          "validacion": "No reabre períodos cerrados."
+        },
+        {
+          "nombre": "políticas contables",
+          "tipo": "parámetros",
+          "obligatorio": true,
+          "validacion": "Versionadas y aprobables."
+        },
+        {
+          "nombre": "módulo inmobiliario",
+          "tipo": "estado",
+          "obligatorio": true,
+          "validacion": "Solo ENABLED, READ_ONLY o DISABLED."
+        },
+        {
+          "nombre": "fecha y motivo del cambio",
+          "tipo": "fecha y texto",
+          "obligatorio": true,
+          "validacion": "Requeridos para cambio de módulo."
+        }
+      ],
+      "columnas": [
+        "Empresa",
+        "RUC",
+        "Perfil fiscal",
+        "Ejercicio",
+        "Módulo inmobiliario",
+        "Versión",
+        "Última modificación"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Editar borrador",
+          "resultado": "Crea versión no publicada.",
+          "permiso": "configuration.company.edit"
+        },
+        {
+          "etiqueta": "Previsualizar impacto",
+          "resultado": "Muestra diferencias y tareas.",
+          "permiso": "configuration.company.view_impact"
+        },
+        {
+          "etiqueta": "Aprobar y publicar",
+          "resultado": "Activa versión y auditoría.",
+          "permiso": "configuration.company.approve"
+        },
+        {
+          "etiqueta": "Activar/desactivar módulo",
+          "resultado": "Cambia estado sin borrar historia.",
+          "permiso": "configuration.modules.manage"
+        },
+        {
+          "etiqueta": "Ver historial",
+          "resultado": "Consulta versiones en solo lectura.",
+          "permiso": "configuration.audit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "1. Seleccionar empresa autorizada y cargar versión vigente.",
+        "2. Capturar identidad, perfil, ejercicio, políticas y módulos.",
+        "3. Validar vigencias, permisos, períodos y vista previa.",
+        "4. Aprobar con segregación cuando la política lo exija.",
+        "5. Publicar versión, auditoría y evento de cambio.",
+        "6. Consultar resultado; históricos conservan su snapshot."
+      ],
+      "estados": [
+        "business_status: DRAFT/PENDING_APPROVAL/ACTIVE",
+        "module_status: ENABLED/READ_ONLY/DISABLED",
+        "accounting_status: NOT_APPLICABLE",
+        "tax_status: NOT_APPLICABLE",
+        "historical_access: READ_ONLY cuando corresponda"
+      ],
+      "impacto_datos_contables": "No crea asientos. Cambios fiscales/políticas son versionados y no alteran comprobantes históricos. Desactivar inmuebles bloquea nuevas escrituras verticales, pero conserva cargos, cobros, enlaces y auditoría; cartera, bancos, cierres y reportes generales no requieren dimensiones inmobiliarias.",
+      "api_propuesta": [
+        "GET /api/v1/companies/{company_id}/configuration",
+        "PUT /api/v1/companies/{company_id}/configuration/drafts",
+        "POST /api/v1/companies/{company_id}/configuration/impact-preview",
+        "POST /api/v1/companies/{company_id}/configuration/approve",
+        "PATCH /api/v1/companies/{company_id}/modules/{code}",
+        "GET /api/v1/companies/{company_id}/configuration/audit"
+      ],
+      "validaciones": [
+        "RLS, tenant, empresa, rol y permiso se validan en backend.",
+        "Vigencias sin solapamiento; tasas nunca constantes en código.",
+        "Desactivación exige impacto, motivo y versión esperada.",
+        "Núcleo operable sin campos inmobiliarios obligatorios.",
+        "Publicación registra actor, hash, motivo y request_id."
+      ],
+      "prueba_positiva": "Dado un administrador autorizado, cuando publica una nueva vigencia fiscal con módulo inmobiliario opcional, entonces la versión queda auditable y los históricos no cambian.",
+      "prueba_negativa": "Dado un usuario sin permiso, cuando intenta desactivar o activar el módulo sin motivo, entonces recibe rechazo y no se modifican datos.",
+      "dependencias_ids": [],
+      "titulo_original": "Configuración Empresa",
+      "ruta_menu_original": "Configuración General > Configuración Empresa",
+      "ruta_react": "/configuracion-general/configuracion-empresa",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Registrar empresa/RUC/perfil fiscal/ejercicio/políticas/módulos; condominio solo con extensión; apagar no borra historia ni bloquea cartera general.",
+      "pruebas_ids": [
+        "T-UI-XLS-100",
+        "T-PROC-XLS-100",
+        "T-NEG-XLS-100"
+      ],
+      "modulo": "Configuración General",
+      "nivel": 3
+    },
+    {
+      "id": "XLS-101",
+      "fila": 151,
+      "celda": "C151",
+      "texto_original": "Certificado Digital",
+      "ruta_original": "Configuración General > Certificado Digital",
+      "objetivo": "Cargar, probar y custodiar la referencia cifrada de un certificado digital, controlar acceso y alertar caducidad sin exponer archivo ni contraseña. La configuración no simula producción ni bloquea la contabilidad general.",
+      "diseno_visible": "Pantalla propia desde el menú original y URL derivada por el padre. Encabezado con empresa, ambiente, estado, alias, vencimiento y última prueba. Formulario de carga/rotación con archivo y secreto no recuperable; panel de prueba, alertas configurables e historial redactado. Nunca permite descargar material en claro.",
+      "filtros_campos": [
+        {
+          "nombre": "empresa activa",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "Empresa autorizada y permiso específico."
+        },
+        {
+          "nombre": "archivo del certificado",
+          "tipo": "multipart cifrado",
+          "obligatorio": true,
+          "validacion": "Formato, tamaño, hash y objeto cifrado."
+        },
+        {
+          "nombre": "contraseña",
+          "tipo": "secreto",
+          "obligatorio": true,
+          "validacion": "Nunca se devuelve ni registra."
+        },
+        {
+          "nombre": "ambiente",
+          "tipo": "selector",
+          "obligatorio": true,
+          "validacion": "TEST o PRODUCTION según autorización."
+        },
+        {
+          "nombre": "alias",
+          "tipo": "texto",
+          "obligatorio": false,
+          "validacion": "Solo identificación humana; sin secretos."
+        },
+        {
+          "nombre": "vencimiento",
+          "tipo": "fecha solo lectura",
+          "obligatorio": false,
+          "validacion": "Extraído tras validar metadatos."
+        },
+        {
+          "nombre": "umbral de alerta",
+          "tipo": "entero configurable",
+          "obligatorio": true,
+          "validacion": "Positivo y sujeto a política."
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto largo",
+          "obligatorio": true,
+          "validacion": "Requerido para carga, rotación o baja."
+        }
+      ],
+      "columnas": [
+        "Empresa",
+        "Alias",
+        "Ambiente",
+        "Estado",
+        "Vencimiento",
+        "Última prueba",
+        "Último error"
+      ],
+      "acciones": [
+        {
+          "etiqueta": "Cargar/rotar",
+          "resultado": "Crea referencia cifrada y conserva historial.",
+          "permiso": "security.certificate.manage"
+        },
+        {
+          "etiqueta": "Probar firma",
+          "resultado": "Prueba controlada sin emisión real.",
+          "permiso": "security.certificate.test"
+        },
+        {
+          "etiqueta": "Revalidar",
+          "resultado": "Comprueba integridad y vigencia.",
+          "permiso": "security.certificate.read"
+        },
+        {
+          "etiqueta": "Deshabilitar uso",
+          "resultado": "Bloquea nuevas firmas y conserva evidencia.",
+          "permiso": "security.certificate.manage"
+        },
+        {
+          "etiqueta": "Ver auditoría",
+          "resultado": "Consulta eventos con secretos redactados.",
+          "permiso": "security.audit.read"
+        }
+      ],
+      "pasos_proceso": [
+        "1. Confirmar empresa, permiso y reautenticación.",
+        "2. Cargar archivo, secreto, ambiente y motivo.",
+        "3. Validar formato, cadena, metadatos y vigencia.",
+        "4. Ejecutar prueba de firma no productiva.",
+        "5. Aprobar y activar referencia cifrada si aplica.",
+        "6. Rotar o deshabilitar conservando intentos e historial."
+      ],
+      "estados": [
+        "business_status: UNCONFIGURED/VALIDATING/VALID",
+        "business_status: EXPIRING/EXPIRED/REVOKED/ERROR",
+        "accounting_status: NOT_APPLICABLE",
+        "tax_status: NOT_APPLICABLE para configuración",
+        "document_tax_status: SIGNED/SUBMITTED/AUTHORIZED/REJECTED separado"
+      ],
+      "impacto_datos_contables": "Carga, rotación, prueba y baja no crean asientos ni reimprimen documentos. Un certificado inválido bloquea firma tributaria nueva, pero no borra ni revierte contabilidad previa. XML y respuestas autorizadas se conservan como artefactos versionados; la prueba no es emisión y la anulación fiscal no se presume API pública.",
+      "api_propuesta": [
+        "GET /api/v1/companies/{company_id}/digital-certificate",
+        "POST /api/v1/companies/{company_id}/digital-certificate/validate",
+        "POST /api/v1/companies/{company_id}/digital-certificate/sign-test",
+        "POST /api/v1/companies/{company_id}/digital-certificate/rotate",
+        "POST /api/v1/companies/{company_id}/digital-certificate/disable",
+        "GET /api/v1/companies/{company_id}/digital-certificate/audit"
+      ],
+      "validaciones": [
+        "Cifrado, secreto gestionado y logs redactados.",
+        "Permiso, empresa, MFA y auditoría para acciones sensibles.",
+        "Hash, cadena, metadatos y vencimiento antes de VALID.",
+        "Idempotencia evita certificados activos o efectos duplicados.",
+        "Prueba no productiva separada de XML, transmisión y autorización."
+      ],
+      "prueba_positiva": "Dado un administrador autorizado con certificado válido, cuando carga y prueba el archivo, entonces queda VALID, cifrado, auditable y sin asiento ni secreto expuesto.",
+      "prueba_negativa": "Dado archivo vencido, secreto incorrecto o usuario no autorizado, cuando intenta activarlo, entonces queda ERROR/EXPIRED o es rechazado sin envío real.",
+      "dependencias_ids": [
+        "XLS-100"
+      ],
+      "titulo_original": "Certificado Digital",
+      "ruta_menu_original": "Configuración General > Certificado Digital",
+      "ruta_react": "/configuracion-general/certificado-digital",
+      "paquete": "ACCOUNTING_CORE",
+      "estado_implementacion": "NO AUDITADO; propuesta pendiente de aprobación",
+      "criterio_excel": "Cargar certificado cifrado, probar firma, controlar acceso y alertar caducidad sin exponer archivo o contraseña.",
+      "pruebas_ids": [
+        "T-UI-XLS-101",
+        "T-PROC-XLS-101",
+        "T-NEG-XLS-101"
+      ],
+      "modulo": "Configuración General",
+      "nivel": 3
+    }
+  ]
+}

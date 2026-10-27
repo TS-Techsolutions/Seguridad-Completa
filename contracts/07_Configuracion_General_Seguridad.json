@@ -1,0 +1,48 @@
+{
+  "module": "Configuración General",
+  "source": "Proyecto Seguridad / nomina / apps / web / src / App.tsx",
+  "screens": [
+    {
+      "title": "Usuarios",
+      "path": "/configuracion-general/usuarios",
+      "description": "Administra las cuentas habilitadas para acceder a la plataforma.",
+      "columns": ["Usuario", "Nombre", "Rol", "Correo", "Estado"],
+      "action": "Nuevo usuario"
+    },
+    {
+      "title": "Roles",
+      "path": "/configuracion-general/roles",
+      "description": "Consulta y administra los grupos utilizados para diferenciar los perfiles de acceso.",
+      "columns": ["Grupo", "Descripción", "Usuarios", "Estado"],
+      "action": "Crear nuevo rol"
+    },
+    {
+      "title": "Permisos",
+      "path": "/configuracion-general/permisos",
+      "description": "Configura las acciones habilitadas para cada rol y pantalla del sistema.",
+      "columns": ["Rol", "Módulo", "Pantalla", "Acción", "Estado"],
+      "action": "Guardar permisos"
+    },
+    {
+      "title": "Compañía",
+      "path": "/configuracion-general/compania",
+      "description": "Administra los datos generales, la identidad visual y la configuración de la empresa.",
+      "columns": ["Compañía", "Identificación", "Correo", "Responsable", "Estado"],
+      "action": "Guardar configuración"
+    },
+    {
+      "title": "Envío de Correos",
+      "path": "/configuracion-general/envio-correos",
+      "description": "Configura el contenido de los correos automáticos enviados por el sistema.",
+      "columns": ["Plantilla", "Asunto", "Evento", "Actualizado por", "Estado"],
+      "action": "Guardar plantillas"
+    },
+    {
+      "title": "Tipo Documento",
+      "path": "/configuracion-general/tipo-documento",
+      "description": "Define los tipos de identificación y las pantallas donde estarán disponibles.",
+      "columns": ["Código", "Tipo", "Descripción", "Disponible en", "Estado"],
+      "action": "Nuevo tipo de documento"
+    }
+  ]
+}
