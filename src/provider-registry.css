@@ -1,0 +1,10 @@
+.provider-financial-box { grid-column: 1 / -1; overflow: hidden; border: 1px solid #d9e0e8; border-radius: .75rem; background: #f9fafc; }
+.provider-financial-box > header { padding: .72rem .85rem; border-bottom: 1px solid #e0e6ec; background: #f4f6f9; }
+.provider-financial-box h3 { margin: 0; color: #3f4c5d; font-size: .72rem; }
+.provider-financial-box header span { display: block; margin-top: .18rem; color: #8792a1; font-size: .58rem; }
+.provider-financial-box > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; padding: .85rem; }
+.provider-financial-box label { display: flex; flex-direction: column; gap: .38rem; color: #4c596b; font-size: .64rem; font-weight: 750; }
+.provider-financial-box input, .provider-financial-box select { width: 100%; height: 2.5rem; padding: 0 .65rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: #fff; font-size: .66rem; }
+.provider-financial-box input:focus, .provider-financial-box select:focus { border-color: #5365e8; box-shadow: 0 0 0 3px #5365e814; outline: 0; }
+@media (max-width: 1050px) { .provider-financial-box > div { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .provider-financial-box { grid-column: auto; } .provider-financial-box > div { grid-template-columns: 1fr; } }

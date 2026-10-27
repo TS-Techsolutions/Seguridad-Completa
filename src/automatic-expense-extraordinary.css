@@ -1,0 +1,45 @@
+.automatic-expense-modal.extraordinary {
+  width: min(760px, 95vw);
+}
+
+.automatic-expense-modal.extraordinary .automatic-expense-fields {
+  grid-template-columns: minmax(0, 1.6fr) minmax(130px, .65fr) minmax(180px, .8fr);
+}
+
+.automatic-expense-fields input[readonly] {
+  color: #344358;
+  background: #f1f4f7;
+  font-weight: 800;
+}
+
+.extraordinary-installment-note {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: -.15rem;
+  padding: .55rem .7rem;
+  border: 1px solid #dce2ea;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #657386;
+  font-size: .62rem;
+}
+
+.extraordinary-installment-note strong {
+  color: #3e4e62;
+  font-size: .68rem;
+}
+
+@media (max-width: 700px) {
+  .automatic-expense-modal.extraordinary .automatic-expense-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .extraordinary-installment-note {
+    grid-column: auto;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

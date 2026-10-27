@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity, Archive, ArrowRight, Bell, BookOpen, BriefcaseBusiness, Building2, ChevronDown, ChevronRight, CircleDollarSign,
-  Database, FileCheck2, FileDown, FileText, Filter, Landmark, LayoutGrid, LockKeyhole, Mail, Menu, Pencil,
+  Database, FileCheck2, FileText, Filter, Landmark, LayoutGrid, LockKeyhole, Mail, Menu, Pencil,
   Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, UserRound, X
 } from 'lucide-react'
 import { api } from './api'
@@ -17,17 +17,21 @@ import { PropertyDetailPageV2 } from './PropertyDetailPageV2'
 import { PropertyOwnerSummaryPage } from './PropertyOwnerSummaryPage'
 import { PropertyOwnerHistoryPage } from './PropertyOwnerHistoryPage'
 import { CustomerRegistryPage, ProviderRegistryPage } from './CustomerRegistryPage'
+import { SupplierGroupPage } from './SupplierGroupPage'
 import { RecipientConfigurationPage } from './RecipientConfigurationPage'
 import { EmailCenterPage } from './EmailCenterPage'
 import { BulletinPage } from './BulletinPage'
 import { EmailTemplatePage } from './OrdinaryExpenseEmailTemplatePage'
 import { AccountPlanMigrationPage } from './AccountPlanMigrationPage'
 import { AutomaticExpenseGenerationPage } from './AutomaticExpenseGenerationPage'
+import { ExpenseGeneralConsultationPage } from './ExpenseGeneralConsultationPage'
+import { MassExpenseVoidPage } from './MassExpenseVoidPage'
 import { AccountPlanPage } from './AccountPlanPage'
 import { ExpenseDesignPage } from './ExpenseDesignPage'
 import { ExpenseItemsPage } from './ExpenseItemsPage'
 import { AccountingClosurePage } from './AccountingClosurePage'
 import { AccountingVoucherPage } from './AccountingVoucherPage'
+import { ScreenWorkspace } from './ScreenWorkspace'
 import { companySettingsChangedEvent, readCompanyBillingType, type CompanyBillingType } from './operation-date-rules'
 
 const rootIcons:Record<string,typeof Archive>={
@@ -45,18 +49,24 @@ const rootIcons:Record<string,typeof Archive>={
 }
 const statusLabel:Record<string,string>={ACTIVE:'Activo',PENDING:'Pendiente',APPROVED:'Aprobado',DRAFT:'Borrador',POSTED:'Publicado',INACTIVE:'Inactivo',REVERSED:'Reversado',CONFIRMED:'Confirmado',IN_REVIEW:'En revisión'}
 const favoritesKey='saga.favoriteScreens'
+const workspaceTabsKey='saga.workspaceTabs'
+const maximumWorkspaceTabs=12
 const hiddenScreenIds=new Set(['XLS-002','XLS-100'])
 const structureScreenTitle='Definición de Estructura'
 const ownerSummaryScreenTitle='Resumen de Propietarios'
-const propertyAdministrationAdditions=[
+type PropertyAdditionScreen={label:string;slug:string;id?:string}
+type PropertyAdditionGroup={label:string;slug:string;order:number;prefix:string;screens:PropertyAdditionScreen[]}
+const propertyAdministrationAdditions:PropertyAdditionGroup[]=[
   {label:'Expensas',slug:'expensas',order:10.25,prefix:'AI-EXP',screens:[
-    {label:'Generación Automática',slug:'generacion-automatica'},
-    {label:'Generación Individual',slug:'generacion-individual'},
-    {label:'Impresión Expensas',slug:'impresion-expensas'},
-    {label:'Envío Email',slug:'envio-email'},
-    {label:'Consulta General',slug:'consulta-general'},
-    {label:'Generación de Pre-Expensas',slug:'generacion-de-pre-expensas'},
-    {label:'Diseño de Expensas',slug:'diseno-de-expensas'},
+    {id:'AI-EXP-001',label:'Generación Automática Ordinarias',slug:'generacion-automatica'},
+    {id:'AI-EXP-008',label:'Generación Automática Extraordinarias',slug:'generacion-automatica-extraordinarias'},
+    {id:'AI-EXP-002',label:'Generación Individual',slug:'generacion-individual'},
+    {id:'AI-EXP-003',label:'Impresión Expensas',slug:'impresion-expensas'},
+    {id:'AI-EXP-004',label:'Envío Email',slug:'envio-email'},
+    {id:'AI-EXP-005',label:'Consulta General',slug:'consulta-general'},
+    {id:'AI-EXP-006',label:'Generación de Pre-Expensas',slug:'generacion-de-pre-expensas'},
+    {id:'AI-EXP-007',label:'Diseño de Expensas',slug:'diseno-de-expensas'},
+    {id:'AI-EXP-009',label:'Anulación Masiva de Expensas',slug:'anulacion-masiva-de-expensas'},
   ]},
   {label:'Facturas',slug:'facturas',order:10.5,prefix:'AI-FAC',screens:[
     {label:'Generación Automática',slug:'generacion-automatica'},
@@ -75,7 +85,7 @@ function customizeCatalog(data:Catalog):Catalog{
   const taxationNode=data.menu.find(node=>node.level===0&&node.label==='Tributación')
   const taxationOrder=accountingNode?Math.max(0,...data.menu.filter(node=>node.parent_id===accountingNode.node_id).map(node=>node.order))+1:0
   const additionalScreens:ScreenSpec[]=propertyAdministrationAdditions.flatMap(group=>group.screens.map((item,index)=>({
-    id:`${group.prefix}-${String(index+1).padStart(3,'0')}`,
+    id:item.id??`${group.prefix}-${String(index+1).padStart(3,'0')}`,
     titulo_original:item.label,
     texto_original:item.label,
     ruta_original:`Administración Inmuebles > ${group.label} > ${item.label}`,
@@ -85,7 +95,7 @@ function customizeCatalog(data:Catalog):Catalog{
   })))
   const additionalMenu:MenuNode[]=propertyRoot?propertyAdministrationAdditions.flatMap(group=>{
     const groupId=`CUSTOM-${group.prefix}`
-    return [{node_id:groupId,label:group.label,level:1,parent_id:propertyRoot.node_id,order:group.order,breadcrumb:['Administración Inmuebles',group.label],type:'group' as const,screen_id:null,route:null,package:'PROPERTY_MANAGEMENT'},...group.screens.map((item,index)=>({node_id:`${groupId}-${index+1}`,label:item.label,level:2,parent_id:groupId,order:index+1,breadcrumb:['Administración Inmuebles',group.label,item.label],type:'screen' as const,screen_id:`${group.prefix}-${String(index+1).padStart(3,'0')}`,route:`/administracion-inmuebles/${group.slug}/${item.slug}`,package:'PROPERTY_MANAGEMENT'}))]
+    return [{node_id:groupId,label:group.label,level:1,parent_id:propertyRoot.node_id,order:group.order,breadcrumb:['Administración Inmuebles',group.label],type:'group' as const,screen_id:null,route:null,package:'PROPERTY_MANAGEMENT'},...group.screens.map((item,index)=>({node_id:`${groupId}-${index+1}`,label:item.label,level:2,parent_id:groupId,order:index+1,breadcrumb:['Administración Inmuebles',group.label,item.label],type:'screen' as const,screen_id:item.id??`${group.prefix}-${String(index+1).padStart(3,'0')}`,route:`/administracion-inmuebles/${group.slug}/${item.slug}`,package:'PROPERTY_MANAGEMENT'}))]
   }):[]
   return {...data,
     screens:[...data.screens.filter(screen=>!hiddenScreenIds.has(screen.id)).map(screen=>{let moved=['XLS-039','XLS-040'].includes(screen.id)?{...screen,modulo:'CxP',ruta_original:`CxP > Caja Chica > ${screen.titulo_original}`}:screen;if(screen.ruta_original.startsWith('Tributación > '))moved={...moved,modulo:'Contabilidad',ruta_original:`Contabilidad > ${screen.ruta_original}`};return moved.id==='XLS-001'?{...moved,titulo_original:structureScreenTitle,texto_original:structureScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),structureScreenTitle].join(' > ')}:moved.id==='XLS-006'?{...moved,titulo_original:ownerSummaryScreenTitle,texto_original:ownerSummaryScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),ownerSummaryScreenTitle].join(' > ')}:moved}),...additionalScreens],
@@ -97,6 +107,13 @@ function readFavorites(){
   try{const stored=JSON.parse(localStorage.getItem(favoritesKey)??'[]');return Array.isArray(stored)?stored.filter((id):id is string=>typeof id==='string'):[]}
   catch{return []}
 }
+
+function readWorkspaceTabs(){
+  try{const stored=JSON.parse(localStorage.getItem(workspaceTabsKey)??'[]');return Array.isArray(stored)?stored.filter((id):id is string=>typeof id==='string').slice(-maximumWorkspaceTabs):[]}
+  catch{return []}
+}
+
+function normalizeMenuSearch(value:string){return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim()}
 
 export default function App(){
   const catalog=useQuery({queryKey:['catalog'],queryFn:api.catalog,select:customizeCatalog})
@@ -111,14 +128,33 @@ export default function App(){
   const [search,setSearch]=useState('')
   const [favorites,setFavorites]=useState<string[]>(readFavorites)
   const [billingType,setBillingType]=useState<CompanyBillingType>(readCompanyBillingType)
+  const [openScreenIds,setOpenScreenIds]=useState<string[]>(readWorkspaceTabs)
   const favoriteIds=useMemo(()=>new Set(favorites),[favorites])
+  const openScreens=useMemo(()=>{
+    if(!catalog.data)return []
+    const ids=currentScreen&&!openScreenIds.includes(currentScreen.id)?[...openScreenIds,currentScreen.id].slice(-maximumWorkspaceTabs):openScreenIds
+    return ids.map(id=>catalog.data?.screens.find(screen=>screen.id===id)).filter((screen):screen is ScreenSpec=>Boolean(screen))
+  },[catalog.data,currentScreen,openScreenIds])
   const toggleFavorite=(screenId:string)=>setFavorites(current=>current.includes(screenId)?current.filter(id=>id!==screenId):[...current,screenId])
   useEffect(()=>{if(currentScreen)setMenuRoot(currentScreen.ruta_original.split(' > ')[0])},[currentScreen])
+  useEffect(()=>{if(currentScreen)setOpenScreenIds(current=>current.includes(currentScreen.id)?current:[...current,currentScreen.id].slice(-maximumWorkspaceTabs))},[currentScreen])
   useEffect(()=>{localStorage.setItem(favoritesKey,JSON.stringify(favorites))},[favorites])
+  useEffect(()=>{localStorage.setItem(workspaceTabsKey,JSON.stringify(openScreenIds))},[openScreenIds])
+  useEffect(()=>{if(catalog.data)setOpenScreenIds(current=>current.filter(id=>catalog.data?.screens.some(screen=>screen.id===id)).slice(-maximumWorkspaceTabs))},[catalog.data])
   useEffect(()=>{const refresh=(event:Event)=>{const detail=(event as CustomEvent<{billingType?:CompanyBillingType}>).detail;setBillingType(detail?.billingType??readCompanyBillingType())};window.addEventListener(companySettingsChangedEvent,refresh);window.addEventListener('storage',refresh);return()=>{window.removeEventListener(companySettingsChangedEvent,refresh);window.removeEventListener('storage',refresh)}},[])
   if(catalog.isLoading||context.isLoading)return <Boot/>
   if(catalog.error||!catalog.data||!context.data)return <Fatal/>
-  const filtered=catalog.data.screens.filter(s=>!search||`${s.id} ${s.titulo_original} ${s.ruta_original}`.toLowerCase().includes(search.toLowerCase()))
+  const searchTerm=normalizeMenuSearch(search)
+  const filtered=catalog.data.screens.filter(screen=>!searchTerm||normalizeMenuSearch(`${screen.titulo_original} ${screen.ruta_original}`).includes(searchTerm))
+  const closeWorkspaceTab=(screenId:string)=>{
+    const tabIndex=openScreens.findIndex(screen=>screen.id===screenId)
+    const nextScreens=openScreens.filter(screen=>screen.id!==screenId)
+    setOpenScreenIds(nextScreens.map(screen=>screen.id))
+    if(currentScreen?.id===screenId){
+      const fallback=nextScreens[Math.max(0,Math.min(tabIndex-1,nextScreens.length-1))]
+      navigate(fallback?.ruta_react??'/')
+    }
+  }
   return <div className="workbench">
     <aside className={`security-sidebar ${mobileOpen?'mobile-open':''}`} aria-label="Navegación principal">
       <div className="security-brand"><button onClick={()=>{navigate('/');setMobileOpen(false)}} aria-label="Inicio SAGA"><span>SG</span></button><div><strong>SAGA ERP</strong><small>Gestión empresarial</small></div></div>
@@ -126,11 +162,11 @@ export default function App(){
       <p className="security-eyebrow">ÁREA DE TRABAJO</p>
       <label className="security-search"><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar pantalla"/></label>
       <nav className="security-nav" aria-label="Módulos y pantallas">
-        <button className={`security-root ${location.pathname==='/'?'active':''}`} onClick={()=>{navigate('/');setMobileOpen(false)}}><LayoutGrid/><span>Inicio</span></button>
-        {roots.map(root=>{const Icon=rootIcons[root.label]??Archive;const rootActive=currentScreen?.ruta_original.split(' > ')[0]===root.label;const hasMatches=filtered.some(screen=>screen.ruta_original.startsWith(root.label));const expanded=menuRoot===root.label||(Boolean(search)&&hasMatches);return <section className={`security-module ${rootActive?'has-active':''}`} key={root.node_id}>
+        {searchTerm?<MenuSearchResults screens={filtered} favorites={favoriteIds} billingType={billingType} onToggleFavorite={toggleFavorite} onNavigate={route=>{navigate(route);setSearch('');setMobileOpen(false)}}/>:<><button className={`security-root ${location.pathname==='/'?'active':''}`} onClick={()=>{navigate('/');setMobileOpen(false)}}><LayoutGrid/><span>Inicio</span></button>
+        {roots.map(root=>{const Icon=rootIcons[root.label]??Archive;const rootActive=currentScreen?.ruta_original.split(' > ')[0]===root.label;const expanded=menuRoot===root.label;return <section className={`security-module ${rootActive?'has-active':''}`} key={root.node_id}>
           <button className={`security-root ${rootActive?'active':''}`} onClick={()=>setMenuRoot(current=>current===root.label?null:root.label)} aria-expanded={expanded}><Icon/><span>{root.label}</span><ChevronDown className={expanded?'open':''}/></button>
           {expanded&&<div className="security-module-list"><MenuTree catalog={catalog.data} root={root.label} filtered={filtered} favorites={favoriteIds} billingType={billingType} onToggleFavorite={toggleFavorite} onNavigate={()=>setMobileOpen(false)}/></div>}
-        </section>})}
+        </section>})}</>}
       </nav>
       <div className="security-footer"><SidebarUserAccount name="Jorge" role="Administrador"/></div>
     </aside>
@@ -141,12 +177,23 @@ export default function App(){
         <div className="company-context"><span className="company-symbol">GA</span><div><small>Empresa de validación</small><strong>{context.data.company.name}</strong></div><ChevronDown/></div>
         <div className="workspace-actions"><div className="period-chip"><i/>Periodo {context.data.company.period} abierto</div><button className="bar-button"><Search/></button><button className="bar-button"><Bell/><b/></button><div className="actor">JM</div></div>
       </header>
-      <Routes>
-        <Route path="/" element={<OverviewPage catalog={catalog.data} favorites={favoriteIds} onToggleFavorite={toggleFavorite}/>} />
-        <Route path="*" element={currentScreen?(currentScreen.id.startsWith('SEC-')?<SecurityConfigurationPage screen={currentScreen} catalog={catalog.data}/>:currentScreen.id.startsWith('PI-')?<PersonalInformationPage screen={currentScreen}/>:currentScreen.id.startsWith('HR-')?<HumanTalentPage screen={currentScreen}/>:<ScreenPage screen={currentScreen} billingType={billingType}/>):<NotFound/>}/>
-      </Routes>
+      <WorkspaceTabs screens={openScreens} activeScreenId={currentScreen?.id} homeActive={location.pathname==='/'} onActivate={route=>navigate(route)} onClose={closeWorkspaceTab}/>
+      <div className="workspace-views">
+        <div className="workspace-view" hidden={location.pathname!=='/'}><OverviewPage catalog={catalog.data} favorites={favoriteIds} onToggleFavorite={toggleFavorite}/></div>
+        {openScreens.map(screen=><div className="workspace-view" key={screen.id} hidden={currentScreen?.id!==screen.id}><ScreenWorkspace screen={screen}>{screen.id.startsWith('SEC-')?<SecurityConfigurationPage screen={screen} catalog={catalog.data}/>:screen.id.startsWith('PI-')?<PersonalInformationPage screen={screen}/>:screen.id.startsWith('HR-')?<HumanTalentPage screen={screen}/>:<ScreenPage screen={screen} billingType={billingType}/>}</ScreenWorkspace></div>)}
+        {location.pathname!=='/'&&!currentScreen&&<div className="workspace-view"><NotFound/></div>}
+      </div>
     </main>
   </div>
+}
+
+function MenuSearchResults({screens,favorites,billingType,onToggleFavorite,onNavigate}:{screens:ScreenSpec[];favorites:Set<string>;billingType:CompanyBillingType;onToggleFavorite:(screenId:string)=>void;onNavigate:(route:string)=>void}){
+  if(!screens.length)return <div className="security-search-empty"><Search/><strong>Sin coincidencias</strong><span>Prueba con otro nombre de pantalla.</span></div>
+  return <section className="security-search-results"><header><strong>Resultados</strong><span>{screens.length} {screens.length===1?'pantalla':'pantallas'}</span></header>{screens.map(screen=>{const breadcrumb=screen.ruta_original.split(' > ');const disabled=propertyBillingGroupDisabled(breadcrumb,billingType);const favorite=favorites.has(screen.id);return <div className={`security-search-result ${disabled?'disabled':''}`} key={screen.id}>{disabled?<span className="security-search-result-link"><strong>{screen.titulo_original}</strong><small>{breadcrumb.slice(0,-1).join(' › ')}</small></span>:<button type="button" className="security-search-result-link" onClick={()=>onNavigate(screen.ruta_react)}><strong>{screen.titulo_original}</strong><small>{breadcrumb.slice(0,-1).join(' › ')}</small></button>}<button type="button" className={`favorite-toggle ${favorite?'selected':''}`} disabled={disabled} onClick={()=>onToggleFavorite(screen.id)} aria-label={`${favorite?'Quitar de':'Agregar a'} Pantallas Favoritas: ${screen.titulo_original}`}><Star fill={favorite?'currentColor':'none'}/></button></div>})}</section>
+}
+
+function WorkspaceTabs({screens,activeScreenId,homeActive,onActivate,onClose}:{screens:ScreenSpec[];activeScreenId?:string;homeActive:boolean;onActivate:(route:string)=>void;onClose:(screenId:string)=>void}){
+  return <nav className="workspace-tabs" aria-label="Ventanas abiertas"><button type="button" className={`workspace-home-tab ${homeActive?'active':''}`} onClick={()=>onActivate('/')} aria-label="Ir a Inicio"><LayoutGrid/><span>Inicio</span></button><div className="workspace-tab-scroll">{screens.map(screen=><div key={screen.id} className={`workspace-tab ${activeScreenId===screen.id?'active':''}`}><button type="button" className="workspace-tab-label" onClick={()=>onActivate(screen.ruta_react)} title={screen.ruta_original}><span>{screen.titulo_original}</span></button><button type="button" className="workspace-tab-close" onClick={()=>onClose(screen.id)} aria-label={`Cerrar ${screen.titulo_original}`} title="Cerrar ventana"><X/></button></div>)}</div><span className="workspace-tab-count">{screens.length}/{maximumWorkspaceTabs}</span></nav>
 }
 
 function MenuTree({catalog,root,filtered,favorites,billingType,onToggleFavorite,onNavigate}:{catalog:Catalog;root:string;filtered:ScreenSpec[];favorites:Set<string>;billingType:CompanyBillingType;onToggleFavorite:(screenId:string)=>void;onNavigate?:()=>void}){
@@ -172,7 +219,7 @@ function MenuNodeBranch({node,nodes,visibleScreens,favorites,billingType,onToggl
     if(disabled)return <div className="screen-link-row disabled" aria-disabled="true"><span className="screen-link" style={{paddingLeft:`${8+Math.max(0,node.level-2)*10}px`}}>{node.label}</span><LockKeyhole/></div>
     const isFavorite=Boolean(node.screen_id&&favorites.has(node.screen_id))
     const isActive=node.route===location.pathname
-    return <div className={`screen-link-row ${isActive?'active':''}`}><NavLink to={node.route!} onClick={onNavigate} aria-label={`${node.label} · ${node.screen_id}`} style={{paddingLeft:`${8+Math.max(0,node.level-2)*10}px`}} className="screen-link"><span>{node.screen_id}</span>{node.label}</NavLink><button className={`favorite-toggle ${isFavorite?'selected':''}`} onClick={()=>node.screen_id&&onToggleFavorite(node.screen_id)} aria-label={`${isFavorite?'Quitar de':'Agregar a'} Pantallas Favoritas: ${node.label}`} aria-pressed={isFavorite} title={isFavorite?'Quitar de favoritas':'Agregar a favoritas'}><Star fill={isFavorite?'currentColor':'none'}/></button></div>
+    return <div className={`screen-link-row ${isActive?'active':''}`}><NavLink to={node.route!} onClick={onNavigate} aria-label={node.label} style={{paddingLeft:`${8+Math.max(0,node.level-2)*10}px`}} className="screen-link">{node.label}</NavLink><button className={`favorite-toggle ${isFavorite?'selected':''}`} onClick={()=>node.screen_id&&onToggleFavorite(node.screen_id)} aria-label={`${isFavorite?'Quitar de':'Agregar a'} Pantallas Favoritas: ${node.label}`} aria-pressed={isFavorite} title={isFavorite?'Quitar de favoritas':'Agregar a favoritas'}><Star fill={isFavorite?'currentColor':'none'}/></button></div>
   }
   return <section className={`nav-group tree-group ${disabled?'disabled':''}`}><button disabled={disabled} aria-disabled={disabled} title={disabled?`${node.label} está deshabilitado por el Tipo de Cobro de la compañía`:undefined} style={{paddingLeft:`${8+Math.max(0,node.level-1)*10}px`}} onClick={()=>setOpen(!open)} aria-expanded={disabled?false:open}><span>{node.label}</span>{disabled?<LockKeyhole/>:<ChevronRight className={open?'rotated':''}/>}</button>{!disabled&&open&&<div>{children.map(child=><MenuNodeBranch key={child.node_id} node={child} nodes={nodes} visibleScreens={visibleScreens} favorites={favorites} billingType={billingType} onToggleFavorite={onToggleFavorite} onNavigate={onNavigate}/>)}</div>}</section>
 }
@@ -181,13 +228,13 @@ function OverviewPage({catalog,favorites,onToggleFavorite}:{catalog:Catalog;favo
   const favoriteScreens=catalog.screens.filter(screen=>favorites.has(screen.id))
   return <div className="page overview-page">
     <header className="favorites-header"><span className="overline">Inicio</span><h1>Pantallas Favoritas</h1></header>
-    <section className="panel favorites-panel"><div className="favorites-panel-head"><div><Star fill="currentColor"/><span><strong>Pantallas Favoritas</strong><small>{favoriteScreens.length} {favoriteScreens.length===1?'pantalla guardada':'pantallas guardadas'}</small></span></div></div>{favoriteScreens.length?<div className="favorites-list">{favoriteScreens.map(screen=><div className="favorite-item" key={screen.id}><NavLink to={screen.ruta_react}><span className="favorite-item-icon"><Star fill="currentColor"/></span><span><small>{screen.modulo} · {screen.id}</small><strong>{screen.titulo_original}</strong><em>{screen.ruta_original}</em></span><ArrowRight/></NavLink><button onClick={()=>onToggleFavorite(screen.id)} aria-label={`Quitar de Pantallas Favoritas: ${screen.titulo_original}`} title="Quitar de favoritas"><Star fill="currentColor"/></button></div>)}</div>:<div className="favorites-empty"><Star/><strong>Aún no tienes pantallas favoritas</strong><p>Abre un módulo en el menú y selecciona la estrella de la pantalla que quieras agregar.</p></div>}</section>
+    <section className="panel favorites-panel"><div className="favorites-panel-head"><div><Star fill="currentColor"/><span><strong>Pantallas Favoritas</strong><small>{favoriteScreens.length} {favoriteScreens.length===1?'pantalla guardada':'pantallas guardadas'}</small></span></div></div>{favoriteScreens.length?<div className="favorites-list">{favoriteScreens.map(screen=><div className="favorite-item" key={screen.id}><NavLink to={screen.ruta_react}><span className="favorite-item-icon"><Star fill="currentColor"/></span><span><small>{screen.modulo}</small><strong>{screen.titulo_original}</strong><em>{screen.ruta_original}</em></span><ArrowRight/></NavLink><button onClick={()=>onToggleFavorite(screen.id)} aria-label={`Quitar de Pantallas Favoritas: ${screen.titulo_original}`} title="Quitar de favoritas"><Star fill="currentColor"/></button></div>)}</div>:<div className="favorites-empty"><Star/><strong>Aún no tienes pantallas favoritas</strong><p>Abre un módulo en el menú y selecciona la estrella de la pantalla que quieras agregar.</p></div>}</section>
   </div>
 }
 
 function ScreenPage({screen,billingType}:{screen:ScreenSpec;billingType:CompanyBillingType}){
   if((screen.id.startsWith('AI-EXP-')&&billingType==='FACTURACION')||(screen.id.startsWith('AI-FAC-')&&billingType==='EXPENSAS'))return <DisabledBillingModulePage screen={screen} billingType={billingType}/>
-  return screen.id==='AI-EXP-001'?<AutomaticExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-007'?<ExpenseDesignPage screen={screen}/>:screen.id.startsWith('AI-EXP-')||screen.id.startsWith('AI-FAC-')?<AddedPropertyScreen screen={screen}/>:screen.id==='XLS-001'?<PropertyTypePage screen={screen}/>:screen.id==='XLS-003'?<SectionPage screen={screen}/>:screen.id==='XLS-004'?<ExpenseItemsPage screen={screen}/>:screen.id==='XLS-005'?<PropertyDetailPageV2 screen={screen}/>:screen.id==='XLS-006'?<PropertyOwnerSummaryPage screen={screen}/>:screen.id==='XLS-008'?<PropertyOwnerHistoryPage screen={screen}/>:screen.id==='XLS-009'?<RecipientConfigurationPage screen={screen}/>:screen.id==='XLS-010'?<EmailCenterPage screen={screen}/>:screen.id==='XLS-011'?<BulletinPage screen={screen}/>:['XLS-012','XLS-013','XLS-014','XLS-015'].includes(screen.id)?<EmailTemplatePage key={screen.id} screen={screen}/>:screen.id==='XLS-025'?<AccountPlanPage screen={screen}/>:screen.id==='XLS-026'?<AccountPlanMigrationPage screen={screen}/>:screen.id==='XLS-027'?<AccountingVoucherPage screen={screen}/>:screen.id==='XLS-038'?<AccountingClosurePage screen={screen}/>:screen.id==='XLS-059'?<CustomerRegistryPage screen={screen}/>:screen.id==='XLS-042'?<ProviderRegistryPage screen={screen}/>:<GenericScreenPage screen={screen}/>
+  return screen.id==='AI-EXP-001'?<AutomaticExpenseGenerationPage screen={screen} recurrence="NORMAL"/>:screen.id==='AI-EXP-008'?<AutomaticExpenseGenerationPage screen={screen} recurrence="EXTRAORDINARIA"/>:screen.id==='AI-EXP-005'?<ExpenseGeneralConsultationPage screen={screen}/>:screen.id==='AI-EXP-007'?<ExpenseDesignPage screen={screen}/>:screen.id==='AI-EXP-009'?<MassExpenseVoidPage screen={screen}/>:screen.id.startsWith('AI-EXP-')||screen.id.startsWith('AI-FAC-')?<AddedPropertyScreen screen={screen}/>:screen.id==='XLS-001'?<PropertyTypePage screen={screen}/>:screen.id==='XLS-003'?<SectionPage screen={screen}/>:screen.id==='XLS-004'?<ExpenseItemsPage screen={screen}/>:screen.id==='XLS-005'?<PropertyDetailPageV2 screen={screen}/>:screen.id==='XLS-006'?<PropertyOwnerSummaryPage screen={screen}/>:screen.id==='XLS-008'?<PropertyOwnerHistoryPage screen={screen}/>:screen.id==='XLS-009'?<RecipientConfigurationPage screen={screen}/>:screen.id==='XLS-010'?<EmailCenterPage screen={screen}/>:screen.id==='XLS-011'?<BulletinPage screen={screen}/>:['XLS-012','XLS-013','XLS-014','XLS-015'].includes(screen.id)?<EmailTemplatePage key={screen.id} screen={screen}/>:screen.id==='XLS-025'?<AccountPlanPage screen={screen}/>:screen.id==='XLS-026'?<AccountPlanMigrationPage screen={screen}/>:screen.id==='XLS-027'?<AccountingVoucherPage screen={screen}/>:screen.id==='XLS-038'?<AccountingClosurePage screen={screen}/>:screen.id==='XLS-041'?<SupplierGroupPage screen={screen}/>:screen.id==='XLS-059'?<CustomerRegistryPage screen={screen}/>:screen.id==='XLS-042'?<ProviderRegistryPage screen={screen}/>:<GenericScreenPage screen={screen}/>
 }
 
 function DisabledBillingModulePage({screen,billingType}:{screen:ScreenSpec;billingType:CompanyBillingType}){const enabled=billingType==='EXPENSAS'?'Expensas':'Facturas';const disabled=enabled==='Expensas'?'Facturas':'Expensas';return <div className="page screen-page billing-disabled-page"><div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part,index,all)=><span key={`${part}-${index}`}>{part}{index<all.length-1&&<ChevronRight/>}</span>)}</div><section><LockKeyhole/><span>Submódulo deshabilitado</span><h1>{disabled} no está disponible</h1><p>La compañía tiene configurado el Tipo de Cobro <strong>{enabled}</strong>. Para utilizar estas pantallas, cambia el Tipo de Cobro en Configuración General → Compañía.</p></section></div>}
@@ -257,7 +304,7 @@ function GenericScreenPage({screen}:{screen:ScreenSpec}){
   const primary=screen.acciones[0]?.etiqueta??'Crear registro'
   return <div className="page screen-page">
     <div className="breadcrumbs">{screen.ruta_original.split(' > ').map((x,i,a)=><span key={`${x}-${i}`}>{x}{i<a.length-1&&<ChevronRight/>}</span>)}</div>
-    <section className="screen-header"><div><div className="screen-id"><span>{screen.id}</span><b>{screen.paquete==='PROPERTY_MANAGEMENT'?'Módulo opcional':'Núcleo contable'}</b></div><h1>{screen.titulo_original}</h1></div><div className="screen-actions"><button className="quiet-button"><FileDown/>Exportar</button><button className="primary-action" onClick={()=>setDrawer(true)}><Plus/>{primary}</button></div></section>
+    <section className="screen-header"><div><div className="screen-id"><span>{screen.id}</span><b>{screen.paquete==='PROPERTY_MANAGEMENT'?'Módulo opcional':'Núcleo contable'}</b></div><h1>{screen.titulo_original}</h1></div><div className="screen-actions"><button className="primary-action" onClick={()=>setDrawer(true)}><Plus/>{primary}</button></div></section>
     {screen.id==='XLS-098'&&<div className="special-tabs"><button className={tab==='ATS'?'active':''} onClick={()=>setTab('ATS')}>ATS <small>Transaccional</small></button><button className={tab==='RDEP'?'active':''} onClick={()=>setTab('RDEP')}>RDEP <small>Dependencia</small></button><span>Procesos, lotes y esquemas separados</span></div>}
     {screen.id==='XLS-079'&&<div className="direction-banner"><div><SlidersHorizontal/><span><strong>Dirección de retención</strong><small>El título original se conserva. Selecciona la perspectiva del reporte.</small></span></div><select><option>Emitidas</option><option>Recibidas</option></select></div>}
     <section className="filter-bar"><label><Search/><input placeholder={`Buscar en ${screen.titulo_original}`}/></label>{screen.filtros_campos.slice(0,3).map(f=><button key={f.nombre}><Filter/>{f.nombre}<ChevronDown/></button>)}<button className="filter-more"><SlidersHorizontal/>Más filtros</button></section>
@@ -275,9 +322,9 @@ function RecordsTable({screen,records,onSelect,onAction}:{screen:ScreenSpec;reco
 }
 function RecordDrawer({screen,onClose,onDone}:{screen:ScreenSpec;onClose:()=>void;onDone:()=>void}){
   const fields=screen.filtros_campos.filter(f=>f.obligatorio).slice(0,6); const [values,setValues]=useState<Record<string,string>>({}); const mutation=useMutation({mutationFn:()=>api.createRecord(screen.id,values),onSuccess:onDone})
-  return <div className="drawer-backdrop"><aside className="drawer"><header><div><span>{screen.id} · nuevo registro</span><h2>{screen.acciones[0]?.etiqueta??screen.titulo_original}</h2></div><button onClick={onClose}><X/></button></header><div className="drawer-body"><div className="context-note"><ShieldCheck/><p>La operación se guardará en el entorno local, con idempotencia y evento de auditoría.</p></div>{fields.map(field=><label key={field.nombre}><span>{field.nombre}{field.obligatorio&&<b>*</b>}</span>{field.tipo==='selector'?<select value={values[field.nombre]??''} onChange={e=>setValues({...values,[field.nombre]:e.target.value})}><option value="">Seleccionar</option><option>Activo</option><option>Validación</option><option>Empresa autorizada</option></select>:<input value={values[field.nombre]??''} onChange={e=>setValues({...values,[field.nombre]:e.target.value})} placeholder={field.validacion}/>}<small>{field.validacion}</small></label>)}{mutation.error&&<InlineError message={mutation.error.message}/>}</div><footer><button className="quiet-button" onClick={onClose}>Cancelar</button><button className="primary-action" disabled={fields.some(f=>!values[f.nombre])||mutation.isPending} onClick={()=>mutation.mutate()}>{mutation.isPending?'Guardando…':'Guardar borrador'}</button></footer></aside></div>
+  return <div className="drawer-backdrop"><aside className="drawer"><header><div><span>Nuevo registro · {screen.titulo_original}</span><h2>{screen.acciones[0]?.etiqueta??screen.titulo_original}</h2></div><button onClick={onClose}><X/></button></header><div className="drawer-body"><div className="context-note"><ShieldCheck/><p>La operación se guardará en el entorno local, con idempotencia y evento de auditoría.</p></div>{fields.map(field=><label key={field.nombre}><span>{field.nombre}{field.obligatorio&&<b>*</b>}</span>{field.tipo==='selector'?<select value={values[field.nombre]??''} onChange={e=>setValues({...values,[field.nombre]:e.target.value})}><option value="">Seleccionar</option><option>Activo</option><option>Validación</option><option>Empresa autorizada</option></select>:<input value={values[field.nombre]??''} onChange={e=>setValues({...values,[field.nombre]:e.target.value})} placeholder={field.validacion}/>}<small>{field.validacion}</small></label>)}{mutation.error&&<InlineError message={mutation.error.message}/>}</div><footer><button className="quiet-button" onClick={onClose}>Cancelar</button><button className="primary-action" disabled={fields.some(f=>!values[f.nombre])||mutation.isPending} onClick={()=>mutation.mutate()}>{mutation.isPending?'Guardando…':'Guardar borrador'}</button></footer></aside></div>
 }
-function DetailDrawer({screen,record,onClose}:{screen:ScreenSpec;record:RecordItem;onClose:()=>void}){return <div className="drawer-backdrop"><aside className="drawer detail-drawer"><header><div><span>{screen.id} · {record.reference}</span><h2>Detalle del registro</h2></div><button onClick={onClose}><X/></button></header><div className="drawer-body"><div className="detail-status"><Status value={record.status}/><span>Versión {record.version}</span></div>{Object.entries(record.payload).map(([k,v])=><div className="detail-row" key={k}><span>{k}</span><strong>{v}</strong></div>)}<section className="audit-box"><Activity/><div><strong>Registro auditable</strong><p>Última actualización: {new Date(record.updated_at).toLocaleString('es-EC')}</p></div></section></div></aside></div>}
+function DetailDrawer({screen:_,record,onClose}:{screen:ScreenSpec;record:RecordItem;onClose:()=>void}){return <div className="drawer-backdrop"><aside className="drawer detail-drawer"><header><div><span>{record.reference}</span><h2>Detalle del registro</h2></div><button onClick={onClose}><X/></button></header><div className="drawer-body"><div className="detail-status"><Status value={record.status}/><span>Versión {record.version}</span></div>{Object.entries(record.payload).map(([k,v])=><div className="detail-row" key={k}><span>{k}</span><strong>{v}</strong></div>)}<section className="audit-box"><Activity/><div><strong>Registro auditable</strong><p>Última actualización: {new Date(record.updated_at).toLocaleString('es-EC')}</p></div></section></div></aside></div>}
 
 function Status({value}:{value:string}){return <span className={`status s-${value.toLowerCase()}`}><i/>{statusLabel[value]??value}</span>}
 function TableSkeleton(){return <div className="table-skeleton">{Array.from({length:5}).map((_,i)=><i key={i}/>)}</div>}

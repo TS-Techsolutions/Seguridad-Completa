@@ -1,0 +1,45 @@
+.expense-design-page .expense-document table,
+.expense-preview-dialog .expense-document table {
+  overflow: hidden;
+  border: 1px solid #333;
+  border-radius: 9px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.expense-design-page .expense-document table tr > *,
+.expense-preview-dialog .expense-document table tr > * {
+  border: 0;
+  border-right: 1px solid #333;
+  border-bottom: 1px solid #333;
+}
+
+.expense-design-page .expense-document table tr > *:last-child,
+.expense-preview-dialog .expense-document table tr > *:last-child {
+  border-right: 0;
+}
+
+.expense-design-page .expense-document table tr:last-child > *,
+.expense-preview-dialog .expense-document table tr:last-child > * {
+  border-bottom: 0;
+}
+
+.expense-design-page .expense-document table thead tr:first-child > *:first-child,
+.expense-preview-dialog .expense-document table thead tr:first-child > *:first-child {
+  border-top-left-radius: 8px;
+}
+
+.expense-design-page .expense-document table thead tr:first-child > *:last-child,
+.expense-preview-dialog .expense-document table thead tr:first-child > *:last-child {
+  border-top-right-radius: 8px;
+}
+
+.expense-design-page .expense-document table tr:last-child > *:first-child,
+.expense-preview-dialog .expense-document table tr:last-child > *:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+.expense-design-page .expense-document table tr:last-child > *:last-child,
+.expense-preview-dialog .expense-document table tr:last-child > *:last-child {
+  border-bottom-right-radius: 8px;
+}
