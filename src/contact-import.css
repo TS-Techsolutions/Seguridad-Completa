@@ -1,0 +1,36 @@
+.contact-import-page .account-files-scroll td:nth-last-child(-n+3),
+.contact-import-page .account-files-scroll th:nth-last-child(-n+3) {
+  width: 44px;
+  text-align: center;
+}
+
+.contact-preview-modal .account-preview-grid table { min-width: 1680px; }
+.contact-preview-modal .account-preview-grid td:nth-child(5) input { min-width: 220px; }
+.contact-preview-modal .account-preview-grid td:nth-child(8) input,
+.contact-preview-modal .account-preview-grid td:nth-child(9) input { min-width: 210px; }
+
+.import-requirements-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  margin: .75rem 0;
+  padding: .7rem .8rem;
+  border: 1px solid #c9d9ef;
+  border-radius: 10px;
+  color: #4e6075;
+  background: #f5f9ff;
+  font-size: .67rem;
+  line-height: 1.5;
+}
+
+.import-requirements-note svg {
+  width: 16px;
+  flex: 0 0 auto;
+  color: #3f67b3;
+}
+
+.import-requirements-note strong { color: #314d79; }
+
+@media (max-width: 760px) {
+  .contact-import-page .account-example-download { width: 100%; justify-content: center; }
+}

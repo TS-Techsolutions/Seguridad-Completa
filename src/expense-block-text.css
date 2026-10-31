@@ -116,3 +116,35 @@
   padding: .8rem 1rem;
   border-top: 1px solid #e2e7ec;
 }
+
+.expense-company-header-dialog > div > p {
+  margin: 0 0 .8rem;
+  color: #6f7b8b;
+  font-size: .67rem;
+  line-height: 1.45;
+}
+
+.expense-company-header-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .45rem;
+  margin-bottom: .9rem;
+}
+
+.expense-company-header-fields label {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: .45rem;
+  min-height: 2.2rem;
+  padding: .45rem .6rem;
+  border: 1px solid #dce3ea;
+  border-radius: .5rem;
+  background: #f8fafc;
+}
+
+.expense-company-header-fields input {
+  accent-color: #5365e8;
+}
+
+@media(max-width:560px){.expense-company-header-fields{grid-template-columns:1fr}}

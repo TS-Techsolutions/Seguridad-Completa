@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { ArrowLeft, Calculator, Check, ChevronRight, FileSpreadsheet, FileText, Pencil, Plus, RefreshCw, Save, Search, Settings2, Trash2, Upload, UserPlus, Users } from 'lucide-react'
+import { HumanTalentImportPanel } from './HumanTalentImportPanel'
 import type { ScreenSpec } from './types'
 
 type Row=Record<string,string>
@@ -26,9 +27,17 @@ const configSeed:Record<string,Row[]>={
   'HR-011':[{vigencia:'01/01/2026',personal:'9.45',patronal:'11.15',estado:'VIGENTE'},{vigencia:'01/01/2025',personal:'9.45',patronal:'11.15',estado:'HISTÓRICO'}],
 }
 
+const talentImportDescriptions:Record<string,string>={
+  'HR-017':'Carga masiva de empleados con validación previa de identificación, estructura y duplicados.',
+  'HR-018':'Importación de sueldos históricos con conciliación por empleado y fecha de vigencia.',
+  'HR-021':'Carga de novedades de nómina con validación de empleado, rubro y período abierto.',
+  'HR-023':'Carga de horas extras con validación de fechas, período, empleado y valores.',
+  'HR-025':'Importación de saldos de vacaciones normales y adicionales por empleado y período.',
+}
+
 export function HumanTalentPage({screen}:{screen:ScreenSpec}){
-  const number=Number(screen.id.split('-')[1]);return <div className="page hr-page"><div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part,index,all)=><span key={part}>{part}{index<all.length-1&&<ChevronRight/>}</span>)}</div><header className="hr-header"><div><span className="hr-code">{screen.id}</span><h1>{screen.titulo_original}</h1></div><span className="hr-context"><i/>Periodo 2026-10 abierto</span></header>
-    {[2,3,10,11].includes(number)?<DetailedCatalogScreen screen={screen}/>:number<=11?<CatalogScreen screen={screen}/>:number===14?<ComplementaryEmployeesScreen/>:number===15?<PositionChangeScreen/>:number===16?<HistoryModificationScreen/>:number<=18?<EmployeeScreen screen={screen}/>:number<=23?<PayrollScreen screen={screen}/>:number<=28?<VacationScreen screen={screen}/>:number<=34?<ValueLiquidationScreen screen={screen}/>:<PersonnelLiquidationScreen screen={screen}/>}</div>
+  const number=Number(screen.id.split('-')[1]);const importDescription=talentImportDescriptions[screen.id];return <div className="page hr-page"><div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part,index,all)=><span key={part}>{part}{index<all.length-1&&<ChevronRight/>}</span>)}</div><header className="hr-header"><div><span className="hr-code">{screen.id}</span><h1>{screen.titulo_original}</h1></div><span className="hr-context"><i/>Periodo 2026-10 abierto</span></header>
+    {importDescription?<HumanTalentImportPanel screenId={screen.id} title={screen.titulo_original} description={importDescription}/>: [2,3,10,11].includes(number)?<DetailedCatalogScreen screen={screen}/>:number<=11?<CatalogScreen screen={screen}/>:number===14?<ComplementaryEmployeesScreen/>:number===15?<PositionChangeScreen/>:number===16?<HistoryModificationScreen/>:number<=18?<EmployeeScreen screen={screen}/>:number<=23?<PayrollScreen screen={screen}/>:number<=28?<VacationScreen screen={screen}/>:number<=34?<ValueLiquidationScreen screen={screen}/>:<PersonnelLiquidationScreen screen={screen}/>}</div>
 }
 
 function Toolbar({search,setSearch,action,onAction,secondary,onSecondary}:{search:string;setSearch:(value:string)=>void;action?:string;onAction?:()=>void;secondary?:string;onSecondary?:()=>void}){return <div className="hr-toolbar"><label><Search/><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Buscar por código, nombre o identificación"/></label><div>{secondary&&<button className="quiet-button" onClick={onSecondary}><FileText/>{secondary}</button>}{action&&<button className="primary-action" onClick={onAction}><Plus/>{action}</button>}</div></div>}

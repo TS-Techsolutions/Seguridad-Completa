@@ -1,0 +1,68 @@
+.account-parent-combobox {
+  position: relative;
+}
+
+.account-parent-options {
+  position: absolute;
+  top: calc(100% + .3rem);
+  right: 0;
+  left: 0;
+  z-index: 15;
+  max-height: 16rem;
+  overflow: auto;
+  padding: .3rem;
+  border: 1px solid #cfd8e2;
+  border-radius: .6rem;
+  background: #fff;
+  box-shadow: 0 14px 34px #1f29371f;
+}
+
+.account-parent-options > button {
+  width: 100%;
+  min-height: 2.65rem;
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .5rem;
+  padding: .45rem .55rem;
+  border: 0;
+  border-radius: .4rem;
+  color: #4c596b;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-parent-options > button:hover,
+.account-parent-options > button.selected {
+  background: #eef1ff;
+}
+
+.account-parent-options > button strong {
+  color: #30455c;
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-parent-options > button span {
+  overflow: hidden;
+  font-size: .66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-parent-options > button small {
+  color: #7e8998;
+  font-size: .54rem;
+}
+
+.account-parent-options > button:first-child {
+  grid-template-columns: 1fr auto;
+}
+
+.account-parent-empty {
+  padding: .85rem;
+  color: #7e8998;
+  text-align: center;
+  font-size: .65rem;
+}

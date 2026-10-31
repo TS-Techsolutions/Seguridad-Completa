@@ -1,0 +1,14 @@
+.property-import-page .account-files-scroll td:nth-last-child(-n+3),
+.property-import-page .account-files-scroll th:nth-last-child(-n+3) { width: 44px; text-align: center; }
+.property-preview-modal .account-preview-grid table { min-width: 2050px; }
+.property-preview-modal .account-preview-grid td input,
+.property-preview-modal .account-preview-grid td select { min-width: 145px; width: 100%; min-height: 34px; border: 1px solid #cad5df; border-radius: 7px; padding: 0 .45rem; color: #314256; background: #fff; font-size: .68rem; }
+.property-preview-modal .account-preview-grid td:nth-child(2) input,
+.property-preview-modal .account-preview-grid td:nth-child(11) input,
+.property-preview-modal .account-preview-grid td:nth-child(12) input,
+.property-preview-modal .account-preview-grid td:nth-child(13) input { min-width: 215px; }
+.property-preview-modal .account-preview-grid td:last-child { min-width: 300px; }
+.property-preview-modal .account-preview-save-state { margin-right: auto; align-self: center; font-size: .7rem; }
+.property-preview-modal .account-preview-save-state.warning { color: #8a5700; }
+.property-preview-modal .account-preview-save-state.ready { color: #277044; }
+@media (max-width: 760px) { .property-import-page .account-example-download { width: 100%; justify-content: center; } }

@@ -37,6 +37,15 @@
   overflow: auto;
 }
 
+.automatic-expense-grouping-rule {
+  padding: .55rem .8rem;
+  border-bottom: 1px solid #e1e6ec;
+  color: #53657a;
+  background: #eef4ff;
+  font-size: .63rem;
+  line-height: 1.45;
+}
+
 .automatic-expense-plan-list article {
   display: flex;
   align-items: center;

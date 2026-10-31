@@ -9,6 +9,7 @@ Reconstrucción ejecutable y contract-first basada en los documentos v2 de la ca
 - 101 rutas navegables, con formularios, listados y fichas generados desde el contrato de cada pantalla.
 - Variantes explícitas para XLS-079 (Emitidas/Recibidas) y XLS-098 (ATS/RDEP).
 - API FastAPI con SQLite, auditoría, idempotencia y control del módulo inmobiliario.
+- Aislamiento multiempresa con membresía validada en servidor, sesiones firmadas y cifrado AES-256-GCM de datos sensibles.
 - Pruebas automáticas de cobertura contractual y persistencia para las 101 pantallas.
 
 ## Ejecutar localmente
@@ -27,6 +28,8 @@ pnpm dev
 ```
 
 Abrir `http://127.0.0.1:4180`.
+
+El entorno de validación sólo acepta acceso local. Las llaves se generan fuera de Git en `backend/data/`. Consulta [Seguridad y aislamiento de empresas](docs/SEGURIDAD_TENANTS.md) antes de habilitar acceso remoto o usar datos reales.
 
 ## Verificar
 

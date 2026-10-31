@@ -1,1 +1,32 @@
 .property-type-page .screen-header{margin-bottom:1.75rem}.property-type-selector{display:grid;gap:.4rem;width:min(22rem,100%);margin-bottom:1.25rem}.property-type-selector label{color:#444c5d;font-size:.75rem;font-weight:700}.property-type-selector select{height:2.75rem;padding:0 .8rem;border:1px solid #cbd5e1;border-radius:.5rem;color:#252a38;background:#fff}.property-type-selector select:focus{border-color:#5365e8;box-shadow:0 0 0 3px #5365e814;outline:0}.property-structure-panel{overflow:hidden}.property-structure-panel>header{min-height:4rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 1.1rem;border-bottom:1px solid #e2e5ea}.property-structure-panel>header>div{display:flex;align-items:center;gap:.65rem}.property-structure-panel h2{margin:0;font-size:.9rem}.property-structure-panel>header span{padding:.25rem .55rem;border-radius:999px;color:#5365e8;background:#edf0ff;font-size:.7rem;font-weight:700}.property-structure-panel>header .primary-action:disabled{cursor:not-allowed;opacity:.48}.property-type-lock-notice{padding:.7rem 1.1rem;border-bottom:1px solid #f0d4aa;background:#fff8ea;color:#885c1f;font-size:.7rem}.property-structure-form{display:grid;grid-template-columns:minmax(0,1fr) 12rem auto;align-items:end;gap:1rem;padding:1rem 1.1rem;border-bottom:1px solid #e2e5ea;background:#fafbfc}.property-structure-form label{display:flex;flex-direction:column;gap:.4rem;color:#444c5d;font-size:.72rem;font-weight:700}.property-structure-form label>span{color:#d16c4d;font-size:.6rem;text-transform:uppercase}.property-structure-form input,.property-structure-form select{height:2.5rem;padding:0 .7rem;border:1px solid #cbd5e1;border-radius:.5rem;background:#fff}.property-structure-form small{color:#b45339}.property-structure-form>div{display:flex;gap:.5rem}.property-structure-table{overflow:auto}.property-structure-table table{width:100%;border-collapse:collapse}.property-structure-table th{text-align:left;padding:.75rem 1.1rem;border-bottom:1px solid #e2e5ea;color:#747d8d;background:#f7f8fa;font-size:.65rem;text-transform:uppercase;letter-spacing:.05em}.property-structure-table td{padding:.9rem 1.1rem;border-bottom:1px solid #e9ebef;color:#535b6b;font-size:.75rem}.property-structure-table td:last-child{width:13rem}.property-structure-empty{min-height:12rem;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#858d9b;text-align:center}.property-structure-empty svg{width:1.75rem}.property-structure-empty strong{margin-top:.7rem;color:#4c5463}.property-structure-empty span{margin-top:.25rem;font-size:.72rem}@media(max-width:760px){.property-structure-panel>header{align-items:stretch;flex-direction:column}.property-structure-form{grid-template-columns:1fr}.property-structure-form>div{justify-content:flex-end}}
+
+.property-type-selector { width: min(34rem, 100%); gap: .45rem; }
+.property-type-label { color: #444c5d; font-size: .75rem; font-weight: 750; }
+.property-type-selector-row { display: flex; align-items: center; gap: .55rem; }
+.property-type-options { display: inline-flex; gap: .25rem; padding: .25rem; border: 1px solid #cbd5e1; border-radius: .7rem; background: #f4f6f9; }
+.property-type-options label { cursor: pointer; }
+.property-type-options input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.property-type-options label span { min-width: 8.5rem; min-height: 2.3rem; display: inline-flex; align-items: center; justify-content: center; padding: 0 .85rem; border-radius: .5rem; color: #667386; background: transparent; font-size: .7rem; font-weight: 800; transition: .18s ease; }
+.property-type-options label.selected span { color: #fff; background: #5365e8; box-shadow: 0 3px 10px rgb(83 101 232 / 22%); }
+.property-type-options label.disabled { cursor: not-allowed; }
+.property-type-options label.disabled span { color: #a7afba; background: #eef1f4; opacity: .68; }
+.property-type-options input:focus-visible + span { box-shadow: 0 0 0 3px rgb(83 101 232 / 20%); }
+.property-type-refresh { width: 2.8rem; height: 2.8rem; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid #5365e8; border-radius: .65rem; color: #5365e8; background: #fff; cursor: pointer; }
+.property-type-refresh:hover { color: #fff; background: #5365e8; }
+.property-type-refresh svg { width: 1rem; height: 1rem; }
+.property-type-feedback { display: block; font-size: .64rem; line-height: 1.45; }
+.property-type-feedback.error { color: #a84436; }
+.property-type-feedback.success { color: #26724d; }
+.property-structure-panel.is-disabled .property-structure-table { background: #fafbfc; }
+.property-delete-action { color: #bd4037; }
+.property-delete-action:hover { border-color: #e6b2ae; background: #fff3f2; }
+.property-delete-backdrop { position: fixed; inset: 0; z-index: 230; display: grid; place-items: center; padding: 1rem; background: rgb(25 35 48 / 52%); backdrop-filter: blur(2px); }
+.property-delete-modal { width: min(440px, 94vw); padding: 1.4rem; border: 1px solid #f0d2cf; border-radius: 18px; background: #fff; box-shadow: 0 24px 65px rgb(32 40 52 / 24%); text-align: center; }
+.property-delete-modal > span { width: 46px; height: 46px; display: grid; place-items: center; margin: 0 auto .75rem; border-radius: 50%; color: #b74440; background: #fff0ef; }
+.property-delete-modal > span svg { width: 22px; }
+.property-delete-modal h2 { margin: 0; color: #2f3d4e; font-size: 1rem; }
+.property-delete-modal p { margin: .65rem 0 1.1rem; color: #667386; font-size: .72rem; line-height: 1.55; }
+.property-delete-modal > div { display: flex; justify-content: center; gap: .6rem; }
+.property-delete-confirm { min-height: 36px; display: inline-flex; align-items: center; gap: .4rem; padding: 0 .9rem; border: 1px solid #b74440; border-radius: 9px; color: #fff; background: #b74440; font-size: .63rem; font-weight: 800; cursor: pointer; }
+.property-delete-confirm svg { width: 14px; }
+@media(max-width:560px){.property-type-selector-row{align-items:stretch}.property-type-options{width:100%}.property-type-options label{flex:1}.property-type-options label span{width:100%;min-width:0}.property-type-refresh{height:auto}}

@@ -1,0 +1,67 @@
+.account-tree-diagram {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  background: #fff;
+}
+
+.account-tree-diagram-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .45rem;
+  padding: .58rem 1rem;
+  border-bottom: 1px solid #edf1f4;
+  background: #fbfcfd;
+}
+
+.account-tree-diagram-toolbar > div {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+  margin-right: auto;
+  color: #31475d;
+  font-size: .68rem;
+}
+
+.account-tree-diagram-toolbar span { color: #7a8999; }
+.account-tree-diagram-toolbar button {
+  min-height: 30px;
+  border: 1px solid #d5dee7;
+  border-radius: 8px;
+  padding: 0 .65rem;
+  color: #52667a;
+  background: #fff;
+  font-size: .65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.account-tree-diagram-toolbar button:hover { border-color: #8fb4d1; background: #f1f7fb; }
+
+.account-tree-svg-scroll {
+  min-height: 0;
+  overflow: auto;
+  background: linear-gradient(#fff, #fdfefe);
+}
+
+.account-tree-svg-scroll svg { display: block; }
+.account-diagram-edges path { fill: none; stroke: #d4d9de; stroke-width: 1.15; }
+.account-diagram-edges path.issue { stroke: #e4a044; stroke-width: 1.45; }
+.account-diagram-edges path.stub { stroke: #e0e4e7; stroke-width: 1; }
+.account-diagram-nodes circle { fill: #4385b6; stroke: #fff; stroke-width: 2; }
+.account-diagram-nodes .issue circle { fill: #e39a32; }
+.account-diagram-nodes .expandable { cursor: pointer; }
+.account-diagram-nodes .expandable:hover circle,
+.account-diagram-nodes .expandable:focus circle { fill: #245f8c; r: 7; }
+.account-diagram-nodes .expandable:focus { outline: none; }
+.account-diagram-label { fill: #283d51; font-size: 11px; font-weight: 650; }
+.account-diagram-nodes .issue .account-diagram-label { fill: #9a6200; }
+.account-diagram-count { fill: #7a8794; font-size: 9px; font-weight: 700; }
+.account-tree-legend > span:last-child { margin-left: auto; }
+
+@media (max-width: 760px) {
+  .account-tree-diagram-toolbar { flex-wrap: wrap; }
+  .account-tree-diagram-toolbar > div { width: 100%; }
+  .account-tree-legend > span:last-child { width: 100%; margin-left: 0; }
+}

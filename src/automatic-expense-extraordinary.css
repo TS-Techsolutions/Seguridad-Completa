@@ -3,7 +3,149 @@
 }
 
 .automatic-expense-modal.extraordinary .automatic-expense-fields {
-  grid-template-columns: minmax(0, 1.6fr) minmax(130px, .65fr) minmax(180px, .8fr);
+  grid-template-columns: minmax(180px, .55fr) minmax(0, 1.45fr);
+}
+
+.automatic-expense-extraordinary-picker {
+  overflow: hidden;
+  border: 1px solid #d8e0e8;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.automatic-expense-extraordinary-picker > header {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid #e3e8ee;
+}
+
+.automatic-expense-extraordinary-picker > header > div {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+
+.automatic-expense-extraordinary-picker > header strong,
+.automatic-expense-extraordinary-picker > header small {
+  display: block;
+}
+
+.automatic-expense-extraordinary-picker > header strong {
+  color: #2c3d51;
+  font-size: .83rem;
+}
+
+.automatic-expense-extraordinary-picker > header small {
+  margin-top: .18rem;
+  color: #7d8997;
+  font-size: .66rem;
+}
+
+.automatic-expense-extraordinary-picker > header button {
+  display: flex;
+  align-items: center;
+  gap: .42rem;
+}
+
+.automatic-expense-extraordinary-picker > header button svg {
+  width: 15px;
+}
+
+.automatic-expense-extraordinary-picker > header button:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
+
+.extraordinary-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .7rem;
+  padding: 1rem 1.1rem;
+  background: #fafbfc;
+}
+
+.extraordinary-option-grid > label {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 19px 1fr;
+  align-items: start;
+  gap: .65rem;
+  padding: .78rem;
+  border: 1px solid #dce3ea;
+  border-radius: 11px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+
+.extraordinary-option-grid > label:hover,
+.extraordinary-option-grid > label.selected {
+  border-color: #5365e8;
+  box-shadow: 0 0 0 3px #5365e812;
+}
+
+.extraordinary-option-grid > label.selected {
+  background: #f6f7ff;
+}
+
+.extraordinary-option-grid input {
+  width: 17px;
+  height: 17px;
+  margin: .05rem 0 0;
+  accent-color: #5365e8;
+}
+
+.extraordinary-option-grid label span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .18rem;
+}
+
+.extraordinary-option-grid label strong {
+  color: #344358;
+  font-size: .73rem;
+}
+
+.extraordinary-option-grid label small {
+  color: #5f6d80;
+  font-size: .66rem;
+}
+
+.extraordinary-option-grid label em {
+  color: #8a95a3;
+  font-size: .58rem;
+  font-style: normal;
+}
+
+.extraordinary-options-empty {
+  grid-column: 1 / -1;
+  min-height: 130px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .25rem;
+  color: #7f8b99;
+  text-align: center;
+}
+
+.extraordinary-options-empty svg {
+  width: 26px;
+  color: #4c9b78;
+}
+
+.extraordinary-options-empty strong {
+  margin-top: .3rem;
+  color: #4e5c6e;
+  font-size: .76rem;
+}
+
+.extraordinary-options-empty span {
+  font-size: .63rem;
 }
 
 .automatic-expense-fields input[readonly] {
@@ -12,14 +154,13 @@
   font-weight: 800;
 }
 
-.extraordinary-installment-note {
+.extraordinary-selected-summary {
   grid-column: 1 / -1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: .28rem;
   margin-top: -.15rem;
-  padding: .55rem .7rem;
+  padding: .65rem .75rem;
   border: 1px solid #dce2ea;
   border-radius: 8px;
   background: #f8fafc;
@@ -27,9 +168,13 @@
   font-size: .62rem;
 }
 
-.extraordinary-installment-note strong {
+.extraordinary-selected-summary strong {
   color: #3e4e62;
   font-size: .68rem;
+}
+
+.automatic-expense-history.extraordinary-history .status {
+  white-space: nowrap;
 }
 
 @media (max-width: 700px) {
@@ -37,9 +182,20 @@
     grid-template-columns: 1fr;
   }
 
-  .extraordinary-installment-note {
-    grid-column: auto;
-    align-items: flex-start;
+  .automatic-expense-extraordinary-picker > header {
+    align-items: stretch;
     flex-direction: column;
+  }
+
+  .automatic-expense-extraordinary-picker > header button {
+    justify-content: center;
+  }
+
+  .extraordinary-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .extraordinary-selected-summary {
+    grid-column: auto;
   }
 }

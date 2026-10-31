@@ -1,0 +1,292 @@
+.water-reading-page .screen-header {
+  margin-bottom: 1rem;
+}
+
+.water-reading-page .screen-header .primary-action,
+.water-reading-editor footer .primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.water-reading-page .screen-header svg,
+.water-reading-editor footer svg {
+  width: .9rem;
+}
+
+.water-reading-list {
+  overflow: hidden;
+}
+
+.water-reading-list > div {
+  overflow: auto;
+}
+
+.water-reading-list table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.water-reading-list th,
+.water-reading-detail th {
+  padding: .75rem .8rem;
+  border-bottom: 1px solid #dfe3e9;
+  background: #f7f8fa;
+  color: #6f7888;
+  text-align: left;
+  font-size: .61rem;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.water-reading-list th:first-child {
+  width: 3.4rem;
+}
+
+.water-reading-list td,
+.water-reading-detail td {
+  padding: .82rem .8rem;
+  border-bottom: 1px solid #e8ebef;
+  color: #555e6e;
+  font-size: .69rem;
+}
+
+.water-reading-list tbody tr:hover,
+.water-reading-detail tbody tr:hover {
+  background: #fafbff;
+}
+
+.water-reading-editor {
+  overflow: hidden;
+}
+
+.water-reading-editor > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid #e3e6eb;
+}
+
+.water-reading-editor > header div {
+  display: grid;
+  gap: .15rem;
+}
+
+.water-reading-editor > header span {
+  color: #7c8595;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.water-reading-editor h2,
+.water-reading-editor h3 {
+  margin: 0;
+  color: #3e4757;
+}
+
+.water-reading-editor h2 {
+  font-size: .9rem;
+}
+
+.water-reading-editor > header > button {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dce1e8;
+  border-radius: .5rem;
+  background: #fff;
+  color: #697386;
+  cursor: pointer;
+}
+
+.water-reading-editor > header > button svg {
+  width: .95rem;
+}
+
+.water-reading-editor > form {
+  padding: 1rem 1.15rem;
+}
+
+.water-reading-head-fields {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 1rem;
+}
+
+.water-reading-head-fields label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+  color: #444c5d;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.water-reading-head-fields label.wide {
+  grid-column: span 2;
+}
+
+.water-reading-head-fields label > span {
+  color: #d16c4d;
+  font-size: .56rem;
+  text-transform: uppercase;
+}
+
+.water-reading-head-fields input,
+.water-reading-detail input {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 .7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: .5rem;
+  background: #fff;
+  color: #414a59;
+  outline: 0;
+}
+
+.water-reading-head-fields input:focus,
+.water-reading-detail input:focus {
+  border-color: #5365e8;
+  box-shadow: 0 0 0 3px #5365e814;
+}
+
+.water-reading-detail {
+  margin-top: 1rem;
+  border: 1px solid #e1e5eb;
+  border-radius: .75rem;
+  overflow: hidden;
+}
+
+.water-reading-detail > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem 1rem;
+  border-bottom: 1px solid #e8ebef;
+  background: #fafbfc;
+}
+
+.water-reading-detail h3 {
+  font-size: .78rem;
+}
+
+.water-reading-detail p {
+  margin: .2rem 0 0;
+  color: #7a8393;
+  font-size: .64rem;
+}
+
+.water-reading-detail > header > span {
+  padding: .25rem .55rem;
+  border-radius: 999px;
+  background: #edf0ff;
+  color: #5365e8;
+  font-size: .6rem;
+  font-weight: 700;
+}
+
+.water-reading-detail-scroll {
+  overflow: auto;
+}
+
+.water-reading-detail table {
+  width: 100%;
+  min-width: 1700px;
+  border-collapse: collapse;
+}
+
+.water-reading-detail th:nth-child(1) { min-width: 180px; }
+.water-reading-detail th:nth-child(2) { min-width: 235px; }
+.water-reading-detail th:nth-child(3) { min-width: 180px; }
+.water-reading-detail th:nth-child(4) { min-width: 130px; }
+.water-reading-detail th:nth-child(5),
+.water-reading-detail th:nth-child(6) { min-width: 145px; }
+.water-reading-detail th:nth-child(7),
+.water-reading-detail th:nth-child(8) { min-width: 135px; }
+.water-reading-detail th:nth-child(9),
+.water-reading-detail th:nth-child(10) { min-width: 105px; }
+
+.water-reading-detail td {
+  white-space: nowrap;
+}
+
+.water-reading-detail td input {
+  min-width: 120px;
+  height: 2.25rem;
+}
+
+.water-reading-number,
+.water-reading-total {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.water-reading-total {
+  color: #3f51d9 !important;
+}
+
+.water-reading-missing {
+  color: #b45309;
+  font-size: .62rem;
+  font-weight: 700;
+}
+
+.water-reading-error {
+  margin-top: 1rem;
+  padding: .75rem .9rem;
+  border: 1px solid #efb6ac;
+  border-radius: .55rem;
+  background: #fff3f1;
+  color: #9f3f32;
+  font-size: .7rem;
+}
+
+.water-reading-editor footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+
+.water-reading-empty {
+  min-height: 15rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #858d9b;
+  text-align: center;
+}
+
+.water-reading-empty.compact {
+  min-height: 9rem;
+}
+
+.water-reading-empty svg {
+  width: 2rem;
+}
+
+.water-reading-empty strong {
+  margin-top: .7rem;
+  color: #4c5463;
+}
+
+.water-reading-empty span {
+  margin-top: .25rem;
+  font-size: .68rem;
+}
+
+@media (max-width: 900px) {
+  .water-reading-head-fields { grid-template-columns: 1fr; }
+  .water-reading-head-fields label.wide { grid-column: auto; }
+  .water-reading-page .screen-header { align-items: stretch; flex-direction: column; }
+}

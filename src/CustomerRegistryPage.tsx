@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { ChevronRight, Pencil, Plus, UsersRound } from 'lucide-react'
 import type { ScreenSpec } from './types'
+import { cleanPhoneValue } from './phone-values'
+import { cleanTextSpacing } from './text-values'
 
 export type CustomerState='ACTIVO'|'INACTIVO'
-export type CustomerRow={id:string;documentType:'CI'|'RUC'|'PASAPORTE';identification:string;businessName:string;email:string;assistantEmail:string;contactPerson:string;isProvider:boolean;isCustomer?:boolean;address:string;phone:string;state:CustomerState;supplierGroupId?:string;bankName?:string;bankAccountType?:'CORRIENTE'|'AHORRO';bankAccountNumber?:string}
+export type CustomerRow={id:string;documentType:'CI'|'RUC'|'PASAPORTE';identification:string;businessName:string;email:string;assistantEmail:string;contactPerson:string;isProvider:boolean;isCustomer?:boolean;address:string;phone:string;state:CustomerState;supplierGroupId?:string;bankName?:string;bankAccountType?:'CORRIENTE'|'AHORRO';bankAccountNumber?:string;sourceUploadId?:string}
 type SupplierGroupOption={id:string;description:string;state:string}
 
 const customerKey='saga.customers'
@@ -12,7 +14,7 @@ const supplierGroupKey='saga.supplier-groups'
 const emptyCustomer:Omit<CustomerRow,'id'>={documentType:'CI',identification:'',businessName:'',email:'',assistantEmail:'',contactPerson:'',isProvider:false,isCustomer:false,address:'',phone:'',state:'ACTIVO',supplierGroupId:'',bankName:'',bankAccountType:'CORRIENTE',bankAccountNumber:''}
 const ecuadorBanks=['Banco Amazonas S.A.','Banco de la Producción S.A. – Produbanco','Banco del Austro S.A.','Banco Solidario S.A.','Banco Guayaquil S.A.','Banco Sudamericano S.A.','Banco Bolivariano C.A.','Banco Coopnacional S.A.','Banco Manabí S.A.','Banco ProCredit S.A.','Banco del Litoral S.A.','Banco Capital S.A.','Banco General Rumiñahui S.A.','Banco Delbank S.A.','Banco Internacional S.A.','Banco Atlántida S.A.','Banco de Loja S.A.','Banco Desarrollo de los Pueblos S.A. – BanCodesarrollo','Banco de Machala S.A.','Banco VisionFund Ecuador S.A.','Banco del Pacífico S.A.','Banco Diners Club del Ecuador S.A.','Banco Pichincha C.A.','Citibank N.A. Sucursal Ecuador','Banco de Desarrollo del Ecuador B.P.','Corporación Financiera Nacional B.P.','Banco del Instituto Ecuatoriano de Seguridad Social – BIESS','BanEcuador B.P.']
 
-function readRows(key:string){try{const value=JSON.parse(localStorage.getItem(key)??'[]');return Array.isArray(value)?value as CustomerRow[]:[]}catch{return[]}}
+function readRows(key:string){try{const value=JSON.parse(localStorage.getItem(key)??'[]');return Array.isArray(value)?(value as CustomerRow[]).map(row=>({...row,phone:cleanPhoneValue(row.phone)})):[]}catch{return[]}}
 function writeRows(key:string,rows:CustomerRow[]){localStorage.setItem(key,JSON.stringify(rows))}
 function readSupplierGroups(){try{const value=JSON.parse(localStorage.getItem(supplierGroupKey)??'[]');return Array.isArray(value)?(value as SupplierGroupOption[]).filter(group=>group.state==='ACTIVO'):[]}catch{return[]}}
 
@@ -31,7 +33,7 @@ export function CustomerRegistryPage({screen}:{screen:ScreenSpec}){
     if(rows.some(row=>row.identification.trim().toLocaleLowerCase('es')===draft.identification.trim().toLocaleLowerCase('es')&&row.id!==editingId)){setError('Ya existe un cliente con esta identificación.');return}
     if(draft.email&&!/^\S+@\S+\.\S+$/.test(draft.email)){setError('Ingresa un Email válido.');return}
     if(draft.assistantEmail&&!/^\S+@\S+\.\S+$/.test(draft.assistantEmail)){setError('Ingresa un Email Asistente válido.');return}
-    const row:CustomerRow={...draft,id:editingId??crypto.randomUUID(),identification:draft.identification.trim(),businessName:draft.businessName.trim(),email:draft.email.trim(),assistantEmail:draft.assistantEmail.trim(),contactPerson:draft.contactPerson.trim(),address:draft.address.trim(),phone:draft.phone.trim()}
+    const row:CustomerRow={...draft,id:editingId??crypto.randomUUID(),identification:draft.identification.trim(),businessName:cleanTextSpacing(draft.businessName),email:draft.email.trim(),assistantEmail:draft.assistantEmail.trim(),contactPerson:cleanTextSpacing(draft.contactPerson),address:draft.address.trim(),phone:cleanPhoneValue(draft.phone).trim()}
     const next=editingId?rows.map(item=>item.id===editingId?row:item):[row,...rows]
     setRows(next);writeRows(customerKey,next)
     const providers=readRows(providerKey).filter(item=>item.id!==row.id)
@@ -71,7 +73,7 @@ export function ProviderRegistryPage({screen}:{screen:ScreenSpec}){
     if(rows.some(row=>row.identification.trim().toLocaleLowerCase('es')===draft.identification.trim().toLocaleLowerCase('es'))){setError('Ya existe un proveedor con esta identificación.');return}
     if(draft.email&&!/^\S+@\S+\.\S+$/.test(draft.email)){setError('Ingresa un Email válido.');return}
     if(draft.assistantEmail&&!/^\S+@\S+\.\S+$/.test(draft.assistantEmail)){setError('Ingresa un Email Asistente válido.');return}
-    const row:CustomerRow={...draft,id:crypto.randomUUID(),isProvider:true,identification:draft.identification.trim(),businessName:draft.businessName.trim(),email:draft.email.trim(),assistantEmail:draft.assistantEmail.trim(),contactPerson:draft.contactPerson.trim(),address:draft.address.trim(),phone:draft.phone.trim(),bankAccountNumber:draft.bankAccountNumber?.trim()??''}
+    const row:CustomerRow={...draft,id:crypto.randomUUID(),isProvider:true,identification:draft.identification.trim(),businessName:cleanTextSpacing(draft.businessName),email:draft.email.trim(),assistantEmail:draft.assistantEmail.trim(),contactPerson:cleanTextSpacing(draft.contactPerson),address:draft.address.trim(),phone:cleanPhoneValue(draft.phone).trim(),bankAccountNumber:draft.bankAccountNumber?.trim()??''}
     const next=[row,...rows];setRows(next);writeRows(providerKey,next);close()
     if(row.isCustomer){
       const customers=readRows(customerKey)

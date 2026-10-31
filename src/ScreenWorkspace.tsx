@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Download, FileDown, FileSpreadsheet, FileText, RefreshCw, Search } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import type { ScreenSpec } from './types'
+import { formatFullDateInput, formatMonthYearInput } from './date-input'
 
 type ScreenWorkspaceProps={
   screen:ScreenSpec
@@ -15,6 +16,29 @@ type TableExport={name:string;rows:string[][]}
 const normalize=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es')
 const safeFilename=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLocaleLowerCase()||'reporte'
 const pdfSafe=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E]/g,' ').replace(/([\\()])/g,'\\$1')
+const fullDateFormat=/dd\s*\/\s*mm\s*\/\s*aaaa/i
+const monthYearFormat=/(?<!d)mm\s*\/\s*aaaa/i
+const fullDateLabel=/(fecha|desde|hasta|nacimiento|retiro|emisi[oó]n|vigencia)/i
+
+function dateInputFormat(input:HTMLInputElement):'full'|'month'|null{
+  if(input.type==='date')return null
+  const metadata=`${input.placeholder} ${input.getAttribute('aria-label')??''} ${input.dataset.dateFormat??''}`
+  if(monthYearFormat.test(metadata)&&!fullDateFormat.test(metadata))return'month'
+  if(fullDateFormat.test(metadata))return'full'
+  const label=input.closest('label')
+  const directLabel=label?Array.from(label.childNodes).filter(node=>node.nodeType===Node.TEXT_NODE).map(node=>node.textContent??'').join(' '):''
+  return fullDateLabel.test(directLabel)?'full':null
+}
+
+function caretAfterDigits(value:string,digitCount:number){
+  if(!digitCount)return 0
+  let found=0
+  for(let index=0;index<value.length;index+=1){
+    if(/\d/.test(value[index]))found+=1
+    if(found===digitCount)return index+1
+  }
+  return value.length
+}
 
 function collectTables(root:HTMLElement,screenTitle:string):TableExport[]{
   return Array.from(root.querySelectorAll('table')).map((table,index)=>{
@@ -126,6 +150,29 @@ export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
   },[])
 
   useEffect(()=>{applySearch(query)},[applySearch,query,revision])
+
+  useEffect(()=>{
+    const root=rootRef.current
+    if(!root)return
+    const maskDate=(event:Event)=>{
+      const input=event.target
+      if(!(input instanceof HTMLInputElement))return
+      const format=dateInputFormat(input)
+      if(!format)return
+      const current=input.value
+      const selection=input.selectionStart??current.length
+      const precedingDigits=current.slice(0,selection).replace(/\D/g,'').length
+      const formatted=format==='month'?formatMonthYearInput(current):formatFullDateInput(current)
+      input.inputMode='numeric'
+      input.maxLength=format==='month'?7:10
+      if(formatted===current)return
+      input.value=formatted
+      const nextCaret=caretAfterDigits(formatted,precedingDigits)
+      input.setSelectionRange(nextCaret,nextCaret)
+    }
+    root.addEventListener('input',maskDate,true)
+    return()=>root.removeEventListener('input',maskDate,true)
+  },[])
 
   useEffect(()=>{
     const root=rootRef.current

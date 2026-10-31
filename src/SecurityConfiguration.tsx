@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import type { Catalog, ScreenSpec } from './types'
 import { companySettingsChangedEvent, companySettingsStorageKey } from './operation-date-rules'
+import { dateInputToIsoOrDraft, isoToDisplayDate } from './date-input'
 
 type Status = 'ACTIVO' | 'INACTIVO'
 type PlatformUser = { id:string; username:string; name:string; role:string; email:string; status:Status }
@@ -16,7 +17,7 @@ type CompanyImage = { name:string; dataUrl:string }
 type BillingType = 'EXPENSAS'|'FACTURACION'
 type VatType = 'GRAVA_IVA'|'IVA_0'
 type GenerationType = 'CLIENTE'|'INMUEBLE'
-type CompanySettings = { ruc:string; name:string; businessName:string; address:string; phone:string; email:string; operationStartDate:string; billingType:BillingType; vatType:VatType; generationType:GenerationType; logo?:CompanyImage; miniLogo?:CompanyImage; loginBackground?:CompanyImage; smtpServer:string; smtpPort:string; senderEmail:string; smtpPassword:string; from:string }
+type CompanySettings = { ruc:string; name:string; businessName:string; address:string; phone:string; email:string; operationStartDate:string; billingType:BillingType; vatType:VatType; generationType:GenerationType; billsWater:boolean; logo?:CompanyImage; miniLogo?:CompanyImage; loginBackground?:CompanyImage; smtpServer:string; smtpPort:string; senderEmail:string; smtpPassword:string; from:string }
 type EmailTemplate = { subject:string; body:string }
 type EmailTemplates = { passwordRecovery:EmailTemplate; payrollReceipt:EmailTemplate }
 type DocumentType = { id:string; name:string; status:Status; clients:boolean; employees:boolean }
@@ -35,7 +36,7 @@ const initialRoles:PlatformRole[]=[
   {id:'ROL-003',name:'Talento Humano',description:'Gestión de empleados, novedades y procesos laborales',status:'ACTIVO'},
   {id:'ROL-004',name:'Empleado',description:'Consulta y gestión de su información personal',status:'ACTIVO'},
 ]
-const initialCompany:CompanySettings={ruc:'1790012345001',name:'Empresa Demostración',businessName:'Empresa Demostración S.A.',address:'Quito, Ecuador',phone:'02 400 0000',email:'',operationStartDate:'2026-10-01',billingType:'EXPENSAS',vatType:'GRAVA_IVA',generationType:'CLIENTE',smtpServer:'',smtpPort:'587',senderEmail:'',smtpPassword:'',from:''}
+const initialCompany:CompanySettings={ruc:'1790012345001',name:'Empresa Demostración',businessName:'Empresa Demostración S.A.',address:'Quito, Ecuador',phone:'02 400 0000',email:'',operationStartDate:'2026-10-01',billingType:'EXPENSAS',vatType:'GRAVA_IVA',generationType:'CLIENTE',billsWater:false,smtpServer:'',smtpPort:'587',senderEmail:'',smtpPassword:'',from:''}
 const initialTemplates:EmailTemplates={
   passwordRecovery:{subject:'Código para restablecer su contraseña',body:'Hola {{NOMBRE}},\n\nUtilice el siguiente código de seguridad para restablecer su contraseña:\n\n{{CODIGO}}\n\nEste código es personal y no debe compartirlo con otras personas.'},
   payrollReceipt:{subject:'Rol de pago disponible',body:'Hola {{NOMBRE}},\n\nSu rol de pago correspondiente a {{PERIODO}} se encuentra disponible para consulta y descarga en la plataforma.'},
@@ -162,7 +163,7 @@ function CompanyPage(){
   const [tab,setTab]=useState<'company'|'visual'|'smtp'|'colors'>('company')
   const [message,setMessage]=useState('')
   const update=(changes:Partial<CompanySettings>)=>{setDraft(current=>({...current,...changes}));setMessage('')}
-  const save=()=>{if(!draft.ruc.trim()||!draft.name.trim()||!draft.businessName.trim()){setMessage('Completa el RUC, nombre y razón social de la empresa.');setTab('company');return}if(!/^\d{4}-\d{2}-\d{2}$/.test(draft.operationStartDate)){setMessage('Selecciona la fecha de Inicio de Operaciones.');setTab('company');return}if(draft.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)){setMessage('Ingresa un email válido para la empresa.');setTab('company');return}if(draft.smtpPort&&!/^\d{1,5}$/.test(draft.smtpPort)){setMessage('El puerto SMTP debe contener únicamente números.');setTab('smtp');return}localStorage.setItem(companySettingsStorageKey,JSON.stringify(draft));setSettings(draft);window.dispatchEvent(new CustomEvent(companySettingsChangedEvent,{detail:{billingType:draft.billingType}}));setMessage('Configuración guardada correctamente.')}
+  const save=()=>{if(!draft.ruc.trim()||!draft.name.trim()||!draft.businessName.trim()){setMessage('Completa el RUC, nombre y razón social de la empresa.');setTab('company');return}if(!/^\d{4}-\d{2}-\d{2}$/.test(draft.operationStartDate)){setMessage('Selecciona la fecha de Inicio de Operaciones.');setTab('company');return}if(draft.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)){setMessage('Ingresa un email válido para la empresa.');setTab('company');return}if(draft.smtpPort&&!/^\d{1,5}$/.test(draft.smtpPort)){setMessage('El puerto SMTP debe contener únicamente números.');setTab('smtp');return}localStorage.setItem(companySettingsStorageKey,JSON.stringify(draft));setSettings(draft);window.dispatchEvent(new CustomEvent(companySettingsChangedEvent,{detail:{billingType:draft.billingType,billsWater:draft.billsWater}}));setMessage('Configuración guardada correctamente.')}
   const upload=(key:'logo'|'miniLogo'|'loginBackground',file?:File)=>{if(!file)return;if(!file.type.startsWith('image/')){setMessage('Selecciona un archivo de imagen válido.');return}if(file.size>1500000){setMessage('Cada imagen debe pesar máximo 1,5 MB.');return}const reader=new FileReader();reader.onload=()=>update({[key]:{name:file.name,dataUrl:String(reader.result)}});reader.readAsDataURL(file)}
   return <>
     <ConfigHeader screen="SEC-004" title="Compañía" description="Administra los datos generales y la identidad de la empresa." action={tab!=='colors'&&<button className="primary-action" onClick={save}><Check/>Guardar configuración</button>}/>
@@ -175,10 +176,11 @@ function CompanyPage(){
       <label className="wide">Dirección<input value={draft.address} maxLength={200} onChange={e=>update({address:e.target.value})}/></label>
       <label>Teléfono<input value={draft.phone} maxLength={30} onChange={e=>update({phone:e.target.value})}/></label>
       <label>Email<input type="email" value={draft.email} maxLength={120} onChange={e=>update({email:e.target.value})}/></label>
-      <label>Inicio de Operaciones <span>Obligatorio</span><input type="date" value={draft.operationStartDate} onChange={e=>update({operationStartDate:e.target.value})}/></label>
+      <label>Inicio de Operaciones <span>Obligatorio</span><input inputMode="numeric" maxLength={10} placeholder="DD/MM/AAAA" value={isoToDisplayDate(draft.operationStartDate)} onChange={e=>update({operationStartDate:dateInputToIsoOrDraft(e.target.value)})}/></label>
       <label>Tipo de Cobro<select value={draft.billingType} onChange={e=>update({billingType:e.target.value as BillingType})}><option value="EXPENSAS">Expensas</option><option value="FACTURACION">Facturación</option></select></label>
       <label>Tipo de Generación<select value={draft.generationType} onChange={e=>update({generationType:e.target.value as GenerationType})}><option value="CLIENTE">Generación por Cliente</option><option value="INMUEBLE">Generación por Inmueble</option></select></label>
       {draft.billingType==='FACTURACION'&&<fieldset className="company-tax-options"><legend>Tipo de IVA</legend><label><input type="radio" name="company-vat-type" value="GRAVA_IVA" checked={draft.vatType==='GRAVA_IVA'} onChange={()=>update({vatType:'GRAVA_IVA'})}/>Grava IVA</label><label><input type="radio" name="company-vat-type" value="IVA_0" checked={draft.vatType==='IVA_0'} onChange={()=>update({vatType:'IVA_0'})}/>IVA 0%</label></fieldset>}
+      <div className="company-water-billing-field"><strong>Se Factura Agua</strong><label className="company-water-billing-toggle"><input type="checkbox" role="switch" aria-checked={draft.billsWater} checked={draft.billsWater} onChange={e=>update({billsWater:e.target.checked})}/><span aria-hidden="true"/><b>{draft.billsWater?'Sí':'No'}</b></label></div>
     </div></section>}
     {tab==='visual'&&<section className="panel company-panel"><PanelTitle icon={<Palette/>} title="Identidad Visual"/><div className="visual-grid">{([
       ['logo','Logo','Logo principal utilizado en la plataforma.'],['miniLogo','Mini Logo','Versión compacta para espacios reducidos.'],['loginBackground','Fondo Login','Imagen de fondo para la pantalla de acceso.']

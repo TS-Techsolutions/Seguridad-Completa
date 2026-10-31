@@ -11,9 +11,10 @@
 .supplier-group-table th:first-child, .supplier-group-table td:first-child { width: 54px; text-align: center; }
 .supplier-group-table td { color: #506073; font-size: .68rem; }
 .supplier-group-table td:nth-child(2) { width: 40%; }
-.supplier-group-table td:nth-child(3) span, .supplier-group-table td:nth-child(3) small { display: block; }
-.supplier-group-table td:nth-child(3) span { color: #344255; font-weight: 800; }
-.supplier-group-table td:nth-child(3) small { margin-top: .15rem; color: #8b96a4; font-size: .56rem; }
+.supplier-group-table td:nth-child(3) span, .supplier-group-table td:nth-child(3) small,
+.supplier-group-table td:nth-child(4) span, .supplier-group-table td:nth-child(4) small { display: block; }
+.supplier-group-table td:nth-child(3) span, .supplier-group-table td:nth-child(4) span { color: #344255; font-weight: 800; }
+.supplier-group-table td:nth-child(3) small, .supplier-group-table td:nth-child(4) small { margin-top: .15rem; color: #8b96a4; font-size: .56rem; }
 .supplier-group-table tbody tr:last-child td { border-bottom: 0; }
 .supplier-group-edit { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #d8dfe7; border-radius: 8px; color: #5365e8; background: #fff; }
 .supplier-group-edit:hover { background: #eef0ff; }
@@ -45,4 +46,5 @@
 .supplier-group-error { display: flex; align-items: center; gap: .45rem; padding: .65rem .7rem; border: 1px solid #efc9c6; border-radius: 9px; color: #a63b38; background: #fff0ef; font-size: .62rem; }
 .supplier-group-error svg { width: 14px; }
 .supplier-group-form footer { display: flex; justify-content: flex-end; gap: .55rem; padding: .9rem 1.35rem; border-top: 1px solid #e2e7ec; }
-@media (max-width: 600px) { .supplier-group-header { align-items: stretch; } .supplier-group-header .primary-action { width: 100%; } .supplier-group-table table { min-width: 620px; } .supplier-group-table { overflow: auto; } }
+@media (max-width: 900px) { .supplier-group-table table { min-width: 820px; } .supplier-group-table { overflow: auto; } }
+@media (max-width: 600px) { .supplier-group-header { align-items: stretch; } .supplier-group-header .primary-action { width: 100%; } }

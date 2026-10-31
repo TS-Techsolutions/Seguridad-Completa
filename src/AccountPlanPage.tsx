@@ -34,6 +34,45 @@ function normalizeCode(value: string) {
   return value.replace(/\D/g, '')
 }
 
+function compareAccounts(left: Account, right: Account) {
+  return left.Codigo.localeCompare(right.Codigo, 'es', { numeric: true })
+}
+
+function orderAccountsByHierarchy(accounts: Account[]) {
+  const byCode = new Map(accounts.map(account => [account.Codigo, account]))
+  const childrenByParent = new Map<string, Account[]>()
+  const roots: Account[] = []
+
+  accounts.forEach(account => {
+    const parentCode = account['Cta. Padre']
+    if (!parentCode || parentCode === account.Codigo || !byCode.has(parentCode)) {
+      roots.push(account)
+      return
+    }
+    const children = childrenByParent.get(parentCode) ?? []
+    children.push(account)
+    childrenByParent.set(parentCode, children)
+  })
+
+  roots.sort(compareAccounts)
+  childrenByParent.forEach(children => children.sort(compareAccounts))
+
+  const ordered: Account[] = []
+  const visited = new Set<string>()
+  const visit = (account: Account) => {
+    if (visited.has(account.Codigo)) return
+    visited.add(account.Codigo)
+    ordered.push(account)
+    const children = childrenByParent.get(account.Codigo) ?? []
+    children.forEach(visit)
+  }
+
+  roots.forEach(visit)
+  const remaining = [...accounts].sort(compareAccounts)
+  remaining.forEach(visit)
+  return ordered
+}
+
 function accountDepth(account: Account, byCode: Map<string, Account>) {
   let depth = 0
   let parent = account['Cta. Padre']
@@ -52,20 +91,54 @@ export function AccountPlanPage({ screen }: { screen: ScreenSpec }) {
   const [formOpen, setFormOpen] = useState(false)
   const [editingCode, setEditingCode] = useState<string | null>(null)
   const [draft, setDraft] = useState<AccountDraft>(emptyDraft)
+  const [parentSearch, setParentSearch] = useState('')
+  const [parentOptionsOpen, setParentOptionsOpen] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const sorted = useMemo(() => [...accounts].sort((left, right) => left.Codigo.localeCompare(right.Codigo, 'es', { numeric: true })), [accounts])
+  const sorted = useMemo(() => orderAccountsByHierarchy(accounts), [accounts])
   const byCode = useMemo(() => new Map(accounts.map(account => [account.Codigo, account])), [accounts])
   const visible = useMemo(() => {
     const term = query.trim().toLocaleLowerCase('es')
     if (!term) return sorted
     return sorted.filter(account => [account.Codigo, account['Descripción'], account.Tipo, account['Cta. Padre'], account.Grupo, account.Estructura, account.Estado].some(value => value.toLocaleLowerCase('es').includes(term)))
   }, [query, sorted])
+  const parentCandidates = useMemo(() => {
+    const selectedParent = accounts.find(account => account.Codigo === draft['Cta. Padre'])
+    const selectedLabel = selectedParent ? `${selectedParent.Codigo} · ${selectedParent['Descripción']}` : ''
+    const term = parentSearch === selectedLabel ? '' : parentSearch.trim().toLocaleLowerCase('es')
+    return sorted.filter(account => account.Codigo !== editingCode && account.Tipo !== 'AUXILIAR' && (!term || account.Codigo.toLocaleLowerCase('es').includes(term) || account['Descripción'].toLocaleLowerCase('es').includes(term)))
+  }, [accounts, draft, editingCode, parentSearch, sorted])
+
+  const parentLabel = (code: string) => {
+    const parent = accounts.find(account => account.Codigo === code)
+    return parent ? `${parent.Codigo} · ${parent['Descripción']}` : ''
+  }
 
   const persist = (next: Account[]) => {
     setAccounts(next)
     localStorage.setItem(planKey, JSON.stringify(next))
+  }
+
+  const nextAvailableCode = (parent?: Account) => {
+    const parentLevel = parent ? structures.indexOf(parent.Estructura) : -1
+    const targetStructure = parent ? structures[Math.min(parentLevel + 1, structures.length - 1)] : 'TITULO'
+    const targetLength = structureLengths[targetStructure]
+    const prefix = parent?.Codigo ?? ''
+    const sequenceWidth = targetLength - prefix.length
+    if (sequenceWidth <= 0) return ''
+    const siblings = accounts.filter(account =>
+      account['Cta. Padre'] === prefix
+      && account.Codigo.length === targetLength
+      && account.Codigo.startsWith(prefix),
+    )
+    const highestSequence = siblings.reduce((highest, account) => {
+      const sequence = Number(account.Codigo.slice(prefix.length))
+      return Number.isInteger(sequence) ? Math.max(highest, sequence) : highest
+    }, 0)
+    const nextSequence = highestSequence + 1
+    if (nextSequence > Number('9'.repeat(sequenceWidth))) return ''
+    return `${prefix}${String(nextSequence).padStart(sequenceWidth, '0')}`
   }
 
   const startNew = (parent?: Account) => {
@@ -73,10 +146,13 @@ export function AccountPlanPage({ screen }: { screen: ScreenSpec }) {
     setEditingCode(null)
     setDraft(parent ? {
       ...emptyDraft,
+      Codigo: nextAvailableCode(parent),
       'Cta. Padre': parent.Codigo,
       Grupo: parent.Grupo,
       Estructura: structures[Math.min(parentLevel + 1, structures.length - 1)],
-    } : { ...emptyDraft })
+    } : { ...emptyDraft, Codigo: nextAvailableCode() })
+    setParentSearch(parent ? `${parent.Codigo} · ${parent['Descripción']}` : '')
+    setParentOptionsOpen(false)
     setError('')
     setMessage('')
     setFormOpen(true)
@@ -86,6 +162,8 @@ export function AccountPlanPage({ screen }: { screen: ScreenSpec }) {
     const { sourceUploadId: _source, ...values } = account
     setEditingCode(account.Codigo)
     setDraft(values)
+    setParentSearch(parentLabel(account['Cta. Padre']))
+    setParentOptionsOpen(false)
     setError('')
     setMessage('')
     setFormOpen(true)
@@ -153,10 +231,21 @@ export function AccountPlanPage({ screen }: { screen: ScreenSpec }) {
     const parent = accounts.find(account => account.Codigo === value)
     setDraft(current => ({
       ...current,
+      Codigo: editingCode ? current.Codigo : nextAvailableCode(parent),
       'Cta. Padre': value,
       Grupo: parent?.Grupo ?? current.Grupo,
       Estructura: parent ? structures[Math.min(structures.indexOf(parent.Estructura) + 1, structures.length - 1)] : current.Estructura,
     }))
+    setParentSearch(parent ? `${parent.Codigo} · ${parent['Descripción']}` : '')
+    setParentOptionsOpen(false)
+    setError('')
+  }
+
+  const filterParents = (value: string) => {
+    setParentSearch(value)
+    setParentOptionsOpen(true)
+    const currentLabel = parentLabel(draft['Cta. Padre'])
+    if (draft['Cta. Padre'] && value !== currentLabel) setDraft(current => ({ ...current, 'Cta. Padre': '' }))
     setError('')
   }
 
@@ -201,7 +290,7 @@ export function AccountPlanPage({ screen }: { screen: ScreenSpec }) {
           <label><span>Código <b>Obligatorio</b></span><input inputMode="numeric" value={draft.Codigo} onChange={event => updateDraft('Codigo', event.target.value)} placeholder="Ej. 110101001" /></label>
           <label className="wide"><span>Descripción <b>Obligatorio</b></span><input value={draft['Descripción']} onChange={event => updateDraft('Descripción', event.target.value)} maxLength={160} placeholder="Nombre de la cuenta" /></label>
           <label><span>Tipo <b>Obligatorio</b></span><select value={draft.Tipo} onChange={event => updateDraft('Tipo', event.target.value)}><option>MAYOR</option><option>AUXILIAR</option></select></label>
-          <label><span>Cuenta Padre</span><select value={draft['Cta. Padre']} onChange={event => selectParent(event.target.value)}><option value="">Sin cuenta padre</option>{sorted.filter(account => account.Codigo !== editingCode && account.Tipo !== 'AUXILIAR').map(account => <option key={account.Codigo} value={account.Codigo}>{account.Codigo} · {account['Descripción']}</option>)}</select></label>
+          <label className="account-parent-field"><span>Cuenta Padre</span><div className="account-parent-combobox" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setParentOptionsOpen(false) }}><input role="combobox" aria-expanded={parentOptionsOpen} aria-controls="account-parent-options" aria-autocomplete="list" value={parentSearch} onFocus={event => { setParentOptionsOpen(true); event.currentTarget.select() }} onKeyDown={event => { if (event.key === 'Escape') setParentOptionsOpen(false) }} onChange={event => filterParents(event.target.value)} placeholder="Escribe código o descripción para filtrar" />{parentOptionsOpen&&<div id="account-parent-options" className="account-parent-options" role="listbox"><button type="button" role="option" aria-selected={!draft['Cta. Padre']} className={!draft['Cta. Padre']?'selected':''} onClick={()=>selectParent('')}><strong>Sin cuenta padre</strong><small>Disponible para cuentas TÍTULO</small></button>{parentCandidates.map(account=><button type="button" role="option" aria-selected={draft['Cta. Padre']===account.Codigo} className={draft['Cta. Padre']===account.Codigo?'selected':''} key={account.Codigo} onClick={()=>selectParent(account.Codigo)}><strong>{account.Codigo}</strong><span>{account['Descripción']}</span><small>{account.Estructura}</small></button>)}{!parentCandidates.length&&<div className="account-parent-empty">No existen cuentas Mayores coincidentes.</div>}</div>}</div></label>
           <label><span>Grupo <b>Obligatorio</b></span><select value={draft.Grupo} onChange={event => updateDraft('Grupo', event.target.value)}>{groups.map(group => <option key={group}>{group}</option>)}</select></label>
           <label><span>Estructura <b>Obligatorio</b></span><select value={draft.Estructura} onChange={event => updateDraft('Estructura', event.target.value)}>{structures.map(structure => <option key={structure}>{structure}</option>)}</select><small>{structureLengths[draft.Estructura]} dígitos requeridos</small></label>
           <label><span>Estado <b>Obligatorio</b></span><select value={draft.Estado} onChange={event => updateDraft('Estado', event.target.value)}><option>Activo</option><option>Inactivo</option></select></label>

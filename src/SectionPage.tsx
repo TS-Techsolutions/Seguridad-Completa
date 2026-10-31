@@ -7,14 +7,15 @@ type Rate={id:string;from:string;until:string;value:string}
 type SectionRow={id:string;description:string;state:SectionState;rates:Rate[]}
 
 const storageKey='saga.property-sections'
+const trialCleanupKey='saga.property-sections.trial-cleanup-2026-10-28-v2'
+const removedTrialSectionIds=new Set(['SEC-A','SEC-B'])
+const removedTrialSectionNames=new Set(['departamentos','locales comerciales'])
 const seed:SectionRow[]=[
-  {id:'SEC-A',description:'Departamentos',state:'ACTIVO',rates:[{id:'RATE-A2',from:'01/10/2026',until:'',value:'12.500000'},{id:'RATE-A1',from:'01/01/2026',until:'30/09/2026',value:'11.250000'}]},
-  {id:'SEC-B',description:'Locales comerciales',state:'ACTIVO',rates:[{id:'RATE-B1',from:'01/01/2026',until:'',value:'15.750000'}]},
   {id:'SEC-C',description:'Parqueaderos',state:'INACTIVO',rates:[]},
 ]
 
 function readSections(){
-  try{const stored=JSON.parse(localStorage.getItem(storageKey)??'null');return Array.isArray(stored)?stored as SectionRow[]:seed}
+  try{const stored=JSON.parse(localStorage.getItem(storageKey)??'null');let rows=Array.isArray(stored)?stored as SectionRow[]:seed;if(localStorage.getItem(trialCleanupKey)!=='1'){rows=rows.filter(row=>!removedTrialSectionIds.has(row.id)&&!removedTrialSectionNames.has(row.description.trim().toLocaleLowerCase('es')));localStorage.setItem(storageKey,JSON.stringify(rows));localStorage.setItem(trialCleanupKey,'1')}return rows}
   catch{return seed}
 }
 function persist(rows:SectionRow[]){localStorage.setItem(storageKey,JSON.stringify(rows))}

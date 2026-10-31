@@ -42,14 +42,16 @@ function MassExpenseVoidManager({ screen, context }: { screen: ScreenSpec; conte
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [confirmationOpen, setConfirmationOpen] = useState(false)
-  const orderedExpenses = useMemo(() => [...expenses].sort((left, right) => left.receiptNumber.localeCompare(right.receiptNumber, 'es', { numeric: true })), [expenses])
+  const orderedExpenses = useMemo(() => expenses
+    .filter(expense => expense.status === 'VIGENTE' || expense.status === 'ANULADA')
+    .sort((left, right) => left.receiptNumber.localeCompare(right.receiptNumber, 'es', { numeric: true })), [expenses])
   const selectedRange = useMemo(() => {
     const fromIndex = orderedExpenses.findIndex(item => item.receiptNumber === fromReceipt)
     const toIndex = orderedExpenses.findIndex(item => item.receiptNumber === toReceipt)
     if (fromIndex < 0 || toIndex < 0) return []
     return orderedExpenses.slice(Math.min(fromIndex, toIndex), Math.max(fromIndex, toIndex) + 1)
   }, [fromReceipt, orderedExpenses, toReceipt])
-  const pendingCount = selectedRange.filter(item => item.status !== 'ANULADA').length
+  const pendingCount = selectedRange.filter(item => item.status === 'VIGENTE').length
 
   const requestVoid = (event: FormEvent) => {
     event.preventDefault()

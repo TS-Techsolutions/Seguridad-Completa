@@ -1,10 +1,12 @@
 import { useRef, useState, type ChangeEvent } from 'react'
-import { AlertTriangle, CheckCircle2, ChevronRight, Download, Eye, FileSpreadsheet, Network, Play, Trash2, UploadCloud, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronRight, Download, Eye, FileSpreadsheet, Network, Play, Save, Trash2, UploadCloud, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import { downloadEditableImport } from './editable-import-download'
 import type { ScreenSpec } from './types'
 
 type UploadStatus = 'PENDIENTE' | 'PROCESADO' | 'ELIMINADO'
-type AccountValues = Record<(typeof expectedColumns)[number], string>
+type AccountColumn = (typeof expectedColumns)[number]
+type AccountValues = Record<AccountColumn, string>
 type AccountRow = { sourceRow: number; values: AccountValues; issues: string[] }
 type UploadRecord = {
   id: string
@@ -161,6 +163,9 @@ export function AccountPlanMigrationPage({ screen }: { screen: ScreenSpec }) {
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const [previewRows, setPreviewRows] = useState<AccountRow[]>([])
+  const [previewDirty, setPreviewDirty] = useState(false)
+  const [previewMessage, setPreviewMessage] = useState('')
   const [diagramId, setDiagramId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -207,9 +212,34 @@ export function AccountPlanMigrationPage({ screen }: { screen: ScreenSpec }) {
     const rows = validateRows(record.rows, existing)
     const next = uploads.map(item => item.id === record.id ? { ...item, reviewed: true, rows } : item)
     persistUploads(next, setUploads)
+    setPreviewRows(rows)
+    setPreviewDirty(false)
+    setPreviewMessage('')
     setPreviewId(record.id)
     setError('')
     setMessage('')
+  }
+
+  const updatePreviewCell = (sourceRow: number, column: AccountColumn, value: string) => {
+    if (!selectedPreview || selectedPreview.status !== 'PENDIENTE') return
+    const cleanValue = column === 'Codigo' || column === 'Cta. Padre' ? accountCode(value) : value
+    const edited = previewRows.map(row => row.sourceRow === sourceRow ? { ...row, values: { ...row.values, [column]: cleanValue } } : row)
+    const existing = planRows().filter(row => row.sourceUploadId !== selectedPreview.id)
+    setPreviewRows(validateRows(edited, existing))
+    setPreviewDirty(true)
+    setPreviewMessage('')
+  }
+
+  const savePreviewChanges = () => {
+    if (!selectedPreview || selectedPreview.status !== 'PENDIENTE') return
+    const existing = planRows().filter(row => row.sourceUploadId !== selectedPreview.id)
+    const rows = validateRows(previewRows, existing)
+    const issueCount = rows.filter(row => row.issues.length).length
+    const next = uploads.map(item => item.id === selectedPreview.id ? { ...item, reviewed: true, rows } : item)
+    persistUploads(next, setUploads)
+    setPreviewRows(rows)
+    setPreviewDirty(false)
+    setPreviewMessage(issueCount ? `Cambios guardados. Aún existen ${issueCount} filas con inconsistencias.` : 'Cambios guardados. El archivo está listo para procesarse.')
   }
 
   const openDiagram = (record: UploadRecord) => {
@@ -269,18 +299,68 @@ export function AccountPlanMigrationPage({ screen }: { screen: ScreenSpec }) {
     {error && <div className="account-migration-feedback error" role="alert"><AlertTriangle />{error}</div>}
     {message && <div className="account-migration-feedback success" role="status"><CheckCircle2 />{message}</div>}
 
-    <section className="account-files-box"><h2>Archivos Cargados</h2><div className="account-files-scroll"><table><thead><tr><th>Descripción</th><th>Archivo</th><th>Fecha</th><th>Usuario</th><th>Estado</th><th aria-label="Revisar" /><th aria-label="Procesar" /><th aria-label="Diagrama" /><th aria-label="Eliminar" /></tr></thead><tbody>{uploads.map(record => <tr key={record.id}><td><strong>{record.description}</strong></td><td>{record.fileName}</td><td>{displayDate(record.loadedAt)}</td><td>{record.user}</td><td><span className={`account-upload-status ${record.status.toLowerCase()}`}>{record.status}</span></td><td><button type="button" className="account-row-action inspect" disabled={record.status === 'ELIMINADO'} title="Revisar información" aria-label={`Revisar ${record.fileName}`} onClick={() => openPreview(record)}><Eye /></button></td><td><button type="button" className="account-row-action process" disabled={record.status !== 'PENDIENTE'} title="Procesar información" aria-label={`Procesar ${record.fileName}`} onClick={() => process(record)}><Play /></button></td><td><button type="button" className="account-row-action diagram" disabled={record.status === 'ELIMINADO'} title="Ver diagrama de cuentas" aria-label={`Ver diagrama de ${record.fileName}`} onClick={() => openDiagram(record)}><Network /></button></td><td><button type="button" className="account-row-action delete" disabled={record.status === 'ELIMINADO'} title="Eliminar carga" aria-label={`Eliminar ${record.fileName}`} onClick={() => setDeleteId(record.id)}><Trash2 /></button></td></tr>)}{!uploads.length && <tr><td colSpan={9} className="account-files-empty">No existen archivos cargados.</td></tr>}</tbody></table></div></section>
+    <section className="account-files-box"><h2>Archivos Cargados</h2><div className="account-files-scroll"><table><thead><tr><th>Descripción</th><th>Archivo</th><th>Fecha</th><th>Usuario</th><th>Estado</th><th aria-label="Revisar" /><th aria-label="Descargar" /><th aria-label="Procesar" /><th aria-label="Diagrama" /><th aria-label="Eliminar" /></tr></thead><tbody>{uploads.map(record => <tr key={record.id}><td><strong>{record.description}</strong></td><td>{record.fileName}</td><td>{displayDate(record.loadedAt)}</td><td>{record.user}</td><td><span className={`account-upload-status ${record.status.toLowerCase()}`}>{record.status}</span></td><td><button type="button" className="account-row-action inspect" disabled={record.status === 'ELIMINADO'} title="Revisar y editar información" aria-label={`Revisar y editar ${record.fileName}`} onClick={() => openPreview(record)}><Eye /></button></td><td><button type="button" className="account-row-action download" disabled={record.status === 'ELIMINADO'} title="Descargar archivo con las correcciones guardadas" aria-label={`Descargar ${record.fileName}`} onClick={() => downloadEditableImport(record.fileName, expectedColumns, record.rows)}><Download /></button></td><td><button type="button" className="account-row-action process" disabled={record.status !== 'PENDIENTE'} title="Procesar información" aria-label={`Procesar ${record.fileName}`} onClick={() => process(record)}><Play /></button></td><td><button type="button" className="account-row-action diagram" disabled={record.status === 'ELIMINADO'} title="Ver diagrama de cuentas" aria-label={`Ver diagrama de ${record.fileName}`} onClick={() => openDiagram(record)}><Network /></button></td><td><button type="button" className="account-row-action delete" disabled={record.status === 'ELIMINADO'} title="Eliminar carga" aria-label={`Eliminar ${record.fileName}`} onClick={() => setDeleteId(record.id)}><Trash2 /></button></td></tr>)}{!uploads.length && <tr><td colSpan={10} className="account-files-empty">No existen archivos cargados.</td></tr>}</tbody></table></div></section>
 
-    {selectedPreview && <div className="account-preview-backdrop" role="dialog" aria-modal="true" aria-label={`Revisión de ${selectedPreview.fileName}`}><section className="account-preview-modal"><header><div><span>Revisión del archivo</span><h2>{selectedPreview.fileName}</h2><p>{selectedPreview.rows.length} filas · {selectedPreview.rows.filter(row => row.issues.length).length} con inconsistencias</p></div><button type="button" aria-label="Cerrar revisión" onClick={() => setPreviewId(null)}><X /></button></header><div className="account-preview-note"><AlertTriangle />Las filas en color naranja contienen datos incompletos, códigos repetidos o relaciones que deben corregirse antes de procesar.</div><div className="account-preview-grid"><table><thead><tr><th>Fila</th>{expectedColumns.map(column => <th key={column}>{column}</th>)}<th>Observaciones</th></tr></thead><tbody>{selectedPreview.rows.map(row => <tr key={row.sourceRow} className={row.issues.length ? 'has-issues' : ''}><td>{row.sourceRow}</td>{expectedColumns.map(column => <td key={column}>{row.values[column] || '—'}</td>)}<td>{row.issues.length ? row.issues.join(' · ') : 'Correcto'}</td></tr>)}</tbody></table></div><footer><button type="button" className="quiet-button" onClick={() => setPreviewId(null)}>Cerrar</button>{selectedPreview.status === 'PENDIENTE' && <button type="button" className="primary-action" onClick={() => { setPreviewId(null); process(selectedPreview) }}><Play />Procesar información</button>}</footer></section></div>}
+    {selectedPreview && <div className="account-preview-backdrop" role="dialog" aria-modal="true" aria-label={`Revisión de ${selectedPreview.fileName}`}><section className="account-preview-modal"><header><div><span>Revisión del archivo</span><h2>{selectedPreview.fileName}</h2><p>{previewRows.length} filas · {previewRows.filter(row => row.issues.length).length} con inconsistencias</p></div><button type="button" aria-label="Cerrar revisión" onClick={() => setPreviewId(null)}><X /></button></header>{previewRows.filter(row => row.issues.length).length > 0 && <div className="account-preview-note"><AlertTriangle />Edita directamente {previewRows.filter(row => row.issues.length).length} las celdas. Las filas en color naranja contienen datos que deben corregirse antes de procesar.</div>}<div className="account-preview-grid"><table><thead><tr><th>Fila</th>{expectedColumns.map(column => <th key={column}>{column}</th>)}<th>Observaciones</th></tr></thead><tbody>{previewRows.map(row => <tr key={row.sourceRow} className={row.issues.length ? 'has-issues' : ''}><td>{row.sourceRow}</td>{expectedColumns.map(column => <td key={column}>{selectedPreview.status === 'PENDIENTE' ? <AccountCellEditor column={column} row={row} onChange={value => updatePreviewCell(row.sourceRow, column, value)} /> : row.values[column] || '—'}</td>)}<td>{row.issues.length ? row.issues.join(' · ') : 'Correcto'}</td></tr>)}</tbody></table></div><footer><div className={`account-preview-save-state ${previewRows.some(row => row.issues.length) ? 'warning' : 'ready'}`}>{previewMessage || (previewDirty ? 'Existen cambios sin guardar.' : previewRows.some(row => row.issues.length) ? 'Corrige las inconsistencias y guarda los cambios.' : 'La información está validada.')}</div><button type="button" className="quiet-button" onClick={() => setPreviewId(null)}>Cerrar</button>{selectedPreview.status === 'PENDIENTE' && <button type="button" className="quiet-button account-save-changes" disabled={!previewDirty} onClick={savePreviewChanges}><Save />Guardar cambios</button>}{selectedPreview.status === 'PENDIENTE' && <button type="button" className="primary-action" disabled={previewDirty || previewRows.some(row => row.issues.length)} title={previewDirty ? 'Guarda los cambios antes de procesar.' : previewRows.some(row => row.issues.length) ? 'Corrige todas las inconsistencias antes de procesar.' : 'Procesar información'} onClick={() => { setPreviewId(null); process(selectedPreview) }}><Play />Procesar información</button>}</footer></section></div>}
 
-    {selectedDiagram && <div className="account-preview-backdrop" role="dialog" aria-modal="true" aria-label={`Diagrama de ${selectedDiagram.fileName}`}><section className="account-tree-modal"><header><div><span>Diagrama del plan contable</span><h2>{selectedDiagram.fileName}</h2><p>{selectedDiagram.rows.length} cuentas · {selectedDiagram.rows.filter(row => row.issues.length).length} con observaciones de jerarquía o datos</p></div><button type="button" aria-label="Cerrar diagrama" onClick={() => setDiagramId(null)}><X /></button></header><div className="account-tree-legend"><span><i className="correct" />Ubicación correcta</span><span><i className="issue" />Revisar cuenta o cuenta superior</span></div><div className="account-tree-scroll"><ul className="account-tree-root">{buildAccountTree(selectedDiagram.rows).map((node, index) => <AccountTreeBranch key={`${node.row.sourceRow}-${index}`} node={node} />)}</ul></div><footer><button type="button" className="quiet-button" onClick={() => setDiagramId(null)}>Cerrar</button>{selectedDiagram.status === 'PENDIENTE' && !selectedDiagram.reviewed && <button type="button" className="quiet-button" onClick={() => { setDiagramId(null); openPreview(selectedDiagram) }}><Eye />Revisar tabla</button>}{selectedDiagram.status === 'PENDIENTE' && selectedDiagram.reviewed && <button type="button" className="primary-action" onClick={() => { setDiagramId(null); process(selectedDiagram) }}><Play />Procesar información</button>}</footer></section></div>}
+    {selectedDiagram && <div className="account-preview-backdrop" role="dialog" aria-modal="true" aria-label={`Diagrama de ${selectedDiagram.fileName}`}><section className="account-tree-modal"><header><div><span>Diagrama del plan contable</span><h2>{selectedDiagram.fileName}</h2><p>{selectedDiagram.rows.length} cuentas · {selectedDiagram.rows.filter(row => row.issues.length).length} con observaciones de jerarquía o datos</p></div><button type="button" aria-label="Cerrar diagrama" onClick={() => setDiagramId(null)}><X /></button></header><div className="account-tree-legend"><span><i className="correct" />Ubicación correcta</span><span><i className="issue" />Cuenta con inconsistencias</span><span>Selecciona un nodo azul para expandir o contraer su nivel.</span></div><AccountTreeDiagram rows={selectedDiagram.rows} /><footer><button type="button" className="quiet-button" onClick={() => setDiagramId(null)}>Cerrar</button>{selectedDiagram.status === 'PENDIENTE' && !selectedDiagram.reviewed && <button type="button" className="quiet-button" onClick={() => { setDiagramId(null); openPreview(selectedDiagram) }}><Eye />Revisar tabla</button>}{selectedDiagram.status === 'PENDIENTE' && selectedDiagram.reviewed && <button type="button" className="primary-action" onClick={() => { setDiagramId(null); process(selectedDiagram) }}><Play />Procesar información</button>}</footer></section></div>}
 
     {selectedDelete && <div className="account-delete-backdrop" role="alertdialog" aria-modal="true" aria-label="Confirmar eliminación"><section className="account-delete-modal"><span><AlertTriangle /></span><h2>¿Eliminar el archivo cargado?</h2><p>Se eliminará <strong>{selectedDelete.fileName}</strong> y toda la información que este documento haya incorporado en las tablas.</p><div><button type="button" className="quiet-button" onClick={() => setDeleteId(null)}>Cancelar</button><button type="button" className="danger-action" onClick={confirmDelete}><Trash2 />Sí, eliminar</button></div></section></div>}
   </div>
 }
 
-function AccountTreeBranch({ node }: { node: AccountTreeNode }) {
-  const values = node.row.values
-  const hasIssues = node.row.issues.length > 0
-  return <li><article className={hasIssues ? 'has-issues' : ''}><span className="account-tree-code">{values.Codigo || 'SIN CÓDIGO'}</span><div><strong>{values['Descripción'] || 'Sin descripción'}</strong><small>{values.Estructura || 'Sin nivel'} · {values.Tipo || 'Sin tipo'}{values['Cta. Padre'] ? ` · Superior ${values['Cta. Padre']}` : ' · Cuenta raíz'}</small>{hasIssues && <p><AlertTriangle />{node.row.issues.join(' · ')}</p>}</div></article>{node.children.length > 0 && <ul>{node.children.map((child, index) => <AccountTreeBranch key={`${child.row.sourceRow}-${index}`} node={child} />)}</ul>}</li>
+function AccountCellEditor({ column, row, onChange }: { column: AccountColumn; row: AccountRow; onChange: (value: string) => void }) {
+  const value = row.values[column]
+  const label = `${column} fila ${row.sourceRow}`
+  if (column === 'Tipo') return <select aria-label={label} value={value.toUpperCase()} onChange={event => onChange(event.target.value)}><option value="">Seleccionar</option><option value="MAYOR">Mayor</option><option value="AUXILIAR">Auxiliar</option></select>
+  if (column === 'Grupo') return <select aria-label={label} value={value.toUpperCase()} onChange={event => onChange(event.target.value)}><option value="">Seleccionar</option>{[...validGroups].map(option => <option value={option} key={option}>{option.charAt(0) + option.slice(1).toLocaleLowerCase('es')}</option>)}</select>
+  if (column === 'Estructura') return <select aria-label={label} value={value.toUpperCase()} onChange={event => onChange(event.target.value)}><option value="">Seleccionar</option>{structureOrder.map(option => <option value={option} key={option}>{option}</option>)}</select>
+  if (column === 'Estado') return <select aria-label={label} value={value.toUpperCase()} onChange={event => onChange(event.target.value)}><option value="">Seleccionar</option><option value="ACTIVO">Activo</option><option value="INACTIVO">Inactivo</option></select>
+  return <input aria-label={label} value={value} inputMode={column === 'Codigo' || column === 'Cta. Padre' ? 'numeric' : 'text'} onChange={event => onChange(event.target.value)} />
+}
+
+type DiagramSourceNode = { id: string; label: string; issue: boolean; issues: string[]; children: DiagramSourceNode[] }
+type DiagramLayoutNode = DiagramSourceNode & { x: number; y: number; depth: number }
+type DiagramEdge = { parent: DiagramLayoutNode; child: DiagramLayoutNode }
+
+function AccountTreeDiagram({ rows }: { rows: AccountRow[] }) {
+  const rootId = 'PUC-ROOT'
+  const toSource = (node: AccountTreeNode): DiagramSourceNode => ({
+    id: `${node.row.sourceRow}:${node.row.values.Codigo}`,
+    label: `${node.row.values.Codigo || 'SIN CÓDIGO'}-${node.row.values['Descripción'] || 'Sin descripción'}`,
+    issue: node.row.issues.length > 0,
+    issues: node.row.issues,
+    children: node.children.map(toSource),
+  })
+  const root: DiagramSourceNode = { id: rootId, label: 'PUC', issue: false, issues: [], children: buildAccountTree(rows).map(toSource) }
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set([rootId]))
+  const allBranchIds = new Set<string>([rootId])
+  const collectBranches = (node: DiagramSourceNode) => { if (node.children.length) allBranchIds.add(node.id); node.children.forEach(collectBranches) }
+  root.children.forEach(collectBranches)
+
+  const visibleNodes: DiagramLayoutNode[] = []
+  const edges: DiagramEdge[] = []
+  let nextLeafY = 58
+  let maxDepth = 0
+  const position = (node: DiagramSourceNode, depth: number): DiagramLayoutNode => {
+    maxDepth = Math.max(maxDepth, depth)
+    const visibleChildren = expanded.has(node.id) ? node.children : []
+    const childLayouts = visibleChildren.map(child => position(child, depth + 1))
+    const y = childLayouts.length ? (childLayouts[0].y + childLayouts[childLayouts.length - 1].y) / 2 : nextLeafY
+    if (!childLayouts.length) nextLeafY += 76
+    const layout = { ...node, x: 105 + depth * 300, y, depth }
+    visibleNodes.push(layout)
+    childLayouts.forEach(child => edges.push({ parent: layout, child }))
+    return layout
+  }
+  position(root, 0)
+  const height = Math.max(470, nextLeafY + 20)
+  const width = Math.max(1120, 105 + (maxDepth + 2) * 300)
+  const toggle = (node: DiagramLayoutNode) => {
+    if (!node.children.length) return
+    setExpanded(current => { const next = new Set(current); if (next.has(node.id)) next.delete(node.id); else next.add(node.id); return next })
+  }
+  const curvedPath = (fromX: number, fromY: number, toX: number, toY: number) => `M ${fromX} ${fromY} C ${fromX + (toX - fromX) * .45} ${fromY}, ${toX - (toX - fromX) * .45} ${toY}, ${toX} ${toY}`
+
+  return <div className="account-tree-diagram"><div className="account-tree-diagram-toolbar"><div><strong>{visibleNodes.length - 1} cuentas visibles</strong><span>{rows.length} cuentas en total</span></div><button type="button" onClick={() => setExpanded(new Set([rootId]))}>Contraer</button><button type="button" onClick={() => setExpanded(new Set(allBranchIds))}>Expandir todo</button></div><div className="account-tree-svg-scroll"><svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label="Diagrama horizontal del plan contable"><g className="account-diagram-edges">{edges.map(edge => <path key={`${edge.parent.id}-${edge.child.id}`} className={edge.child.issue ? 'issue' : ''} d={curvedPath(edge.parent.x, edge.parent.y, edge.child.x, edge.child.y)} />)}{visibleNodes.flatMap(node => { if (expanded.has(node.id) || !node.children.length) return []; const count = Math.min(node.children.length, 12); return Array.from({ length: count }, (_, index) => { const spread = (index - (count - 1) / 2) * 11; return <path className="stub" key={`${node.id}-stub-${index}`} d={curvedPath(node.x, node.y, node.x + 190, node.y + spread)} /> }) })}</g><g className="account-diagram-nodes">{visibleNodes.map(node => { const shortened = node.label.length > 42 ? `${node.label.slice(0, 39)}…` : node.label; const canExpand = node.children.length > 0; return <g key={node.id} className={`${node.issue ? 'issue' : ''} ${canExpand ? 'expandable' : ''} ${expanded.has(node.id) ? 'expanded' : ''}`} transform={`translate(${node.x} ${node.y})`} role={canExpand ? 'button' : undefined} tabIndex={canExpand ? 0 : undefined} aria-label={canExpand ? `${node.label}, ${node.children.length} cuentas subordinadas` : node.label} onClick={() => toggle(node)} onKeyDown={event => { if (canExpand && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); toggle(node) } }}><title>{node.label}{node.issues.length ? ` · ${node.issues.join(' · ')}` : ''}</title><text className="account-diagram-label" x="-10" y="4" textAnchor="end">{shortened}</text><circle r={node.id === rootId ? 6 : 5} />{canExpand && <text className="account-diagram-count" x="12" y="4">{node.children.length}</text>}</g>})}</g></svg></div></div>
 }

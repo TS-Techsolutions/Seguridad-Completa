@@ -12,6 +12,7 @@
 .expense-kind { display: inline-flex; padding: .28rem .52rem; border-radius: 999px; font-size: .56rem; font-weight: 850; text-transform: uppercase; }
 .expense-kind.ordinaria { color: #2e6d58; background: #e8f7f0; }
 .expense-kind.extraordinaria { color: #8a5d14; background: #fff2d8; }
+.expense-kind.agua { color: #245e8a; background: #e7f4ff; }
 .expense-consultation-icon { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #d7dfe8; border-radius: 8px; background: #fff; }
 .expense-consultation-icon svg { width: 15px; }
 .expense-consultation-icon.pdf { color: #cf5b42; }
@@ -19,9 +20,13 @@
 .expense-consultation-icon:hover { background: #f2f4ff; }
 .expense-consultation-icon:disabled { cursor: not-allowed; opacity: .38; background: #f4f5f7; }
 .expense-consultation-table tr.voided td { color: #8d96a3; background: #fafbfc; }
+.expense-consultation-table tr.deleted td { color: #8b7c7b; background: #fff9f8; }
+.expense-consultation-table tr.pending-completion td { background: #fffdf5; }
 .expense-status { display: inline-flex; padding: .25rem .5rem; border-radius: 999px; font-size: .54rem; font-weight: 850; text-transform: uppercase; }
 .expense-status.vigente { color: #286f59; background: #e8f7f0; }
 .expense-status.anulada { color: #a63b38; background: #ffebea; }
+.expense-status.pendiente-completar { color: #8a620f; background: #fff1c9; }
+.expense-status.borrada { color: #8b4440; background: #f5e8e7; }
 .expense-void-button { display: inline-flex; align-items: center; gap: .35rem; min-height: 30px; padding: 0 .62rem; border: 1px solid #efb6b3; border-radius: 8px; color: #b74440; background: #fff6f5; font-size: .58rem; font-weight: 800; }
 .expense-void-button svg { width: 13px; }
 .expense-void-button:hover:not(:disabled) { color: #fff; background: #bd4844; border-color: #bd4844; }

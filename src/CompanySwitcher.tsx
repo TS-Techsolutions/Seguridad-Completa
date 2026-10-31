@@ -1,0 +1,9 @@
+import { useState } from 'react'
+import { Building2, Check, ChevronDown, Settings2 } from 'lucide-react'
+import type { Context, PlatformCompany } from './types'
+
+export function CompanySwitcher({context,companies,onSelect,onAdmin}:{context:Context;companies:PlatformCompany[];onSelect:(company:PlatformCompany)=>void;onAdmin:()=>void}){
+  const [open,setOpen]=useState(false)
+  const initials=(context.company.trade_name||context.company.name).split(/\s+/).slice(0,2).map(value=>value[0]).join('').toUpperCase()
+  return <div className="company-switcher"><button type="button" className="company-context" aria-expanded={open} onClick={()=>setOpen(current=>!current)}><span className="company-symbol">{initials||'SG'}</span><div><small>{context.company.tenant_name}</small><strong>{context.company.trade_name||context.company.name}</strong></div><ChevronDown className={open?'open':''}/></button>{open&&<><button type="button" className="company-switcher-scrim" aria-label="Cerrar selector de empresa" onClick={()=>setOpen(false)}/><section className="company-switcher-menu"><header><span>Empresa activa</span><strong>{context.company.trade_name||context.company.name}</strong><small>RUC {context.company.ruc}</small></header><div>{companies.filter(company=>company.status==='ACTIVE').map(company=><button type="button" key={company.id} className={company.id===context.company.id?'active':''} onClick={()=>{setOpen(false);if(company.id!==context.company.id)onSelect(company)}}><Building2/><span><strong>{company.tradeName||company.name}</strong><small>{company.tenantName} · {company.plan}</small></span>{company.id===context.company.id&&<Check/>}</button>)}</div>{context.actor.platformAdmin&&<footer><button type="button" onClick={()=>{setOpen(false);onAdmin()}}><Settings2/>Administrar empresas y tenants</button></footer>}</section></>}</div>
+}

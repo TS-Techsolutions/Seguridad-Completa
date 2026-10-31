@@ -1,20 +1,33 @@
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+from sqlite3 import IntegrityError
 from typing import Any, Literal
 
 from fastapi import FastAPI, Header, HTTPException, Request, status
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .store import ROOT, connection, initialize
+from .security import (
+    SESSION_COOKIE,
+    create_session_token,
+    decrypt_value,
+    encrypt_value,
+    is_loopback,
+    is_production,
+    verify_session_token,
+)
 
 COMPANY_ID = "cmp-demo-ecuador"
+ACTOR_ID = "usr-platform-admin"
 CONTRACTS = ROOT / "contracts"
 
 
@@ -179,6 +192,12 @@ def security_general_catalog() -> dict[str, list[dict[str, Any]]]:
 
 HIDDEN_SCREEN_IDS = {"XLS-002", "XLS-100"}
 SCREEN_LABEL_OVERRIDES = {"XLS-001": "Definición de Estructura"}
+GROUP_ADMIN_SCREEN_IDS = {"SEC-001", "SEC-002", "SEC-003"}
+GROUP_ADMIN_STATE_READ_KEYS = {
+    "saga.security.company", "saga.security.colors", "saga.security.users",
+    "saga.security.roles", "saga.security.permissions",
+}
+GROUP_ADMIN_STATE_WRITE_KEYS = {"saga.security.users", "saga.security.roles", "saga.security.permissions"}
 
 
 def all_screens() -> list[dict[str, Any]]:
@@ -255,8 +274,29 @@ def success(request: Request, data: Any, meta: dict[str, Any] | None = None) -> 
     return {"data": data, "meta": meta or {}, "trace": {"request_id": request.state.request_id}}
 
 
-def audit(db, screen_id: str, record_id: str | None, action: str, detail: dict[str, Any]) -> None:
-    db.execute("INSERT INTO audit_event VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (str(uuid.uuid4()), COMPANY_ID, screen_id, record_id, "jorge.admin", action, json.dumps(detail, ensure_ascii=False), utc_now()))
+def request_company_id(request: Request) -> str:
+    return getattr(request.state, "company_id", COMPANY_ID)
+
+
+def request_actor_id(request: Request) -> str:
+    return getattr(request.state, "actor_id", ACTOR_ID)
+
+
+def request_actor_role(request: Request) -> str:
+    with connection() as db:
+        row = db.execute("SELECT role FROM platform_user WHERE id=? AND status='ACTIVE'", (request_actor_id(request),)).fetchone()
+    return row["role"] if row else ""
+
+
+def authorize_actor_screen(request: Request, screen_id: str) -> None:
+    if request_actor_role(request) == "GROUP_ADMIN" and screen_id not in GROUP_ADMIN_SCREEN_IDS:
+        raise HTTPException(403, detail={"code": "GROUP_ADMIN_SCREEN_DENIED", "message": "El Administrador de Grupo sólo puede gestionar Usuarios, Roles y Permisos."})
+
+
+def audit(db, screen_id: str, record_id: str | None, action: str, detail: dict[str, Any], company_id: str = COMPANY_ID, actor: str = "jorge.admin") -> None:
+    event_id = str(uuid.uuid4())
+    protected = encrypt_value(json.dumps(detail, ensure_ascii=False), "audit_event", company_id, event_id)
+    db.execute("INSERT INTO audit_event VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (event_id, company_id, screen_id, record_id, actor, action, protected, utc_now()))
 
 
 def sample_value(label: str, index: int) -> str:
@@ -269,9 +309,9 @@ def sample_value(label: str, index: int) -> str:
     return ["Registro principal", "Operación en revisión", "Documento aprobado"][index % 3]
 
 
-def ensure_seeded(screen: dict[str, Any]) -> None:
+def ensure_seeded(screen: dict[str, Any], company_id: str = COMPANY_ID) -> None:
     with connection() as db:
-        count = db.execute("SELECT COUNT(*) AS n FROM screen_record WHERE company_id=? AND screen_id=?", (COMPANY_ID, screen["id"])).fetchone()["n"]
+        count = db.execute("SELECT COUNT(*) AS n FROM screen_record WHERE company_id=? AND screen_id=?", (company_id, screen["id"])).fetchone()["n"]
         if count:
             return
         columns = screen.get("columnas", [])[:8]
@@ -279,7 +319,8 @@ def ensure_seeded(screen: dict[str, Any]) -> None:
             payload = {column: sample_value(column, i) for column in columns}
             record_id = str(uuid.uuid4())
             stamp = utc_now()
-            db.execute("INSERT INTO screen_record VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)", (record_id, COMPANY_ID, screen["id"], f"{screen['id']}-{i+1:03d}", ["ACTIVE", "PENDING", "APPROVED"][i], json.dumps(payload, ensure_ascii=False), stamp, stamp, None))
+            protected = encrypt_value(json.dumps(payload, ensure_ascii=False), "screen_record", company_id, record_id)
+            db.execute("INSERT INTO screen_record VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)", (record_id, company_id, screen["id"], f"{screen['id']}-{i+1:03d}", ["ACTIVE", "PENDING", "APPROVED"][i], protected, stamp, stamp, None))
 
 
 @asynccontextmanager
@@ -290,14 +331,104 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="SAGA v2 Contract API", version="0.2.0", docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=lifespan)
+app = FastAPI(
+    title="SAGA v2 Contract API",
+    version="0.3.0",
+    docs_url=None if is_production() else "/api/docs",
+    openapi_url=None if is_production() else "/api/openapi.json",
+    lifespan=lifespan,
+)
+allowed_hosts = [item.strip() for item in os.getenv("SAGA_ALLOWED_HOSTS", "127.0.0.1,localhost,testserver").split(",") if item.strip()]
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+
+
+def validate_request_access(actor_id: str, company_id: str, platform_route: bool = False) -> None:
+    with connection() as db:
+        actor = db.execute("SELECT * FROM platform_user WHERE id=? AND status='ACTIVE'", (actor_id,)).fetchone()
+        if not actor:
+            raise HTTPException(401, detail={"code": "ACTOR_NOT_AUTHENTICATED", "message": "El usuario no tiene una sesión activa."})
+        if platform_route:
+            return
+        company = db.execute(
+            "SELECT c.*,t.status AS tenant_status FROM company c JOIN tenant t ON t.id=c.tenant_id WHERE c.id=?",
+            (company_id,),
+        ).fetchone()
+        if not company:
+            raise HTTPException(404, detail={"code": "COMPANY_NOT_FOUND", "message": "La empresa seleccionada no existe."})
+        membership = db.execute("SELECT role FROM company_user WHERE company_id=? AND user_id=?", (company_id, actor_id)).fetchone()
+        group_membership = None
+        if actor["role"] == "GROUP_ADMIN":
+            group_membership = db.execute(
+                """
+                SELECT cga.permissions FROM company_group_admin cga
+                JOIN company_group cg ON cg.id=cga.group_id AND cg.status='ACTIVE'
+                JOIN company_group_company cgc ON cgc.group_id=cg.id AND cgc.company_id=?
+                WHERE cga.user_id=? AND cga.status='ACTIVE'
+                """,
+                (company_id, actor_id),
+            ).fetchone()
+        authorized = actor["role"] == "PLATFORM_ADMIN" or (actor["role"] == "GROUP_ADMIN" and group_membership) or (actor["role"] not in {"PLATFORM_ADMIN", "GROUP_ADMIN"} and membership)
+        if not authorized:
+            raise HTTPException(403, detail={"code": "COMPANY_ACCESS_DENIED", "message": "El usuario no está autorizado para esta empresa."})
+        if company["status"] != "ACTIVE":
+            raise HTTPException(423, detail={"code": "COMPANY_SUSPENDED", "message": "La empresa se encuentra suspendida."})
+        if company["tenant_status"] != "ACTIVE":
+            raise HTTPException(423, detail={"code": "TENANT_SUSPENDED", "message": "El tenant se encuentra suspendido."})
+        db.execute("UPDATE company SET last_access_at=? WHERE id=?", (utc_now(), company_id))
 
 
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request.state.request_id = request.headers.get("X-Request-Id", str(uuid.uuid4()))
+    client_host = request.client.host if request.client else None
+    local_request = is_loopback(client_host)
+    if not local_request and os.getenv("SAGA_ALLOW_REMOTE", "false").lower() != "true":
+        return JSONResponse(status_code=403, content={"error": {"code": "REMOTE_ACCESS_DISABLED", "message": "El acceso remoto a la API está deshabilitado."}, "trace": {"request_id": request.state.request_id}})
+
+    issue_session = False
+    token = request.cookies.get(SESSION_COOKIE)
+    session = verify_session_token(token) if token else None
+    if token and not session:
+        return JSONResponse(status_code=401, content={"error": {"code": "INVALID_SESSION", "message": "La sesión no es válida o ha expirado."}, "trace": {"request_id": request.state.request_id}})
+    if not session and request.url.path.startswith("/api/v1/"):
+        if local_request and not is_production():
+            # Inicio controlado para el entorno local de validación. En producción no existe autoacceso.
+            session = {"actor": ACTOR_ID}
+            issue_session = True
+        else:
+            return JSONResponse(status_code=401, content={"error": {"code": "AUTHENTICATION_REQUIRED", "message": "Se requiere una sesión autenticada."}, "trace": {"request_id": request.state.request_id}})
+    request.state.actor_id = str(session["actor"]) if session else ""
+    request.state.company_id = request.headers.get("X-Company-Id", COMPANY_ID)
+    if request.url.path.startswith("/api/v1/"):
+        try:
+            unscoped_route = request.url.path.startswith("/api/v1/platform/") or request.url.path.startswith("/api/v1/session/")
+            validate_request_access(
+                request.state.actor_id,
+                request.state.company_id,
+                unscoped_route,
+            )
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, dict) else {"code": "ACCESS_DENIED", "message": str(exc.detail)}
+            return JSONResponse(status_code=exc.status_code, content={"error": detail, "trace": {"request_id": request.state.request_id}})
     response = await call_next(request)
+    if issue_session:
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=create_session_token(ACTOR_ID),
+            max_age=8 * 60 * 60,
+            httponly=True,
+            secure=is_production(),
+            samesite="strict",
+            path="/api/",
+        )
     response.headers["X-Request-Id"] = request.state.request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 
@@ -315,24 +446,371 @@ def health():
 @app.get("/api/v1/catalog")
 def catalog(request: Request):
     screens = all_screens()
-    data = {"version": manifest()["version"], "screens": screens, "menu": all_menu_nodes(), "complementaryCount": manifest()["complementary_screen_count"] + len(human_talent_catalog()["screens"]) + len(personal_information_catalog()["screens"]) + len(security_general_catalog()["screens"])}
+    nodes = all_menu_nodes()
+    if request_actor_role(request) == "GROUP_ADMIN":
+        screens = [screen for screen in screens if screen["id"] in GROUP_ADMIN_SCREEN_IDS]
+        nodes = [
+            node for node in nodes
+            if (node["level"] == 0 and node["label"] == "Configuración General")
+            or node.get("screen_id") in GROUP_ADMIN_SCREEN_IDS
+        ]
+    data = {"version": manifest()["version"], "screens": screens, "menu": nodes, "complementaryCount": manifest()["complementary_screen_count"] + len(human_talent_catalog()["screens"]) + len(personal_information_catalog()["screens"]) + len(security_general_catalog()["screens"])}
     return success(request, data, {"screenCount": len(screens), "menuNodeCount": len(data["menu"])})
+
+
+@app.get("/api/v1/session/companies")
+def session_companies(request: Request):
+    actor_id = request_actor_id(request)
+    with connection() as db:
+        actor = db.execute("SELECT role FROM platform_user WHERE id=? AND status='ACTIVE'", (actor_id,)).fetchone()
+        if not actor:
+            raise HTTPException(401, detail={"code": "ACTOR_NOT_AUTHENTICATED", "message": "El usuario no tiene una sesión activa."})
+        if actor["role"] == "PLATFORM_ADMIN":
+            rows = db.execute(platform_company_query() + " WHERE c.status='ACTIVE' ORDER BY c.name").fetchall()
+        elif actor["role"] == "GROUP_ADMIN":
+            rows = db.execute(
+                platform_company_query() +
+                " JOIN company_group_admin scope ON scope.group_id=cgc.group_id AND scope.user_id=? AND scope.status='ACTIVE' WHERE c.status='ACTIVE' AND cg.status='ACTIVE' ORDER BY c.name",
+                (actor_id,),
+            ).fetchall()
+        else:
+            rows = db.execute(
+                platform_company_query() +
+                " JOIN company_user scope ON scope.company_id=c.id AND scope.user_id=? WHERE c.status='ACTIVE' ORDER BY c.name",
+                (actor_id,),
+            ).fetchall()
+    return success(request, [platform_company_summary(row) for row in rows], {"count": len(rows)})
 
 
 @app.get("/api/v1/context")
 def context(request: Request):
+    company_id = request_company_id(request)
+    actor_id = request_actor_id(request)
     with connection() as db:
-        company = dict(db.execute("SELECT * FROM company WHERE id=?", (COMPANY_ID,)).fetchone())
-        modules = {r["code"]: r["state"] for r in db.execute("SELECT code,state FROM company_module WHERE company_id=?", (COMPANY_ID,))}
-    return success(request, {"company": company, "modules": modules, "actor": {"name": "Jorge Mendoza", "role": "Administrador de validación"}})
+        company = dict(db.execute("SELECT c.*,t.name AS tenant_name,t.plan AS tenant_plan FROM company c JOIN tenant t ON t.id=c.tenant_id WHERE c.id=?", (company_id,)).fetchone())
+        modules = {r["code"]: r["state"] for r in db.execute("SELECT code,state FROM company_module WHERE company_id=?", (company_id,))}
+        actor = dict(db.execute("SELECT id,username,name,email,role FROM platform_user WHERE id=?", (actor_id,)).fetchone())
+        membership = db.execute("SELECT role FROM company_user WHERE company_id=? AND user_id=?", (company_id, actor_id)).fetchone()
+        group_memberships = [dict(row) for row in db.execute(
+            """SELECT cg.id,cg.name,cga.permissions FROM company_group_admin cga
+               JOIN company_group cg ON cg.id=cga.group_id AND cg.status='ACTIVE'
+               WHERE cga.user_id=? AND cga.status='ACTIVE' ORDER BY cg.name""",
+            (actor_id,),
+        )]
+    actor["companyRole"] = membership["role"] if membership else "PLATFORM_ADMIN"
+    actor["platformAdmin"] = actor["role"] == "PLATFORM_ADMIN"
+    actor["groupAdmin"] = actor["role"] == "GROUP_ADMIN" and bool(group_memberships)
+    actor["companyGroups"] = [
+        {"id": item["id"], "name": item["name"], "permissions": json.loads(item["permissions"])}
+        for item in group_memberships
+    ]
+    return success(request, {"company": company, "modules": modules, "actor": actor})
+
+
+def platform_company_summary(row: Any) -> dict[str, Any]:
+    return {
+        "id": row["id"], "tenantId": row["tenant_id"], "tenantName": row["tenant_name"],
+        "name": row["name"], "legalName": row["legal_name"], "tradeName": row["trade_name"],
+        "ruc": row["ruc"], "plan": row["plan"], "status": row["status"],
+        "environment": row["environment"], "period": row["period"], "email": row["email"],
+        "operationStartDate": row["operation_start_date"], "createdAt": row["created_at"],
+        "lastAccessAt": row["last_access_at"], "userCount": row["user_count"],
+        "adminName": row["admin_name"] or "Sin administrador",
+        "groupId": row["group_id"], "groupName": row["group_name"],
+    }
+
+
+def platform_company_query() -> str:
+    return """
+      SELECT c.*,t.name AS tenant_name,t.plan,cgc.group_id AS group_id,cg.name AS group_name,
+        (SELECT COUNT(*) FROM company_user cu WHERE cu.company_id=c.id) AS user_count,
+        (SELECT u.name FROM company_user cu JOIN platform_user u ON u.id=cu.user_id WHERE cu.company_id=c.id AND cu.role='ADMIN' ORDER BY u.created_at LIMIT 1) AS admin_name
+      FROM company c JOIN tenant t ON t.id=c.tenant_id
+      LEFT JOIN company_group_company cgc ON cgc.company_id=c.id
+      LEFT JOIN company_group cg ON cg.id=cgc.group_id
+    """
+
+
+def require_platform_admin(request: Request) -> None:
+    with connection() as db:
+        actor = db.execute("SELECT role FROM platform_user WHERE id=? AND status='ACTIVE'", (request_actor_id(request),)).fetchone()
+    if not actor or actor["role"] != "PLATFORM_ADMIN":
+        raise HTTPException(403, detail={"code": "PLATFORM_ADMIN_REQUIRED", "message": "Esta operación requiere permisos de superadministrador."})
+
+
+def require_platform_scope(request: Request) -> str:
+    with connection() as db:
+        actor = db.execute("SELECT role FROM platform_user WHERE id=? AND status='ACTIVE'", (request_actor_id(request),)).fetchone()
+    if not actor or actor["role"] not in {"PLATFORM_ADMIN", "GROUP_ADMIN"}:
+        raise HTTPException(403, detail={"code": "PLATFORM_SCOPE_REQUIRED", "message": "Esta operación requiere permisos de plataforma o administración de grupo."})
+    return actor["role"]
+
+
+@app.get("/api/v1/platform/companies")
+def list_platform_companies(request: Request):
+    role = require_platform_scope(request)
+    with connection() as db:
+        if role == "PLATFORM_ADMIN":
+            rows = db.execute(platform_company_query() + " ORDER BY c.created_at DESC, c.name").fetchall()
+        else:
+            rows = db.execute(
+                platform_company_query() +
+                " JOIN company_group_admin scope ON scope.group_id=cgc.group_id AND scope.user_id=? AND scope.status='ACTIVE' WHERE cg.status='ACTIVE' ORDER BY c.name",
+                (request_actor_id(request),),
+            ).fetchall()
+    return success(request, [platform_company_summary(row) for row in rows], {"count": len(rows)})
+
+
+GROUP_ADMIN_PERMISSIONS = {"USERS_MANAGE", "PERMISSIONS_MANAGE", "ACCESS_MANAGE"}
+
+
+def company_group_summary(db, row: Any) -> dict[str, Any]:
+    companies = [
+        {"id": item["id"], "name": item["name"], "ruc": item["ruc"], "status": item["status"]}
+        for item in db.execute(
+            """SELECT c.id,c.name,c.ruc,c.status FROM company_group_company cgc
+               JOIN company c ON c.id=cgc.company_id WHERE cgc.group_id=? ORDER BY c.name""",
+            (row["id"],),
+        )
+    ]
+    admins = [
+        {
+            "id": item["id"], "name": item["name"], "email": item["email"],
+            "username": item["username"], "status": item["membership_status"],
+            "permissions": json.loads(item["permissions"]),
+        }
+        for item in db.execute(
+            """SELECT u.id,u.name,u.email,u.username,cga.status AS membership_status,cga.permissions
+               FROM company_group_admin cga JOIN platform_user u ON u.id=cga.user_id
+               WHERE cga.group_id=? ORDER BY u.name""",
+            (row["id"],),
+        )
+    ]
+    return {
+        "id": row["id"], "name": row["name"], "description": row["description"],
+        "status": row["status"], "createdAt": row["created_at"],
+        "companies": companies, "admins": admins,
+    }
+
+
+class CompanyGroupCreate(BaseModel):
+    name: str = Field(min_length=3, max_length=100)
+    description: str = Field(default="", max_length=240)
+    company_ids: list[str] = Field(min_length=2, max_length=100)
+    admin_name: str = Field(min_length=3, max_length=100)
+    admin_email: str = Field(min_length=5, max_length=120)
+    admin_username: str = Field(pattern=r"^[a-z0-9._-]{3,40}$")
+    permissions: list[Literal["USERS_MANAGE", "PERMISSIONS_MANAGE", "ACCESS_MANAGE"]] = Field(
+        default_factory=lambda: ["USERS_MANAGE", "PERMISSIONS_MANAGE", "ACCESS_MANAGE"]
+    )
+
+
+@app.get("/api/v1/platform/company-groups")
+def list_company_groups(request: Request):
+    role = require_platform_scope(request)
+    with connection() as db:
+        if role == "PLATFORM_ADMIN":
+            rows = db.execute("SELECT * FROM company_group ORDER BY name").fetchall()
+        else:
+            rows = db.execute(
+                """SELECT cg.* FROM company_group cg JOIN company_group_admin cga ON cga.group_id=cg.id
+                   WHERE cga.user_id=? AND cga.status='ACTIVE' ORDER BY cg.name""",
+                (request_actor_id(request),),
+            ).fetchall()
+        data = [company_group_summary(db, row) for row in rows]
+    return success(request, data, {"count": len(data)})
+
+
+@app.post("/api/v1/platform/company-groups", status_code=status.HTTP_201_CREATED)
+def create_company_group(payload: CompanyGroupCreate, request: Request):
+    require_platform_admin(request)
+    company_ids = list(dict.fromkeys(payload.company_ids))
+    if len(company_ids) < 2:
+        raise HTTPException(422, detail={"code": "GROUP_REQUIRES_TWO_COMPANIES", "message": "El grupo debe contener al menos dos compañías diferentes."})
+    permissions = sorted(set(payload.permissions))
+    if set(permissions) != GROUP_ADMIN_PERMISSIONS:
+        raise HTTPException(422, detail={"code": "GROUP_ADMIN_PERMISSIONS_REQUIRED", "message": "El administrador del grupo debe gestionar usuarios, permisos y accesos."})
+    group_id = f"grp-{uuid.uuid4()}"
+    user_id = f"usr-{uuid.uuid4()}"
+    stamp = utc_now()
+    placeholders = ",".join("?" for _ in company_ids)
+    try:
+        with connection() as db:
+            companies = db.execute(
+                f"SELECT id,name,status FROM company WHERE id IN ({placeholders})",
+                company_ids,
+            ).fetchall()
+            if len(companies) != len(company_ids):
+                raise HTTPException(404, detail={"code": "COMPANY_NOT_FOUND", "message": "Una o más compañías seleccionadas no existen."})
+            if any(item["status"] != "ACTIVE" for item in companies):
+                raise HTTPException(422, detail={"code": "GROUP_COMPANY_INACTIVE", "message": "Sólo se pueden agrupar compañías activas."})
+            grouped = db.execute(
+                f"""SELECT c.name,cg.name AS group_name FROM company_group_company cgc
+                    JOIN company c ON c.id=cgc.company_id JOIN company_group cg ON cg.id=cgc.group_id
+                    WHERE cgc.company_id IN ({placeholders})""",
+                company_ids,
+            ).fetchall()
+            if grouped:
+                detail = ", ".join(f"{item['name']} ({item['group_name']})" for item in grouped)
+                raise HTTPException(409, detail={"code": "COMPANY_ALREADY_GROUPED", "message": f"Estas compañías ya pertenecen a un grupo: {detail}."})
+
+            username = payload.admin_username.strip().lower()
+            email = payload.admin_email.strip().lower()
+            existing_user = db.execute("SELECT * FROM platform_user WHERE username=? OR email=?", (username, email)).fetchone()
+            if existing_user:
+                if existing_user["username"] != username or existing_user["email"] != email:
+                    raise HTTPException(409, detail={"code": "ADMIN_IDENTITY_CONFLICT", "message": "El usuario o email ya pertenece a otra identidad."})
+                if existing_user["role"] == "PLATFORM_ADMIN":
+                    raise HTTPException(409, detail={"code": "PLATFORM_ADMIN_NOT_GROUP_ADMIN", "message": "El superadministrador no debe asignarse como administrador limitado de un grupo."})
+                user_id = existing_user["id"]
+                db.execute("UPDATE platform_user SET role='GROUP_ADMIN',status='ACTIVE',name=? WHERE id=?", (payload.admin_name.strip(), user_id))
+            else:
+                db.execute(
+                    "INSERT INTO platform_user(id,username,name,email,role,status,created_at) VALUES(?,?,?,?,?,?,?)",
+                    (user_id, username, payload.admin_name.strip(), email, "GROUP_ADMIN", "ACTIVE", stamp),
+                )
+
+            db.execute(
+                "INSERT INTO company_group(id,name,description,status,created_at,created_by) VALUES(?,?,?,?,?,?)",
+                (group_id, payload.name.strip(), payload.description.strip(), "ACTIVE", stamp, request_actor_id(request)),
+            )
+            db.executemany(
+                "INSERT INTO company_group_company(group_id,company_id) VALUES(?,?)",
+                [(group_id, company_id) for company_id in company_ids],
+            )
+            db.execute(
+                "INSERT INTO company_group_admin(group_id,user_id,permissions,status,created_at) VALUES(?,?,?,?,?)",
+                (group_id, user_id, json.dumps(permissions), "ACTIVE", stamp),
+            )
+            for company_id in company_ids:
+                db.execute(
+                    """INSERT INTO company_user(company_id,user_id,role) VALUES(?,?,'GROUP_ADMIN')
+                       ON CONFLICT(company_id,user_id) DO UPDATE SET role='GROUP_ADMIN'""",
+                    (company_id, user_id),
+                )
+                audit(
+                    db, "PLATFORM-GROUPS", group_id, "company_group.created",
+                    {"groupName": payload.name.strip(), "administrator": username, "permissions": permissions},
+                    company_id, request_actor_id(request),
+                )
+            row = db.execute("SELECT * FROM company_group WHERE id=?", (group_id,)).fetchone()
+            result = company_group_summary(db, row)
+    except IntegrityError as exc:
+        raise HTTPException(409, detail={"code": "COMPANY_GROUP_DUPLICATE", "message": "Ya existe un grupo con ese nombre o una compañía seleccionada ya fue agrupada."}) from exc
+    return success(request, result)
+
+
+class PlatformCompanyCreate(BaseModel):
+    tenant_name: str = Field(min_length=3, max_length=120)
+    plan: Literal["BASE", "PROFESIONAL", "COMPLETO"] = "COMPLETO"
+    legal_name: str = Field(min_length=3, max_length=150)
+    trade_name: str = Field(min_length=2, max_length=100)
+    ruc: str = Field(pattern=r"^\d{10,13}$")
+    email: str = Field(default="", max_length=120)
+    address: str = Field(default="", max_length=200)
+    phone: str = Field(default="", max_length=30)
+    operation_start_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    billing_type: Literal["EXPENSAS", "FACTURACION"] = "EXPENSAS"
+    generation_type: Literal["CLIENTE", "INMUEBLE"] = "CLIENTE"
+    bills_water: bool = False
+    modules: list[str] = Field(default_factory=lambda: ["ACCOUNTING_CORE", "PROPERTY_MANAGEMENT"])
+    primary_color: str = Field(default="#5265ee", pattern=r"^#[0-9A-Fa-f]{6}$")
+    sidebar_color: str = Field(default="#151b2b", pattern=r"^#[0-9A-Fa-f]{6}$")
+    admin_name: str = Field(min_length=3, max_length=100)
+    admin_email: str = Field(min_length=5, max_length=120)
+    admin_username: str = Field(pattern=r"^[a-z0-9._-]{3,40}$")
+
+
+@app.post("/api/v1/platform/companies", status_code=status.HTTP_201_CREATED)
+def create_platform_company(payload: PlatformCompanyCreate, request: Request):
+    require_platform_admin(request)
+    tenant_id = f"tenant-{uuid.uuid4()}"
+    company_id = f"cmp-{uuid.uuid4()}"
+    user_id = f"usr-{uuid.uuid4()}"
+    stamp = utc_now()
+    period = payload.operation_start_date[:7]
+    company_settings = {
+        "ruc": payload.ruc, "name": payload.trade_name, "businessName": payload.legal_name,
+        "address": payload.address, "phone": payload.phone, "email": payload.email,
+        "operationStartDate": payload.operation_start_date, "billingType": payload.billing_type,
+        "vatType": "GRAVA_IVA", "generationType": payload.generation_type,
+        "billsWater": payload.bills_water, "smtpServer": "", "smtpPort": "587",
+        "senderEmail": "", "smtpPassword": "", "from": "",
+    }
+    colors = {
+        "canvas": "#f4f5f8", "surface": "#ffffff", "subtle": "#f8fafc", "hover": "#f1f5f9",
+        "text": "#202536", "secondary": "#707789", "border": "#dfe2e9", "divider": "#e2e8f0",
+        "primary": payload.primary_color, "primary-hover": payload.primary_color, "sidebar": payload.sidebar_color,
+        "sidebar-active": "#1d2437", "success": "#166534", "success-bg": "#f0fdf4",
+        "warning": "#92400e", "warning-bg": "#fffbeb", "danger": "#b91c1c", "danger-bg": "#fef2f2",
+        "info-bg": "#eff6ff", "simulation": "#6b21a8", "simulation-bg": "#faf5ff",
+    }
+    try:
+        with connection() as db:
+            db.execute("INSERT INTO tenant(id,name,plan,status,created_at) VALUES(?,?,?,?,?)", (tenant_id, payload.tenant_name.strip(), payload.plan, "ACTIVE", stamp))
+            username = payload.admin_username.strip().lower()
+            email = payload.admin_email.strip().lower()
+            existing_user = db.execute("SELECT * FROM platform_user WHERE username=? OR email=?", (username, email)).fetchone()
+            if existing_user:
+                if existing_user["username"] != username or existing_user["email"] != email:
+                    raise HTTPException(409, detail={"code": "ADMIN_IDENTITY_CONFLICT", "message": "El usuario o email ya pertenece a otra identidad. Usa ambos datos del mismo usuario."})
+                user_id = existing_user["id"]
+            else:
+                db.execute(
+                    "INSERT INTO platform_user(id,username,name,email,role,status,created_at) VALUES(?,?,?,?,?,?,?)",
+                    (user_id, username, payload.admin_name.strip(), email, "COMPANY_ADMIN", "ACTIVE", stamp),
+                )
+            db.execute(
+                "INSERT INTO company(id,name,ruc,environment,period,tenant_id,legal_name,trade_name,email,address,phone,timezone,currency,operation_start_date,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (company_id, payload.trade_name.strip(), payload.ruc, "PRODUCTION", period, tenant_id, payload.legal_name.strip(), payload.trade_name.strip(), payload.email.strip().lower(), payload.address.strip(), payload.phone.strip(), "America/Guayaquil", "USD", payload.operation_start_date, "ACTIVE", stamp),
+            )
+            db.execute("INSERT INTO tenant_user(tenant_id,user_id,role) VALUES(?,?,?)", (tenant_id, user_id, "OWNER"))
+            db.execute("INSERT INTO company_user(company_id,user_id,role) VALUES(?,?,?)", (company_id, user_id, "ADMIN"))
+            for code in sorted(set(["ACCOUNTING_CORE", *payload.modules])):
+                db.execute("INSERT INTO company_module(company_id,code,state,effective_at,reason) VALUES(?,?,?,?,?)", (company_id, code, "ENABLED", stamp, "Configuración inicial del tenant"))
+            for key, value in {
+                "saga.security.company": company_settings,
+                "saga.security.colors": colors,
+            }.items():
+                serialized = json.dumps(value, ensure_ascii=False)
+                protected = encrypt_value(serialized, "client_state", company_id, key)
+                db.execute("INSERT INTO client_state(company_id,storage_key,value,version,updated_at,actor) VALUES(?,?,?,1,?,?)", (company_id, key, protected, stamp, request_actor_id(request)))
+            audit(db, "PLATFORM-COMPANIES", company_id, "company.provisioned", {"tenantId": tenant_id, "plan": payload.plan, "modules": payload.modules}, company_id, request_actor_id(request))
+            row = db.execute(platform_company_query() + " WHERE c.id=?", (company_id,)).fetchone()
+    except IntegrityError as exc:
+        raise HTTPException(409, detail={"code": "COMPANY_DUPLICATE", "message": "Ya existe una empresa con el RUC, usuario o email indicado."}) from exc
+    return success(request, platform_company_summary(row))
+
+
+class PlatformCompanyStatusUpdate(BaseModel):
+    status: Literal["ACTIVE", "SUSPENDED"]
+
+
+@app.patch("/api/v1/platform/companies/{company_id}/status")
+def update_platform_company_status(company_id: str, payload: PlatformCompanyStatusUpdate, request: Request):
+    require_platform_admin(request)
+    if company_id == COMPANY_ID and payload.status == "SUSPENDED":
+        raise HTTPException(422, detail={"code": "DEMO_COMPANY_REQUIRED", "message": "La empresa principal de validación no puede suspenderse."})
+    with connection() as db:
+        current = db.execute("SELECT id,status FROM company WHERE id=?", (company_id,)).fetchone()
+        if not current:
+            raise HTTPException(404, detail={"code": "COMPANY_NOT_FOUND", "message": "La empresa no existe."})
+        db.execute("UPDATE company SET status=? WHERE id=?", (payload.status, company_id))
+        audit(db, "PLATFORM-COMPANIES", company_id, "company.status_changed", {"from": current["status"], "to": payload.status}, company_id, request_actor_id(request))
+        row = db.execute(platform_company_query() + " WHERE c.id=?", (company_id,)).fetchone()
+    return success(request, platform_company_summary(row))
 
 
 @app.get("/api/v1/overview")
 def overview(request: Request):
+    company_id = request_company_id(request)
+    if request_actor_role(request) == "GROUP_ADMIN":
+        nodes = [node for node in all_menu_nodes() if (node["level"] == 0 and node["label"] == "Configuración General") or node.get("screen_id") in GROUP_ADMIN_SCREEN_IDS]
+        return success(request, {"screenCount": 3, "rootCount": 1, "recordCount": 0, "auditCount": 0, "roots": [{"label": "Configuración General", "screens": 3}], "recent": []})
     with connection() as db:
-        records = db.execute("SELECT COUNT(*) AS n FROM screen_record").fetchone()["n"]
-        events = db.execute("SELECT COUNT(*) AS n FROM audit_event").fetchone()["n"]
-        recent = [dict(r) for r in db.execute("SELECT screen_id, action, occurred_at FROM audit_event ORDER BY occurred_at DESC LIMIT 6")]
+        records = db.execute("SELECT COUNT(*) AS n FROM screen_record WHERE company_id=?", (company_id,)).fetchone()["n"]
+        events = db.execute("SELECT COUNT(*) AS n FROM audit_event WHERE company_id=?", (company_id,)).fetchone()["n"]
+        recent = [dict(r) for r in db.execute("SELECT screen_id, action, occurred_at FROM audit_event WHERE company_id=? ORDER BY occurred_at DESC LIMIT 6", (company_id,))]
     nodes = all_menu_nodes()
     roots = [n for n in nodes if n["level"] == 0]
     return success(request, {"screenCount": len(all_screens()), "rootCount": len(roots), "recordCount": records, "auditCount": events, "roots": [{"label": r["label"], "screens": len([n for n in nodes if n["type"] == "screen" and n["breadcrumb"][0] == r["label"]])} for r in roots], "recent": recent})
@@ -340,12 +818,20 @@ def overview(request: Request):
 
 @app.get("/api/v1/screens/{screen_id}/records")
 def list_records(screen_id: str, request: Request):
+    company_id = request_company_id(request)
+    authorize_actor_screen(request, screen_id)
     screen = get_screen(screen_id)
-    authorize_screen(screen, COMPANY_ID)
-    ensure_seeded(screen)
+    authorize_screen(screen, company_id)
+    ensure_seeded(screen, company_id)
     with connection() as db:
-        rows = db.execute("SELECT * FROM screen_record WHERE company_id=? AND screen_id=? ORDER BY updated_at DESC", (COMPANY_ID, screen_id)).fetchall()
-    data = [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+        rows = db.execute("SELECT * FROM screen_record WHERE company_id=? AND screen_id=? ORDER BY updated_at DESC", (company_id, screen_id)).fetchall()
+    data = [
+        {
+            **dict(r),
+            "payload": json.loads(decrypt_value(r["payload"], "screen_record", company_id, r["id"])),
+        }
+        for r in rows
+    ]
     return success(request, data, {"count": len(data), "screenId": screen_id})
 
 
@@ -355,25 +841,28 @@ class RecordCreate(BaseModel):
 
 @app.post("/api/v1/screens/{screen_id}/records", status_code=status.HTTP_201_CREATED)
 def create_record(screen_id: str, payload: RecordCreate, request: Request, idempotency_key: str | None = Header(default=None)):
+    company_id = request_company_id(request)
+    authorize_actor_screen(request, screen_id)
     screen = get_screen(screen_id)
-    authorize_screen(screen, COMPANY_ID, write=True)
+    authorize_screen(screen, company_id, write=True)
     required = [field["nombre"] for field in screen.get("filtros_campos", []) if field.get("obligatorio")][:4]
     missing = [name for name in required if not payload.values.get(name, "").strip()]
     if missing:
         raise HTTPException(422, detail={"code": "MISSING_REQUIRED_FIELDS", "message": f"Completa los campos: {', '.join(missing)}."})
     key = idempotency_key or str(uuid.uuid4())
     with connection() as db:
-        existing = db.execute("SELECT * FROM screen_record WHERE company_id=? AND idempotency_key=?", (COMPANY_ID, key)).fetchone()
+        existing = db.execute("SELECT * FROM screen_record WHERE company_id=? AND idempotency_key=?", (company_id, key)).fetchone()
         if existing:
             row = existing
         else:
             record_id = str(uuid.uuid4())
-            reference = f"{screen_id}-{db.execute('SELECT COUNT(*) AS n FROM screen_record WHERE screen_id=?', (screen_id,)).fetchone()['n'] + 1:03d}"
+            reference = f"{screen_id}-{db.execute('SELECT COUNT(*) AS n FROM screen_record WHERE company_id=? AND screen_id=?', (company_id, screen_id)).fetchone()['n'] + 1:03d}"
             stamp = utc_now()
-            db.execute("INSERT INTO screen_record VALUES (?, ?, ?, ?, 'DRAFT', ?, 1, ?, ?, ?)", (record_id, COMPANY_ID, screen_id, reference, json.dumps(payload.values, ensure_ascii=False), stamp, stamp, key))
-            audit(db, screen_id, record_id, "record.created", {"reference": reference})
-            row = db.execute("SELECT * FROM screen_record WHERE id=?", (record_id,)).fetchone()
-    return success(request, {**dict(row), "payload": json.loads(row["payload"])})
+            protected = encrypt_value(json.dumps(payload.values, ensure_ascii=False), "screen_record", company_id, record_id)
+            db.execute("INSERT INTO screen_record VALUES (?, ?, ?, ?, 'DRAFT', ?, 1, ?, ?, ?)", (record_id, company_id, screen_id, reference, protected, stamp, stamp, key))
+            audit(db, screen_id, record_id, "record.created", {"reference": reference}, company_id, request_actor_id(request))
+            row = db.execute("SELECT * FROM screen_record WHERE id=? AND company_id=?", (record_id, company_id)).fetchone()
+    return success(request, {**dict(row), "payload": json.loads(decrypt_value(row["payload"], "screen_record", company_id, row["id"]))})
 
 
 class ActionRequest(BaseModel):
@@ -382,18 +871,20 @@ class ActionRequest(BaseModel):
 
 @app.post("/api/v1/screens/{screen_id}/records/{record_id}/actions/{action}")
 def apply_action(screen_id: str, record_id: str, action: str, payload: ActionRequest, request: Request):
+    company_id = request_company_id(request)
+    authorize_actor_screen(request, screen_id)
     screen = get_screen(screen_id)
-    authorize_screen(screen, COMPANY_ID, write=True)
+    authorize_screen(screen, company_id, write=True)
     transitions = {"aprobar": "APPROVED", "publicar": "POSTED", "inactivar": "INACTIVE", "anular": "REVERSED", "confirmar": "CONFIRMED", "reimprimir": "ACTIVE"}
     next_state = next((state for key, state in transitions.items() if key in action.lower()), "IN_REVIEW")
     with connection() as db:
-        row = db.execute("SELECT * FROM screen_record WHERE id=? AND screen_id=?", (record_id, screen_id)).fetchone()
+        row = db.execute("SELECT * FROM screen_record WHERE id=? AND screen_id=? AND company_id=?", (record_id, screen_id, company_id)).fetchone()
         if not row:
             raise HTTPException(404, detail={"code": "RECORD_NOT_FOUND", "message": "No se encontró el registro."})
-        db.execute("UPDATE screen_record SET status=?, version=version+1, updated_at=? WHERE id=?", (next_state, utc_now(), record_id))
-        audit(db, screen_id, record_id, f"record.{action}", {"from": row["status"], "to": next_state, "reason": payload.reason})
-        updated = db.execute("SELECT * FROM screen_record WHERE id=?", (record_id,)).fetchone()
-    return success(request, {**dict(updated), "payload": json.loads(updated["payload"])})
+        db.execute("UPDATE screen_record SET status=?, version=version+1, updated_at=? WHERE id=? AND company_id=?", (next_state, utc_now(), record_id, company_id))
+        audit(db, screen_id, record_id, f"record.{action}", {"from": row["status"], "to": next_state, "reason": payload.reason}, company_id, request_actor_id(request))
+        updated = db.execute("SELECT * FROM screen_record WHERE id=? AND company_id=?", (record_id, company_id)).fetchone()
+    return success(request, {**dict(updated), "payload": json.loads(decrypt_value(updated["payload"], "screen_record", company_id, updated["id"]))})
 
 
 class ModuleUpdate(BaseModel):
@@ -403,7 +894,122 @@ class ModuleUpdate(BaseModel):
 
 @app.put("/api/v1/modules/PROPERTY_MANAGEMENT")
 def update_module(payload: ModuleUpdate, request: Request):
+    company_id = request_company_id(request)
+    if request_actor_role(request) == "GROUP_ADMIN":
+        raise HTTPException(403, detail={"code": "GROUP_ADMIN_MODULE_DENIED", "message": "El Administrador de Grupo no puede modificar módulos de la compañía."})
     with connection() as db:
-        db.execute("UPDATE company_module SET state=?,effective_at=?,reason=? WHERE company_id=? AND code='PROPERTY_MANAGEMENT'", (payload.state, utc_now(), payload.reason, COMPANY_ID))
-        audit(db, "XLS-100", None, "module.state_changed", {"state": payload.state, "reason": payload.reason})
+        db.execute("UPDATE company_module SET state=?,effective_at=?,reason=? WHERE company_id=? AND code='PROPERTY_MANAGEMENT'", (payload.state, utc_now(), payload.reason, company_id))
+        audit(db, "XLS-100", None, "module.state_changed", {"state": payload.state, "reason": payload.reason}, company_id, request_actor_id(request))
     return success(request, {"code": "PROPERTY_MANAGEMENT", "state": payload.state})
+
+
+class ClientStateUpdate(BaseModel):
+    entries: dict[str, str] = Field(default_factory=dict)
+    removed: list[str] = Field(default_factory=list)
+
+
+def validate_client_state_key(key: str) -> None:
+    if not key.startswith("saga.") or len(key) > 180:
+        raise HTTPException(422, detail={"code": "INVALID_STATE_KEY", "message": "La clave de persistencia no es válida."})
+
+
+@app.get("/api/v1/state")
+def read_client_state(request: Request):
+    company_id = request_company_id(request)
+    group_admin = request_actor_role(request) == "GROUP_ADMIN"
+    with connection() as db:
+        if group_admin:
+            placeholders = ",".join("?" for _ in GROUP_ADMIN_STATE_READ_KEYS)
+            rows = db.execute(
+                f"SELECT storage_key,value,version,updated_at FROM client_state WHERE company_id=? AND storage_key IN ({placeholders}) ORDER BY storage_key",
+                (company_id, *sorted(GROUP_ADMIN_STATE_READ_KEYS)),
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT storage_key,value,version,updated_at FROM client_state WHERE company_id=? ORDER BY storage_key",
+                (company_id,),
+            ).fetchall()
+    entries = {
+        row["storage_key"]: {
+            "value": decrypt_value(row["value"], "client_state", company_id, row["storage_key"]),
+            "version": row["version"],
+            "updatedAt": row["updated_at"],
+        }
+        for row in rows
+    }
+    return success(request, {
+        "entries": entries,
+        "scope": "GROUP_SECURITY_ADMIN" if group_admin else "COMPANY",
+        "allowedKeys": sorted(GROUP_ADMIN_STATE_READ_KEYS) if group_admin else [],
+    }, {"count": len(entries), "companyId": company_id})
+
+
+@app.post("/api/v1/state")
+def write_client_state(payload: ClientStateUpdate, request: Request):
+    company_id = request_company_id(request)
+    if request_actor_role(request) == "GROUP_ADMIN":
+        requested_keys = set(payload.entries) | set(payload.removed)
+        denied_keys = sorted(requested_keys - GROUP_ADMIN_STATE_WRITE_KEYS)
+        if denied_keys:
+            raise HTTPException(403, detail={"code": "GROUP_ADMIN_STATE_DENIED", "message": "El Administrador de Grupo no puede modificar información operativa o financiera."})
+    if len(payload.entries) + len(payload.removed) > 300:
+        raise HTTPException(422, detail={"code": "STATE_BATCH_TOO_LARGE", "message": "La actualización contiene demasiados registros."})
+    for key, value in payload.entries.items():
+        validate_client_state_key(key)
+        if len(value.encode("utf-8")) > 6_000_000:
+            raise HTTPException(422, detail={"code": "STATE_VALUE_TOO_LARGE", "message": f"El registro {key} supera el tamaño permitido."})
+    for key in payload.removed:
+        validate_client_state_key(key)
+
+    stamp = utc_now()
+    with connection() as db:
+        for key, value in payload.entries.items():
+            protected = encrypt_value(value, "client_state", company_id, key)
+            db.execute(
+                """
+                INSERT INTO client_state(company_id,storage_key,value,version,updated_at,actor)
+                VALUES(?,?,?,1,?,?)
+                ON CONFLICT(company_id,storage_key) DO UPDATE SET
+                  value=excluded.value,
+                  version=client_state.version+1,
+                  updated_at=excluded.updated_at,
+                  actor=excluded.actor
+                """,
+                (company_id, key, protected, stamp, request_actor_id(request)),
+            )
+            if key == "saga.security.company":
+                try:
+                    settings = json.loads(value)
+                    db.execute(
+                        """UPDATE company SET name=?,legal_name=?,trade_name=?,ruc=?,email=?,address=?,phone=?,operation_start_date=?,period=? WHERE id=?""",
+                        (
+                            str(settings.get("name") or settings.get("businessName") or "").strip(),
+                            str(settings.get("businessName") or settings.get("name") or "").strip(),
+                            str(settings.get("name") or settings.get("businessName") or "").strip(),
+                            str(settings.get("ruc") or "").strip(),
+                            str(settings.get("email") or "").strip(),
+                            str(settings.get("address") or "").strip(),
+                            str(settings.get("phone") or "").strip(),
+                            str(settings.get("operationStartDate") or "2026-10-01"),
+                            str(settings.get("operationStartDate") or "2026-10-01")[:7],
+                            company_id,
+                        ),
+                    )
+                except (TypeError, ValueError):
+                    raise HTTPException(422, detail={"code": "INVALID_COMPANY_SETTINGS", "message": "La configuración de la compañía no contiene JSON válido."})
+        if payload.removed:
+            db.executemany(
+                "DELETE FROM client_state WHERE company_id=? AND storage_key=?",
+                [(company_id, key) for key in payload.removed],
+            )
+        if payload.entries or payload.removed:
+            audit(
+                db,
+                "SYSTEM-PERSISTENCE",
+                None,
+                "client_state.synchronized",
+                {"updated": sorted(payload.entries), "removed": sorted(set(payload.removed))},
+                company_id,
+                request_actor_id(request),
+            )
+    return success(request, {"updated": len(payload.entries), "removed": len(set(payload.removed)), "synchronizedAt": stamp})

@@ -1,0 +1,76 @@
+.company-water-billing-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .4rem;
+}
+
+.company-water-billing-field > strong {
+  color: #444c5d;
+  font-size: .72rem;
+}
+
+.company-water-billing-toggle {
+  position: relative;
+  height: 2.5rem;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: .6rem !important;
+  padding: 0 .7rem;
+  border: 1px solid #d9dde4;
+  border-radius: .5rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.company-water-billing-toggle input {
+  position: absolute;
+  z-index: 2;
+  width: 2.55rem !important;
+  height: 1.35rem !important;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.company-water-billing-toggle > span {
+  position: relative;
+  width: 2.55rem;
+  height: 1.35rem;
+  flex: none;
+  border-radius: 999px;
+  background: #cbd2dc;
+  transition: .2s;
+}
+
+.company-water-billing-toggle > span::after {
+  content: '';
+  position: absolute;
+  top: .16rem;
+  left: .16rem;
+  width: 1.03rem;
+  height: 1.03rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px #10182833;
+  transition: .2s;
+}
+
+.company-water-billing-toggle input:checked + span {
+  background: var(--blue);
+}
+
+.company-water-billing-toggle input:checked + span::after {
+  transform: translateX(1.2rem);
+}
+
+.company-water-billing-toggle input:focus-visible + span {
+  box-shadow: 0 0 0 3px #5365e826;
+}
+
+.company-water-billing-toggle b {
+  color: #5b6474;
+  font-size: .68rem;
+}

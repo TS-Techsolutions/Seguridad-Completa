@@ -3,6 +3,22 @@ export const companySettingsChangedEvent = 'saga-company-settings-updated'
 export const defaultOperationStartDate = '2026-10-01'
 export type CompanyBillingType = 'EXPENSAS' | 'FACTURACION'
 export type CompanyGenerationType = 'CLIENTE' | 'INMUEBLE'
+export type CompanyIdentity = { businessName: string; ruc: string; address: string; phone: string; email: string }
+
+export function readCompanyIdentity(fallback: { name: string; ruc: string }): CompanyIdentity {
+  try {
+    const settings = JSON.parse(localStorage.getItem(companySettingsStorageKey) ?? '{}') as Partial<CompanyIdentity> & { name?: string }
+    return {
+      businessName: settings.businessName?.trim() || settings.name?.trim() || fallback.name,
+      ruc: settings.ruc?.trim() || fallback.ruc,
+      address: settings.address?.trim() || '',
+      phone: settings.phone?.trim() || '',
+      email: settings.email?.trim() || '',
+    }
+  } catch {
+    return { businessName: fallback.name, ruc: fallback.ruc, address: '', phone: '', email: '' }
+  }
+}
 
 export function readCompanyBillingType(): CompanyBillingType {
   try {
@@ -19,6 +35,15 @@ export function readCompanyGenerationType(): CompanyGenerationType {
     return settings.generationType === 'INMUEBLE' ? 'INMUEBLE' : 'CLIENTE'
   } catch {
     return 'CLIENTE'
+  }
+}
+
+export function readCompanyBillsWater(): boolean {
+  try {
+    const settings = JSON.parse(localStorage.getItem(companySettingsStorageKey) ?? '{}') as { billsWater?: boolean }
+    return settings.billsWater === true
+  } catch {
+    return false
   }
 }
 

@@ -2,7 +2,7 @@ import { useRef, useState, type KeyboardEvent } from 'react'
 import { AlignCenter, AlignLeft, Bold, CheckCircle2, ChevronRight, Italic, Link, List, ListOrdered, Mail, Plus, Save, Underline, X } from 'lucide-react'
 import type { ScreenSpec } from './types'
 
-type TemplateState = {
+export type TemplateState = {
   subject: string
   body: string
   copyEmails: string[]
@@ -12,6 +12,11 @@ const templateDefaults: Record<string, TemplateState> = {
   'XLS-012': {
     subject: 'Envío de factura {{COMPROBANTE}} - {{MES}} {{ANIO}}',
     body: '<p>Estimado/a <strong>{{RAZON_SOCIAL}}</strong>:</p><p>Adjuntamos el comprobante <strong>{{COMPROBANTE}}</strong>, correspondiente al mes de {{MES}} de {{ANIO}}, por un valor de {{VALOR}}.</p><p>Fecha de emisión: {{FECHA}}.</p><p>Saludos cordiales.</p>',
+    copyEmails: [],
+  },
+  'AI-EMAIL-WATER-001': {
+    subject: 'Envío de expensa de agua {{COMPROBANTE}} - {{MES}} {{ANIO}}',
+    body: '<p>Estimado/a <strong>{{RAZON_SOCIAL}}</strong>:</p><p>Adjuntamos la expensa de agua <strong>{{COMPROBANTE}}</strong>, correspondiente al mes de {{MES}} de {{ANIO}}, por un valor de {{VALOR}}.</p><p>Fecha de emisión: {{FECHA}}.</p><p>Saludos cordiales.</p>',
     copyEmails: [],
   },
   'XLS-013': {
@@ -56,6 +61,18 @@ function readTemplate(screenId: string): TemplateState {
   } catch {
     return defaultTemplate
   }
+}
+
+export type ExpenseEmailTemplateKind = 'ORDINARIA' | 'EXTRAORDINARIA' | 'AGUA'
+
+const expenseEmailTemplateScreen: Record<ExpenseEmailTemplateKind, string> = {
+  ORDINARIA: 'XLS-012',
+  EXTRAORDINARIA: 'XLS-013',
+  AGUA: 'AI-EMAIL-WATER-001',
+}
+
+export function readExpenseEmailTemplate(kind: ExpenseEmailTemplateKind) {
+  return readTemplate(expenseEmailTemplateScreen[kind])
 }
 
 export function EmailTemplatePage({ screen }: { screen: ScreenSpec }) {

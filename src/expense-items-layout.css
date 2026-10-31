@@ -90,6 +90,13 @@
   font-size: .56rem;
 }
 
+.expense-value-field > input:disabled {
+  border-style: dashed;
+  background: #f1f4f7;
+  color: #7b8796;
+  cursor: not-allowed;
+}
+
 .expense-recurrence-row {
   display: grid;
   grid-template-columns: 210px 150px;

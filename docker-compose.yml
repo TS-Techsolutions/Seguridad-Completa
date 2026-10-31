@@ -5,10 +5,19 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       SAGA_V2_DATABASE_PATH: /data/saga-v2.db
+      SAGA_ENVIRONMENT: validation
+      SAGA_ALLOWED_HOSTS: 127.0.0.1,localhost
     volumes:
       - saga-data:/data
     ports:
-      - "8010:8010"
+      - "127.0.0.1:8010:8010"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
   web:
     build: .
     depends_on:
@@ -16,7 +25,11 @@ services:
     environment:
       VITE_API_TARGET: http://api:8010
     ports:
-      - "4180:4180"
+      - "127.0.0.1:4180:4180"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   saga-data:

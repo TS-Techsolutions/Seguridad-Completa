@@ -1,0 +1,88 @@
+.delete-expense-draft {
+  height: 2.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: 0 .85rem;
+  border: 1px solid #dfa996;
+  border-radius: .65rem;
+  background: #fff3ef;
+  color: #a14e38;
+  font-size: .67rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.delete-expense-draft:hover {
+  background: #ffe9e2;
+}
+
+.delete-expense-draft svg {
+  width: 16px;
+}
+
+.individual-delete-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #14203499;
+  backdrop-filter: blur(2px);
+}
+
+.individual-delete-dialog {
+  width: min(440px, 94vw);
+  padding: 1.3rem;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 70px #11182744;
+  text-align: center;
+}
+
+.individual-delete-dialog > span {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto .8rem;
+  border-radius: 50%;
+  background: #fff0eb;
+  color: #b2543d;
+}
+
+.individual-delete-dialog > span svg {
+  width: 20px;
+}
+
+.individual-delete-dialog h2 {
+  margin: 0;
+  color: #2f4055;
+  font-size: 1rem;
+}
+
+.individual-delete-dialog p {
+  margin: .55rem 0 1.1rem;
+  color: #748093;
+  font-size: .7rem;
+  line-height: 1.55;
+}
+
+.individual-delete-dialog footer {
+  display: flex;
+  justify-content: center;
+  gap: .55rem;
+}
+
+.confirm-delete-expense {
+  height: 2.35rem;
+  padding: 0 .9rem;
+  border: 0;
+  border-radius: .6rem;
+  background: #b75b43;
+  color: #fff;
+  font-size: .67rem;
+  font-weight: 800;
+  cursor: pointer;
+}
