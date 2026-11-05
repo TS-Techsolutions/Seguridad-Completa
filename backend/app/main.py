@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
+import smtplib
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 from functools import lru_cache
 from pathlib import Path
 from sqlite3 import IntegrityError
@@ -18,12 +21,19 @@ from pydantic import BaseModel, Field
 from .store import ROOT, connection, initialize
 from .security import (
     SESSION_COOKIE,
+    SESSION_TTL_SECONDS,
+    PASSWORD_RECOVERY_MAX_ATTEMPTS,
+    PASSWORD_RECOVERY_TTL_SECONDS,
     create_session_token,
     decrypt_value,
     encrypt_value,
+    hash_password,
+    hash_recovery_code,
     is_loopback,
     is_production,
     verify_session_token,
+    verify_password,
+    verify_recovery_code,
 )
 
 COMPANY_ID = "cmp-demo-ecuador"
@@ -33,6 +43,40 @@ CONTRACTS = ROOT / "contracts"
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def masked_email(value: str) -> str:
+    local, separator, domain = value.partition("@")
+    if not separator:
+        return "***"
+    visible = local[:1] or "*"
+    return f"{visible}{'*' * max(4, min(8, len(local) - 1))}@{domain}"
+
+
+def send_password_recovery_email(recipient: str, recipient_name: str, code: str) -> bool:
+    host = os.getenv("SAGA_SMTP_HOST", "").strip()
+    sender = os.getenv("SAGA_SMTP_FROM", "").strip()
+    if not host or not sender:
+        return False
+    port = int(os.getenv("SAGA_SMTP_PORT", "587"))
+    username = os.getenv("SAGA_SMTP_USERNAME", "").strip()
+    password = os.getenv("SAGA_SMTP_PASSWORD", "")
+    message = EmailMessage()
+    message["From"] = sender
+    message["To"] = recipient
+    message["Subject"] = "Código para recuperar tu contraseña"
+    message.set_content(
+        f"Hola {recipient_name},\n\nTu código de recuperación es {code}. "
+        f"Caduca en {PASSWORD_RECOVERY_TTL_SECONDS // 60} minutos y sólo puede utilizarse una vez.\n\n"
+        "Si no solicitaste este cambio, ignora este mensaje."
+    )
+    with smtplib.SMTP(host, port, timeout=15) as server:
+        if os.getenv("SAGA_SMTP_STARTTLS", "true").lower() == "true":
+            server.starttls()
+        if username:
+            server.login(username, password)
+        server.send_message(message)
+    return True
 
 
 @lru_cache(maxsize=1)
@@ -385,21 +429,21 @@ async def request_context(request: Request, call_next):
     if not local_request and os.getenv("SAGA_ALLOW_REMOTE", "false").lower() != "true":
         return JSONResponse(status_code=403, content={"error": {"code": "REMOTE_ACCESS_DISABLED", "message": "El acceso remoto a la API está deshabilitado."}, "trace": {"request_id": request.state.request_id}})
 
-    issue_session = False
+    api_request = request.url.path.startswith("/api/v1/")
+    session_login_route = request.url.path == "/api/v1/session/login"
+    session_logout_route = request.url.path == "/api/v1/session/logout"
+    session_status_route = request.url.path == "/api/v1/session/status"
+    password_recovery_route = request.url.path.startswith("/api/v1/session/password-recovery/")
+    public_session_route = session_login_route or session_logout_route or session_status_route or password_recovery_route
     token = request.cookies.get(SESSION_COOKIE)
     session = verify_session_token(token) if token else None
-    if token and not session:
+    if token and not session and not public_session_route:
         return JSONResponse(status_code=401, content={"error": {"code": "INVALID_SESSION", "message": "La sesión no es válida o ha expirado."}, "trace": {"request_id": request.state.request_id}})
-    if not session and request.url.path.startswith("/api/v1/"):
-        if local_request and not is_production():
-            # Inicio controlado para el entorno local de validación. En producción no existe autoacceso.
-            session = {"actor": ACTOR_ID}
-            issue_session = True
-        else:
-            return JSONResponse(status_code=401, content={"error": {"code": "AUTHENTICATION_REQUIRED", "message": "Se requiere una sesión autenticada."}, "trace": {"request_id": request.state.request_id}})
+    if not session and api_request and not public_session_route:
+        return JSONResponse(status_code=401, content={"error": {"code": "AUTHENTICATION_REQUIRED", "message": "Se requiere una sesión autenticada."}, "trace": {"request_id": request.state.request_id}})
     request.state.actor_id = str(session["actor"]) if session else ""
     request.state.company_id = request.headers.get("X-Company-Id", COMPANY_ID)
-    if request.url.path.startswith("/api/v1/"):
+    if api_request and session and not public_session_route:
         try:
             unscoped_route = request.url.path.startswith("/api/v1/platform/") or request.url.path.startswith("/api/v1/session/")
             validate_request_access(
@@ -411,11 +455,11 @@ async def request_context(request: Request, call_next):
             detail = exc.detail if isinstance(exc.detail, dict) else {"code": "ACCESS_DENIED", "message": str(exc.detail)}
             return JSONResponse(status_code=exc.status_code, content={"error": detail, "trace": {"request_id": request.state.request_id}})
     response = await call_next(request)
-    if issue_session:
+    if session and api_request and not (session_login_route or session_logout_route):
         response.set_cookie(
             key=SESSION_COOKIE,
-            value=create_session_token(ACTOR_ID),
-            max_age=8 * 60 * 60,
+            value=create_session_token(str(session["actor"])),
+            max_age=SESSION_TTL_SECONDS,
             httponly=True,
             secure=is_production(),
             samesite="strict",
@@ -480,6 +524,176 @@ def session_companies(request: Request):
                 (actor_id,),
             ).fetchall()
     return success(request, [platform_company_summary(row) for row in rows], {"count": len(rows)})
+
+
+class SessionLoginRequest(BaseModel):
+    identifier: str = Field(min_length=1, max_length=160)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=8, max_length=200)
+
+
+class PasswordRecoveryRequest(BaseModel):
+    identifier: str = Field(min_length=1, max_length=160)
+
+
+class PasswordRecoveryConfirmRequest(BaseModel):
+    recovery_id: str = Field(min_length=1, max_length=80)
+    code: str = Field(pattern=r"^\d{6}$")
+    new_password: str = Field(min_length=8, max_length=200)
+
+
+@app.get("/api/v1/session/status")
+def session_status(request: Request):
+    actor_id = request_actor_id(request)
+    if not actor_id:
+        return success(request, {"authenticated": False, "actor": None})
+    with connection() as db:
+        actor = db.execute("SELECT id,username,name,email,role,status FROM platform_user WHERE id=? AND status='ACTIVE'", (actor_id,)).fetchone()
+    return success(request, {"authenticated": bool(actor), "actor": dict(actor) if actor else None})
+
+
+@app.post("/api/v1/session/login")
+def session_login(payload: SessionLoginRequest, request: Request):
+    identifier = payload.identifier.strip().lower()
+    with connection() as db:
+        actor = db.execute(
+            "SELECT id,username,name,email,role,status,password_hash FROM platform_user WHERE status='ACTIVE' AND (lower(username)=? OR lower(email)=?)",
+            (identifier, identifier),
+        ).fetchone()
+    if not actor or not verify_password(payload.password, actor["password_hash"]):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail={"code": "INVALID_CREDENTIALS", "message": "El usuario o la contraseña son incorrectos."})
+    validate_request_access(actor["id"], request_company_id(request), actor["role"] == "PLATFORM_ADMIN")
+    response = JSONResponse(content=success(request, {
+        "authenticated": True,
+        "actor": {key: actor[key] for key in ("id", "username", "name", "email", "role")},
+    }))
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=create_session_token(actor["id"]),
+        max_age=SESSION_TTL_SECONDS,
+        httponly=True,
+        secure=is_production(),
+        samesite="strict",
+        path="/api/",
+    )
+    return response
+
+
+@app.post("/api/v1/session/keepalive")
+def session_keepalive(request: Request):
+    return success(request, {"authenticated": True})
+
+
+@app.put("/api/v1/session/password")
+def change_session_password(payload: PasswordChangeRequest, request: Request):
+    actor_id = request_actor_id(request)
+    with connection() as db:
+        actor = db.execute("SELECT password_hash FROM platform_user WHERE id=? AND status='ACTIVE'", (actor_id,)).fetchone()
+        if not actor or not verify_password(payload.current_password, actor["password_hash"]):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"code": "INVALID_CURRENT_PASSWORD", "message": "La contraseña actual es incorrecta."})
+        db.execute("UPDATE platform_user SET password_hash=? WHERE id=?", (hash_password(payload.new_password), actor_id))
+    return success(request, {"updated": True})
+
+
+@app.post("/api/v1/session/password-recovery/request")
+def request_password_recovery(payload: PasswordRecoveryRequest, request: Request):
+    identifier = payload.identifier.strip().lower()
+    now = datetime.now(timezone.utc)
+    requested_at = now.isoformat()
+    rate_limit_start = (now - timedelta(minutes=15)).isoformat()
+    recovery_id = str(uuid.uuid4())
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    with connection() as db:
+        actor = db.execute(
+            "SELECT id,name,email FROM platform_user WHERE status='ACTIVE' AND (lower(username)=? OR lower(email)=?)",
+            (identifier, identifier),
+        ).fetchone()
+        if not actor:
+            raise HTTPException(422, detail={"code": "RECOVERY_USER_NOT_FOUND", "message": "No encontramos un usuario activo con esa información."})
+        recent_requests = db.execute(
+            "SELECT COUNT(*) AS count FROM password_recovery WHERE user_id=? AND requested_at>=?",
+            (actor["id"], rate_limit_start),
+        ).fetchone()["count"]
+        if recent_requests >= 5:
+            raise HTTPException(429, detail={"code": "RECOVERY_RATE_LIMIT", "message": "Se solicitaron demasiados códigos. Espera 15 minutos antes de intentarlo nuevamente."})
+        db.execute(
+            "UPDATE password_recovery SET used_at=? WHERE user_id=? AND used_at IS NULL",
+            (requested_at, actor["id"]),
+        )
+        db.execute(
+            "INSERT INTO password_recovery(id,user_id,code_hash,requested_at,expires_at,attempts,used_at,request_ip) VALUES(?,?,?,?,?,0,NULL,?)",
+            (
+                recovery_id,
+                actor["id"],
+                hash_recovery_code(recovery_id, code),
+                requested_at,
+                (now + timedelta(seconds=PASSWORD_RECOVERY_TTL_SECONDS)).isoformat(),
+                request.client.host if request.client else "",
+            ),
+        )
+    delivered = False
+    try:
+        delivered = send_password_recovery_email(actor["email"], actor["name"], code)
+    except (OSError, smtplib.SMTPException):
+        if is_production():
+            with connection() as db:
+                db.execute("UPDATE password_recovery SET used_at=? WHERE id=?", (utc_now(), recovery_id))
+            raise HTTPException(503, detail={"code": "RECOVERY_EMAIL_FAILED", "message": "No se pudo enviar el código de recuperación. Verifica la configuración SMTP."})
+    validation_preview = not is_production() and is_loopback(request.client.host if request.client else None)
+    if not delivered and not validation_preview:
+        with connection() as db:
+            db.execute("UPDATE password_recovery SET used_at=? WHERE id=?", (utc_now(), recovery_id))
+        raise HTTPException(503, detail={"code": "RECOVERY_EMAIL_UNAVAILABLE", "message": "El envío de recuperación no está configurado."})
+    return success(request, {
+        "recoveryId": recovery_id,
+        "maskedEmail": masked_email(actor["email"]),
+        "expiresInSeconds": PASSWORD_RECOVERY_TTL_SECONDS,
+        "deliveryMode": "EMAIL" if delivered else "VALIDATION",
+        **({"previewCode": code} if validation_preview and not delivered else {}),
+    })
+
+
+@app.post("/api/v1/session/password-recovery/confirm")
+def confirm_password_recovery(payload: PasswordRecoveryConfirmRequest, request: Request):
+    now = datetime.now(timezone.utc)
+    with connection() as db:
+        recovery = db.execute(
+            "SELECT pr.*,u.name FROM password_recovery pr JOIN platform_user u ON u.id=pr.user_id AND u.status='ACTIVE' WHERE pr.id=?",
+            (payload.recovery_id,),
+        ).fetchone()
+        if not recovery or recovery["used_at"]:
+            raise HTTPException(422, detail={"code": "RECOVERY_INVALID", "message": "El código de recuperación ya no es válido. Solicita uno nuevo."})
+        if datetime.fromisoformat(recovery["expires_at"]) <= now:
+            db.execute("UPDATE password_recovery SET used_at=? WHERE id=?", (now.isoformat(), payload.recovery_id))
+            raise HTTPException(422, detail={"code": "RECOVERY_EXPIRED", "message": "El código de recuperación caducó. Solicita uno nuevo."})
+        if recovery["attempts"] >= PASSWORD_RECOVERY_MAX_ATTEMPTS:
+            db.execute("UPDATE password_recovery SET used_at=? WHERE id=?", (now.isoformat(), payload.recovery_id))
+            raise HTTPException(422, detail={"code": "RECOVERY_ATTEMPTS_EXCEEDED", "message": "El código fue bloqueado por demasiados intentos. Solicita uno nuevo."})
+        if not verify_recovery_code(payload.recovery_id, payload.code, recovery["code_hash"]):
+            attempts = recovery["attempts"] + 1
+            used_at = now.isoformat() if attempts >= PASSWORD_RECOVERY_MAX_ATTEMPTS else None
+            db.execute("UPDATE password_recovery SET attempts=?,used_at=? WHERE id=?", (attempts, used_at, payload.recovery_id))
+            raise HTTPException(422, detail={"code": "RECOVERY_CODE_INCORRECT", "message": "Código incorrecto, ingresa el nuevo código."})
+        db.execute("UPDATE platform_user SET password_hash=? WHERE id=?", (hash_password(payload.new_password), recovery["user_id"]))
+        db.execute("UPDATE password_recovery SET used_at=? WHERE id=?", (now.isoformat(), payload.recovery_id))
+    return success(request, {"updated": True, "name": recovery["name"]})
+
+
+@app.post("/api/v1/session/logout")
+def session_logout(request: Request):
+    response = JSONResponse(content=success(request, {"authenticated": False}))
+    response.delete_cookie(
+        key=SESSION_COOKIE,
+        path="/api/",
+        secure=is_production(),
+        httponly=True,
+        samesite="strict",
+    )
+    return response
 
 
 @app.get("/api/v1/context")

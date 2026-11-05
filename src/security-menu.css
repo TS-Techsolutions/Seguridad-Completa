@@ -120,6 +120,7 @@ body {
 }
 
 .security-search input {
+  flex: 1;
   width: 100%;
   min-width: 0;
   border: 0;
@@ -131,6 +132,32 @@ body {
 
 .security-search input::placeholder {
   color: #9fb3c5;
+}
+
+.security-search .security-search-clear {
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 1.55rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: .4rem;
+  color: #cbd8e3;
+  background: rgba(255,255,255,.08);
+  cursor: pointer;
+}
+
+.security-search .security-search-clear:hover,
+.security-search .security-search-clear:focus-visible {
+  color: white;
+  background: rgba(255,255,255,.16);
+  outline: 0;
+}
+
+.security-search .security-search-clear svg {
+  width: .85rem;
+  height: .85rem;
 }
 
 .security-nav {

@@ -1,0 +1,28 @@
+.collection-annulment-data-grid .collection-annulment-customer { grid-column: span 2; }
+.collection-annulment-data-grid .deposit-detail-field { grid-column: span 4; }
+.collection-annulment-detail > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; border-bottom: 1px solid #e5e9ee; }
+.collection-annulment-detail > header > div { display: grid; gap: .15rem; }
+.collection-annulment-detail > header strong { color: #3c4b5f; font-size: .72rem; }
+.collection-annulment-detail > header span { color: #8692a2; font-size: .58rem; }
+.collection-annulment-detail > header b { color: #a65342; font-size: .65rem; }
+.collection-annulment-selector { display: grid; grid-template-columns: minmax(280px, 1fr) auto; gap: .65rem; align-items: center; padding: .9rem 1rem; background: #f8fafc; border-bottom: 1px solid #e5e9ee; }
+.collection-annulment-selector > button { min-height: 2.35rem; display: inline-flex; align-items: center; gap: .35rem; padding: 0 .9rem; border: 0; border-radius: .55rem; color: #fff; background: #5265db; font-size: .62rem; font-weight: 800; cursor: pointer; }
+.collection-annulment-selector > button:disabled { opacity: .45; cursor: not-allowed; }
+.collection-annulment-selector svg { width: .9rem; }
+.collection-release-table { padding: 1rem; overflow: auto; }
+.collection-release-table h3 { display: flex; align-items: center; gap: .45rem; margin: 0 0 .65rem; color: #3c4b5f; font-size: .7rem; }
+.collection-release-table h3 svg { width: 1rem; color: #5265db; }
+.collection-release-table table { width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid #dfe5eb; border-radius: .75rem; }
+.collection-release-table th, .collection-release-table td { padding: .68rem .72rem; border-right: 1px solid #edf0f3; border-bottom: 1px solid #e4e8ed; color: #4c5b6e; text-align: left; font-size: .62rem; }
+.collection-release-table th { color: #697587; background: #f2f5f8; font-size: .55rem; text-transform: uppercase; }
+.collection-release-table tr > *:last-child { border-right: 0; text-align: right; }
+.collection-release-table tbody tr:last-child td, .collection-release-table tfoot td { border-bottom: 0; }
+.collection-release-table tfoot td { color: #314257; background: #f2f5f8; font-weight: 900; }
+.release-result { display: inline-flex; padding: .22rem .42rem; border-radius: 999px; font-size: .52rem; font-weight: 850; white-space: nowrap; }
+.release-result.pending { color: #315d45; background: #e5f4eb; }
+.release-result.annulled { color: #8b4236; background: #fae9e5; }
+.collection-annulment-page .deposit-accounting table { min-width: 900px; }
+.collection-annulment-preview-box th:nth-child(2), .collection-annulment-preview-box th:nth-child(3), .collection-annulment-preview-box td:nth-child(2), .collection-annulment-preview-box td:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; }
+.collection-annulment-preview-box th:nth-child(4), .collection-annulment-preview-box td:nth-child(4) { text-align: left; font-variant-numeric: normal; }
+@media (max-width: 850px) { .collection-annulment-data-grid .collection-annulment-customer, .collection-annulment-data-grid .deposit-detail-field { grid-column: span 2; } }
+@media (max-width: 620px) { .collection-annulment-data-grid .collection-annulment-customer, .collection-annulment-data-grid .deposit-detail-field { grid-column: auto; } .collection-annulment-selector { grid-template-columns: 1fr; } }

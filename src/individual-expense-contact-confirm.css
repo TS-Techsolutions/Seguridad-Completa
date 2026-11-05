@@ -1,0 +1,133 @@
+.individual-expense-grid input:disabled {
+  background: #f7f9fb;
+  color: #98a2b1;
+  cursor: not-allowed;
+}
+
+.individual-expense-grid input.contact-modified {
+  border-color: #e2a04c;
+  background: #fffaf2;
+  box-shadow: 0 0 0 3px #e2a04c16;
+}
+
+.individual-contact-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #14203499;
+  backdrop-filter: blur(2px);
+}
+
+.individual-contact-dialog {
+  width: min(470px, 94vw);
+  padding: 1.35rem;
+  border: 1px solid #e8edf2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 70px #11182744;
+  text-align: center;
+}
+
+.individual-contact-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto .8rem;
+  border-radius: 50%;
+  background: #fff4df;
+  color: #b66f1f;
+}
+
+.individual-contact-icon svg {
+  width: 21px;
+}
+
+.individual-contact-dialog h2 {
+  margin: 0;
+  color: #2f4055;
+  font-size: 1rem;
+}
+
+.individual-contact-dialog p {
+  margin: .6rem 0;
+  color: #5f6c7d;
+  font-size: .72rem;
+  line-height: 1.55;
+}
+
+.individual-contact-dialog > small {
+  display: block;
+  margin: .8rem auto 1.1rem;
+  color: #8792a1;
+  font-size: .61rem;
+  line-height: 1.5;
+}
+
+.individual-contact-fields {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .4rem;
+}
+
+.individual-contact-fields span {
+  padding: .3rem .55rem;
+  border: 1px solid #efd3a6;
+  border-radius: 999px;
+  background: #fff8eb;
+  color: #9b641f;
+  font-size: .61rem;
+  font-weight: 800;
+}
+
+.individual-contact-dialog footer {
+  display: flex;
+  justify-content: center;
+  gap: .6rem;
+}
+
+.contact-change-no,
+.contact-change-yes {
+  min-width: 7.5rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  border-radius: .65rem;
+  font-size: .68rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.contact-change-no {
+  border: 1px solid #d6dde6;
+  background: #f7f9fb;
+  color: #5f6c7d;
+}
+
+.contact-change-yes {
+  border: 1px solid #2f8066;
+  background: #2f8066;
+  color: #fff;
+}
+
+.contact-change-no svg,
+.contact-change-yes svg {
+  width: 16px;
+}
+
+@media (max-width: 520px) {
+  .individual-contact-dialog footer {
+    flex-direction: column-reverse;
+  }
+
+  .contact-change-no,
+  .contact-change-yes {
+    width: 100%;
+  }
+}

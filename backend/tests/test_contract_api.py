@@ -7,8 +7,8 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from app.main import ACTOR_ID, COMPANY_ID, ClientStateUpdate, CompanyGroupCreate, PlatformCompanyCreate, RecordCreate, all_menu_nodes, all_screens, authorize_screen, catalog, create_company_group, create_platform_company, create_record, ensure_seeded, human_talent_catalog, list_company_groups, list_platform_companies, list_records, manifest, personal_information_catalog, read_client_state, security_general_catalog, session_companies, validate_request_access, write_client_state
-from app.security import ENCRYPTED_PREFIX, SecurityConfigurationError, create_session_token, decrypt_value, verify_session_token
+from app.main import ACTOR_ID, COMPANY_ID, ClientStateUpdate, CompanyGroupCreate, PasswordRecoveryConfirmRequest, PasswordRecoveryRequest, PlatformCompanyCreate, RecordCreate, SessionLoginRequest, all_menu_nodes, all_screens, authorize_screen, catalog, confirm_password_recovery, create_company_group, create_platform_company, create_record, ensure_seeded, human_talent_catalog, list_company_groups, list_platform_companies, list_records, manifest, personal_information_catalog, read_client_state, request_password_recovery, security_general_catalog, session_companies, session_login, session_logout, validate_request_access, write_client_state
+from app.security import ENCRYPTED_PREFIX, PASSWORD_RECOVERY_TTL_SECONDS, SESSION_TTL_SECONDS, SecurityConfigurationError, create_session_token, decrypt_value, hash_password, verify_password, verify_session_token
 from app.store import DB_PATH, connection, initialize
 
 
@@ -178,9 +178,68 @@ def test_sensitive_state_is_encrypted_at_rest_and_authenticated():
 
 def test_session_signature_rejects_tampering():
     token = create_session_token(ACTOR_ID, now=1_000)
+    assert SESSION_TTL_SECONDS == 15 * 60
     assert verify_session_token(token, now=1_001)["actor"] == ACTOR_ID
+    assert verify_session_token(token, now=1_000 + SESSION_TTL_SECONDS) is None
     altered = token[:-1] + ("A" if token[-1] != "A" else "B")
     assert verify_session_token(altered, now=1_001) is None
+
+
+def test_password_hash_is_salted_and_default_admin_can_authenticate():
+    first = hash_password("admin")
+    second = hash_password("admin")
+    assert first != second
+    assert verify_password("admin", first)
+    assert not verify_password("incorrecta", first)
+    with connection() as db:
+        admin = db.execute("SELECT id,username,password_hash FROM platform_user WHERE username='admin'").fetchone()
+    assert admin["id"] == "usr-admin"
+    assert admin["password_hash"] != "admin"
+    assert verify_password("admin", admin["password_hash"])
+
+    response = session_login(SessionLoginRequest(identifier="admin", password="admin"), request())
+    cookies = [value.decode("latin-1") for key, value in response.raw_headers if key.lower() == b"set-cookie"]
+    assert any("saga_session=" in value and "Max-Age=900" in value for value in cookies)
+
+    with pytest.raises(HTTPException) as denied:
+        session_login(SessionLoginRequest(identifier="admin", password="incorrecta"), request())
+    assert denied.value.status_code == 401
+
+
+def test_session_logout_deletes_the_session_cookie():
+    response = session_logout(request())
+    cookies = [value.decode("latin-1") for key, value in response.raw_headers if key.lower() == b"set-cookie"]
+    assert any("saga_session=\"\"" in value and "Max-Age=0" in value for value in cookies)
+
+
+def test_password_recovery_uses_expiring_one_time_code_and_updates_hash():
+    user_id = "usr-password-recovery-test"
+    with connection() as db:
+        db.execute(
+            "INSERT OR IGNORE INTO platform_user(id,username,name,email,role,status,created_at,password_hash) VALUES(?,?,?,?,?,?,?,?)",
+            (user_id, "recovery.test", "Usuario Recuperación", "recovery@test.local", "COMPANY_ADMIN", "ACTIVE", "2026-11-03T00:00:00Z", hash_password("clave-anterior")),
+        )
+    issued = request_password_recovery(PasswordRecoveryRequest(identifier="recovery.test"), request())["data"]
+    assert issued["maskedEmail"].endswith("@test.local")
+    assert issued["deliveryMode"] == "VALIDATION"
+    assert len(issued["previewCode"]) == 6
+    assert issued["expiresInSeconds"] == PASSWORD_RECOVERY_TTL_SECONDS
+    result = confirm_password_recovery(
+        PasswordRecoveryConfirmRequest(recovery_id=issued["recoveryId"], code=issued["previewCode"], new_password="clave-nueva-segura"),
+        request(),
+    )["data"]
+    assert result == {"updated": True, "name": "Usuario Recuperación"}
+    with connection() as db:
+        password_hash = db.execute("SELECT password_hash FROM platform_user WHERE id=?", (user_id,)).fetchone()["password_hash"]
+        used_at = db.execute("SELECT used_at FROM password_recovery WHERE id=?", (issued["recoveryId"],)).fetchone()["used_at"]
+    assert verify_password("clave-nueva-segura", password_hash)
+    assert used_at
+    with pytest.raises(HTTPException) as reused:
+        confirm_password_recovery(
+            PasswordRecoveryConfirmRequest(recovery_id=issued["recoveryId"], code=issued["previewCode"], new_password="otra-clave-segura"),
+            request(),
+        )
+    assert reused.value.status_code == 422
 
 
 def test_company_member_cannot_cross_company_boundary():

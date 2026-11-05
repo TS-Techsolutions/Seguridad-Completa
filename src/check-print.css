@@ -1,0 +1,7 @@
+.cheque-preview-page .check-print-document{width:var(--check-width);height:var(--check-height);min-height:0;margin:auto;padding:0}
+.check-design-guides span:nth-child(1){left:5mm;top:25mm}
+.check-design-guides span:nth-child(2){right:5mm;top:25mm}
+.check-design-guides span:nth-child(3){left:5mm;top:39mm}
+.check-design-guides span:nth-child(4){left:5mm;top:54mm}
+.check-design-field-editor .check-design-city-field{margin-bottom:.8rem;padding-bottom:.8rem;border-bottom:1px solid #e1e7ee}
+.check-design-field-editor .check-design-city-field small{color:#8390a0;font-size:.56rem;font-weight:500;line-height:1.4}

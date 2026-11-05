@@ -63,6 +63,14 @@ function readTemplate(screenId: string): TemplateState {
   }
 }
 
+export function readCollectionEmailTemplate() {
+  return readTemplate('XLS-014')
+}
+
+export function readDebtCollectionEmailTemplate() {
+  return readTemplate('XLS-015')
+}
+
 export type ExpenseEmailTemplateKind = 'ORDINARIA' | 'EXTRAORDINARIA' | 'AGUA'
 
 const expenseEmailTemplateScreen: Record<ExpenseEmailTemplateKind, string> = {

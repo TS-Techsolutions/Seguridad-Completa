@@ -31,6 +31,8 @@ def connection() -> Iterator[sqlite3.Connection]:
 
 
 def initialize() -> None:
+    from .security import hash_password, migrate_sensitive_columns
+
     with connection() as db:
         db.executescript(
             """
@@ -41,7 +43,14 @@ def initialize() -> None:
             CREATE TABLE IF NOT EXISTS platform_user (
               id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
               email TEXT NOT NULL UNIQUE, role TEXT NOT NULL, status TEXT NOT NULL,
-              created_at TEXT NOT NULL
+              created_at TEXT NOT NULL, password_hash TEXT NOT NULL DEFAULT ''
+            );
+            CREATE TABLE IF NOT EXISTS password_recovery (
+              id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+              code_hash TEXT NOT NULL, requested_at TEXT NOT NULL,
+              expires_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+              used_at TEXT, request_ip TEXT NOT NULL DEFAULT '',
+              FOREIGN KEY(user_id) REFERENCES platform_user(id) ON DELETE CASCADE
             );
             CREATE TABLE IF NOT EXISTS company (
               id TEXT PRIMARY KEY, name TEXT NOT NULL, ruc TEXT NOT NULL UNIQUE,
@@ -113,9 +122,14 @@ def initialize() -> None:
               ON company_group_admin(user_id, group_id);
             CREATE INDEX IF NOT EXISTS idx_company_group_company_group
               ON company_group_company(group_id, company_id);
+            CREATE INDEX IF NOT EXISTS idx_password_recovery_user_time
+              ON password_recovery(user_id, requested_at DESC);
             """
         )
         existing_company_columns = {row["name"] for row in db.execute("PRAGMA table_info(company)")}
+        existing_user_columns = {row["name"] for row in db.execute("PRAGMA table_info(platform_user)")}
+        if "password_hash" not in existing_user_columns:
+            db.execute("ALTER TABLE platform_user ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''")
         company_columns = {
             "tenant_id": "TEXT",
             "legal_name": "TEXT NOT NULL DEFAULT ''",
@@ -146,6 +160,14 @@ def initialize() -> None:
             "INSERT OR IGNORE INTO platform_user(id,username,name,email,role,status,created_at) VALUES(?,?,?,?,?,?,?)",
             (admin_id, "jorge.admin", "Jorge Mendoza", "jorge@empresa.com", "PLATFORM_ADMIN", "ACTIVE", stamp),
         )
+        default_admin_id = "usr-admin"
+        db.execute(
+            "INSERT OR IGNORE INTO platform_user(id,username,name,email,role,status,created_at,password_hash) VALUES(?,?,?,?,?,?,?,?)",
+            (default_admin_id, "admin", "Administrador", "admin@empresa.com", "COMPANY_ADMIN", "ACTIVE", stamp, hash_password("admin")),
+        )
+        default_admin = db.execute("SELECT password_hash FROM platform_user WHERE id=?", (default_admin_id,)).fetchone()
+        if default_admin and not default_admin["password_hash"]:
+            db.execute("UPDATE platform_user SET password_hash=? WHERE id=?", (hash_password("admin"), default_admin_id))
         db.execute(
             "INSERT OR IGNORE INTO company(id,name,ruc,environment,period,tenant_id,legal_name,trade_name,email,address,phone,timezone,currency,operation_start_date,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (company_id, "Grupo SAGA Demo Cía. Ltda.", "1790012345001", "VALIDATION", "2026-10", tenant_id, "Grupo SAGA Demo Cía. Ltda.", "SAGA Demo", "prueba@hotmail.com", "Quito, Ecuador", "02 400 0000", "America/Guayaquil", "USD", "2026-10-01", "ACTIVE", stamp),
@@ -156,6 +178,8 @@ def initialize() -> None:
         )
         db.execute("INSERT OR IGNORE INTO tenant_user(tenant_id,user_id,role) VALUES(?,?,?)", (tenant_id, admin_id, "OWNER"))
         db.execute("INSERT OR IGNORE INTO company_user(company_id,user_id,role) VALUES(?,?,?)", (company_id, admin_id, "ADMIN"))
+        db.execute("INSERT OR IGNORE INTO tenant_user(tenant_id,user_id,role) VALUES(?,?,?)", (tenant_id, default_admin_id, "ADMIN"))
+        db.execute("INSERT OR IGNORE INTO company_user(company_id,user_id,role) VALUES(?,?,?)", (company_id, default_admin_id, "ADMIN"))
         for code, state, reason in [
             ("ACCOUNTING_CORE", "ENABLED", "Paquete base de validación"),
             ("PROPERTY_MANAGEMENT", "ENABLED", "Extensión habilitada para validación")
@@ -166,6 +190,4 @@ def initialize() -> None:
     except OSError:
         pass
     # La migración se ejecuta fuera de la transacción de esquema para no anidar conexiones.
-    from .security import migrate_sensitive_columns
-
     migrate_sensitive_columns()

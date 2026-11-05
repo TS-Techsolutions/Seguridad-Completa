@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { Check, ChevronDown, LockKeyhole, LogIn, LogOut, Upload, UserRound, X } from 'lucide-react'
+import { Check, ChevronDown, LockKeyhole, LogOut, Upload, UserRound, X } from 'lucide-react'
+import { api } from './api'
 
 type Profile={
   photoName:string;photoDataUrl:string;birthDate:string;gender:string;maritalStatus:string;
@@ -10,11 +11,10 @@ const profileKey='saga.currentUser.profile'
 const initialProfile:Profile={photoName:'',photoDataUrl:'',birthDate:'',gender:'',maritalStatus:'SOLTERO',emergencyContact:'',emergencyPhone:'',relationship:'',bank:'',accountType:'',accountNumber:'',province:'',city:'',address:'',mobilePhone:'',additionalPhone:'',email:'jorge@empresa.com'}
 function readProfile(){try{return{...initialProfile,...JSON.parse(localStorage.getItem(profileKey)??'{}')}}catch{return initialProfile}}
 
-export function SidebarUserAccount({name,role}:{name:string;role:string}){
+export function SidebarUserAccount({name,role,onLogout}:{name:string;role:string;onLogout:()=>void}){
   const [open,setOpen]=useState(false)
   const [profileOpen,setProfileOpen]=useState(false)
   const [passwordOpen,setPasswordOpen]=useState(false)
-  const [loggedOut,setLoggedOut]=useState(false)
   const [profile,setProfile]=useState<Profile>(readProfile)
   const [toast,setToast]=useState('')
   const initials=name.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()
@@ -23,7 +23,7 @@ export function SidebarUserAccount({name,role}:{name:string;role:string}){
     {open&&<div className="account-menu" role="menu" aria-label="Opciones del usuario">
       <button type="button" role="menuitem" onClick={()=>{setProfileOpen(true);setOpen(false)}}><UserRound/><span>Mi Perfil</span></button>
       <button type="button" role="menuitem" onClick={()=>{setPasswordOpen(true);setOpen(false)}}><LockKeyhole/><span>Cambiar Contraseña</span></button>
-      <button type="button" role="menuitem" onClick={()=>{setLoggedOut(true);setOpen(false)}}><LogOut/><span>Logout</span></button>
+      <button type="button" role="menuitem" onClick={()=>{onLogout();setOpen(false)}}><LogOut/><span>Logout</span></button>
     </div>}
     <button type="button" className="account-button" onClick={()=>setOpen(current=>!current)} aria-expanded={open} aria-haspopup="menu">
       <span className="account-photo">{profile.photoDataUrl?<img src={profile.photoDataUrl} alt="Foto del usuario"/>:initials}</span>
@@ -32,7 +32,6 @@ export function SidebarUserAccount({name,role}:{name:string;role:string}){
     </button>
     {profileOpen&&<ProfileDialog name={name} role={role} profile={profile} onClose={()=>setProfileOpen(false)} onSave={saveProfile}/>}
     {passwordOpen&&<PasswordDialog onClose={()=>setPasswordOpen(false)} onSave={()=>{setPasswordOpen(false);setToast('La contraseña fue actualizada correctamente.')}}/>}
-    {loggedOut&&<div className="logout-screen"><section><span className="logout-mark">SG</span><h1>Sesión cerrada</h1><p>Saliste del entorno de validación de SAGA.</p><button className="primary-action" onClick={()=>setLoggedOut(false)}><LogIn/>Ingresar de nuevo</button></section></div>}
     {toast&&<div className="account-toast" role="status"><Check/>{toast}<button onClick={()=>setToast('')} aria-label="Cerrar mensaje"><X/></button></div>}
   </div>
 }
@@ -77,11 +76,11 @@ function ProfileDialog({name,role,profile,onClose,onSave}:{name:string;role:stri
 }
 
 function PasswordDialog({onClose,onSave}:{onClose:()=>void;onSave:()=>void}){
-  const [current,setCurrent]=useState('');const [next,setNext]=useState('');const [confirmation,setConfirmation]=useState('');const [error,setError]=useState('')
-  const submit=(event:FormEvent)=>{event.preventDefault();if(!current||next.length<8){setError('Ingresa la contraseña actual y una nueva contraseña de mínimo 8 caracteres.');return}if(next!==confirmation){setError('La confirmación no coincide con la nueva contraseña.');return}localStorage.setItem('saga.currentUser.passwordChangedAt',new Date().toISOString());onSave()}
+  const [current,setCurrent]=useState('');const [next,setNext]=useState('');const [confirmation,setConfirmation]=useState('');const [error,setError]=useState('');const [saving,setSaving]=useState(false)
+  const submit=async(event:FormEvent)=>{event.preventDefault();if(!current||next.length<8){setError('Ingresa la contraseña actual y una nueva contraseña de mínimo 8 caracteres.');return}if(next!==confirmation){setError('La confirmación no coincide con la nueva contraseña.');return}setSaving(true);setError('');try{await api.changePassword(current,next);localStorage.setItem('saga.currentUser.passwordChangedAt',new Date().toISOString());onSave()}catch(reason){setError(reason instanceof Error?reason.message:'No se pudo actualizar la contraseña.');setSaving(false)}}
   return <Modal title="Cambiar Contraseña" description="Actualiza la contraseña utilizada para ingresar a la plataforma." onClose={onClose}><form className="password-form" onSubmit={submit}>{error&&<div className="account-error">{error}</div>}<div className="account-form-grid">
     <label className="wide">Contraseña actual <span>Obligatorio</span><input type="password" value={current} onChange={e=>{setCurrent(e.target.value);setError('')}} autoComplete="current-password"/></label>
     <label>Nueva contraseña <span>Obligatorio</span><input type="password" value={next} minLength={8} onChange={e=>{setNext(e.target.value);setError('')}} autoComplete="new-password"/></label>
     <label>Confirmar contraseña <span>Obligatorio</span><input type="password" value={confirmation} minLength={8} onChange={e=>{setConfirmation(e.target.value);setError('')}} autoComplete="new-password"/></label>
-  </div><footer><button type="button" className="account-secondary" onClick={onClose}>Cancelar</button><button className="primary-action"><Check/>Guardar contraseña</button></footer></form></Modal>
+  </div><footer><button type="button" className="account-secondary" onClick={onClose}>Cancelar</button><button className="primary-action" disabled={saving}><Check/>{saving?'Guardando...':'Guardar contraseña'}</button></footer></form></Modal>
 }

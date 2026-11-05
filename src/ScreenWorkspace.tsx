@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Download, FileDown, FileSpreadsheet, FileText, RefreshCw, Search } from 'lucide-react'
+import { Download, FileSpreadsheet, FileText, RefreshCw, Search } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import type { ScreenSpec } from './types'
+import type { Context, ScreenSpec } from './types'
 import { formatFullDateInput, formatMonthYearInput } from './date-input'
+import { createBrandedReportPdf } from './report-pdf'
 
 type ScreenWorkspaceProps={
   screen:ScreenSpec
@@ -40,11 +41,24 @@ function caretAfterDigits(value:string,digitCount:number){
   return value.length
 }
 
-function collectTables(root:HTMLElement,screenTitle:string):TableExport[]{
-  return Array.from(root.querySelectorAll('table')).map((table,index)=>{
+function collectTables(root:HTMLElement,screenTitle:string,forExcel=false):TableExport[]{
+  return Array.from(root.querySelectorAll('table'))
+    .filter(table=>forExcel?!table.closest('[data-excel-export-skip="true"]'):!table.closest('[data-pdf-export-skip="true"]'))
+    .map((table,index)=>{
     const rows=Array.from(table.querySelectorAll('tr'))
-      .filter(row=>(row as HTMLElement).style.display!=='none')
-      .map(row=>Array.from(row.querySelectorAll('th,td')).map(cell=>(cell as HTMLElement).innerText.replace(/\s+/g,' ').trim()))
+      .filter(row=>{
+        const excelOnly=(row as HTMLElement).dataset.excelExportOnly==='true'
+        const pdfOnly=(row as HTMLElement).dataset.pdfExportOnly==='true'
+        if(excelOnly)return forExcel
+        if(pdfOnly)return!forExcel
+        if(forExcel&&row.closest('[data-excel-export-skip="true"]'))return false
+        if(!forExcel&&row.closest('[data-pdf-export-skip="true"]'))return false
+        return(row as HTMLElement).style.display!=='none'
+      })
+      .map(row=>{
+        const exportOnly=(row as HTMLElement).dataset.excelExportOnly==='true'||(row as HTMLElement).dataset.pdfExportOnly==='true'
+        return Array.from(row.querySelectorAll('th,td')).filter(cell=>(cell as HTMLElement).dataset.exportSkip!=='true').map(cell=>((exportOnly?cell.textContent:(cell as HTMLElement).innerText)??'').replace(/\s+/g,' ').trim())
+      })
       .filter(row=>row.some(Boolean))
     const nearbyTitle=table.closest('section,article,div')?.querySelector(':scope > h2, :scope > header h2, :scope > header h3')?.textContent?.trim()
     return{name:nearbyTitle||`${screenTitle} ${index+1}`,rows}
@@ -132,6 +146,7 @@ function downloadBlob(blob:Blob,filename:string){
 export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
   const queryClient=useQueryClient()
   const rootRef=useRef<HTMLDivElement>(null)
+  const isReport=/^rep(?:orte)?\.?\s/i.test(screen.titulo_original)||/(^|>)\s*reportes?\s*(>|$)/i.test(screen.ruta_original)||screen.id==='AI-ACC-VOUCHER-SUMMARY-001'
   const [revision,setRevision]=useState(0)
   const [query,setQuery]=useState('')
   const [titleHost,setTitleHost]=useState<HTMLElement|null>(null)
@@ -139,7 +154,6 @@ export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
   const [searchHost,setSearchHost]=useState<HTMLElement|null>(null)
   const [hasTables,setHasTables]=useState(false)
   const [hasNativeSearch,setHasNativeSearch]=useState(false)
-  const [hasHeaderExport,setHasHeaderExport]=useState(false)
 
   const applySearch=useCallback((value:string)=>{
     const term=normalize(value.trim())
@@ -150,6 +164,25 @@ export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
   },[])
 
   useEffect(()=>{applySearch(query)},[applySearch,query,revision])
+
+  useEffect(()=>{
+    if(!isReport)return
+    const root=rootRef.current
+    if(!root)return
+    const selectAll=(event:Event)=>{
+      const field=event.target
+      if(field instanceof HTMLTextAreaElement){field.select();return}
+      if(!(field instanceof HTMLInputElement))return
+      const selectableTypes=new Set(['','text','search','tel','url','email','password'])
+      if(selectableTypes.has(field.type))field.select()
+    }
+    root.addEventListener('focusin',selectAll)
+    root.addEventListener('pointerup',selectAll)
+    return()=>{
+      root.removeEventListener('focusin',selectAll)
+      root.removeEventListener('pointerup',selectAll)
+    }
+  },[isReport])
 
   useEffect(()=>{
     const root=rootRef.current
@@ -177,10 +210,12 @@ export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
   useEffect(()=>{
     const root=rootRef.current
     if(!root)return
+    const hiddenExportButtons=new Set<HTMLButtonElement>()
     let refreshHost:HTMLElement|null=null
     let actionsHost:HTMLElement|null=null
     let tableSearchHost:HTMLElement|null=null
     const scan=()=>{
+      Array.from(root.querySelectorAll<HTMLButtonElement>('button')).filter(button=>/^exportar\b/i.test((button.textContent??'').trim())).forEach(button=>{button.hidden=true;hiddenExportButtons.add(button)})
       const title=root.querySelector<HTMLElement>('h1')
       if(title){
         title.classList.add('runtime-screen-title')
@@ -195,25 +230,27 @@ export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
       }
       const tables=Array.from(root.querySelectorAll('table'))
       setHasTables(tables.length>0)
+      const documentEditorOpen=Boolean(root.querySelector('[data-document-editor-open="true"]'))
+      const templateDownload=Boolean(root.querySelector('.account-example-download,[data-runtime-template-download]'))
       const nativeSearch=Array.from(root.querySelectorAll<HTMLInputElement>('input')).some(input=>!input.closest('[data-runtime-table-search]')&&/buscar|filtrar/i.test(`${input.placeholder} ${input.getAttribute('aria-label')??''}`))
       setHasNativeSearch(nativeSearch)
-      if(tables.length){
+      if(tables.length&&!documentEditorOpen){
         actionsHost=root.querySelector<HTMLElement>('[data-runtime-table-tools]')
         const header=title?.closest<HTMLElement>('.screen-header,.config-header,.hr-header,.personal-header,header')??title?.parentElement
         const buttons=header?Array.from(header.querySelectorAll<HTMLButtonElement>('button')):[]
         const newButton=buttons.find(button=>/\b(nuevo|nueva|crear|agregar|registrar)\b/i.test(button.textContent??''))
-        const exportButton=buttons.find(button=>!button.closest('[data-runtime-table-tools]')&&/\bexportar\b/i.test(button.textContent??''))
-        setHasHeaderExport(Boolean(exportButton))
-        exportButton?.classList.add('runtime-standard-secondary')
         if(newButton){newButton.classList.add('runtime-standard-primary');newButton.parentElement?.classList.add('runtime-standard-actions')}
-        if(!actionsHost){
-          actionsHost=document.createElement('span')
-          actionsHost.dataset.runtimeTableTools='true'
-          actionsHost.className='runtime-table-tools-host'
-          if(newButton?.parentElement)newButton.parentElement.insertBefore(actionsHost,newButton)
-          else header?.appendChild(actionsHost)
+        if(templateDownload){actionsHost?.remove();actionsHost=null;setToolbarHost(null)}
+        else{
+          if(!actionsHost){
+            actionsHost=document.createElement('span')
+            actionsHost.dataset.runtimeTableTools='true'
+            actionsHost.className='runtime-table-tools-host'
+            if(newButton?.parentElement)newButton.parentElement.insertBefore(actionsHost,newButton)
+            else header?.appendChild(actionsHost)
+          }
+          setToolbarHost(actionsHost)
         }
-        setToolbarHost(actionsHost)
         if(!nativeSearch){
           tableSearchHost=root.querySelector<HTMLElement>('[data-runtime-table-search]')
           if(!tableSearchHost){
@@ -237,37 +274,36 @@ export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
     observer.observe(root,{childList:true,subtree:true})
     return()=>{
       observer.disconnect()
+      hiddenExportButtons.forEach(button=>{button.hidden=false})
       root.querySelector<HTMLElement>('h1.runtime-screen-title')?.classList.remove('runtime-screen-title')
       refreshHost?.remove()
       actionsHost?.remove()
       tableSearchHost?.remove()
     }
-  },[applySearch,query,revision])
+  },[applySearch,isReport,query,revision])
 
   const refresh=()=>{
     setQuery('')
     void queryClient.invalidateQueries()
     setRevision(current=>current+1)
   }
-  const tables=()=>collectTables(rootRef.current!,screen.titulo_original)
+  const tables=(forExcel=false)=>collectTables(rootRef.current!,screen.titulo_original,forExcel)
   const closeMenu=(target:HTMLElement)=>target.closest('details')?.removeAttribute('open')
-  const downloadPdf=(target:HTMLElement)=>{
-    const data=tables()
-    if(data.length)downloadBlob(createPdfBlob(screen.titulo_original,data),`${safeFilename(screen.titulo_original)}.pdf`)
+  const downloadPdf=async(target:HTMLElement)=>{
+    const data=tables(false)
+    const context=queryClient.getQueryData<Context>(['context'])
+    if(data.length)downloadBlob(isReport?await createBrandedReportPdf(screen.titulo_original,data,context):createPdfBlob(screen.titulo_original,data),`${safeFilename(screen.titulo_original)}.pdf`)
     closeMenu(target)
   }
   const downloadExcel=(target:HTMLElement)=>{
-    const data=tables()
+    const data=tables(true)
     if(data.length)exportExcel(data,screen.titulo_original)
     closeMenu(target)
   }
-  const exportDirect=()=>{const data=tables();if(data.length)exportExcel(data,screen.titulo_original)}
-
   return <div className="screen-runtime" ref={rootRef}>
     <div className="screen-runtime-content" key={revision}>{children}</div>
     {titleHost&&createPortal(<button type="button" className="runtime-refresh-button" onClick={refresh} aria-label={`Refrescar ${screen.titulo_original}`} title="Refrescar información"><RefreshCw/></button>,titleHost)}
     {toolbarHost&&hasTables&&createPortal(<div className="runtime-table-tools">
-      {!hasHeaderExport&&<button type="button" className="runtime-export-button" onClick={exportDirect}><FileDown/><span>Exportar</span></button>}
       <details className="runtime-download-menu"><summary><Download/><span>Descargar</span></summary><div><button type="button" onClick={event=>downloadPdf(event.currentTarget)}><FileText/>PDF</button><button type="button" onClick={event=>downloadExcel(event.currentTarget)}><FileSpreadsheet/>Excel</button></div></details>
     </div>,toolbarHost)}
     {searchHost&&hasTables&&!hasNativeSearch&&createPortal(<label className="runtime-table-search"><Search/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Buscar en todas las columnas" aria-label={`Buscar en ${screen.titulo_original}`}/>{query&&<button type="button" onClick={()=>setQuery('')} aria-label="Limpiar búsqueda">×</button>}</label>,searchHost)}

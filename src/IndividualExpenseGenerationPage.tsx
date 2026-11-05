@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, Check, CheckCircle2, ChevronRight, FileText, Pencil, Plus, Save, Trash2 } from 'lucide-react'
+import { AlertTriangle, Check, CheckCircle2, ChevronRight, FileText, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
 import { api } from './api'
-import { accountingVoucherStorageKey } from './AccountingVoucherPage'
+import { DocumentEditorHeader } from './DocumentEditorHeader'
+import { accountingVoucherStorageKey, getNextVoucherNumber, type AccountingVoucherRecord } from './AccountingVoucherPage'
 import { formatFullDateInput } from './date-input'
 import { markIssuedExpenseDeleted, nextReceiptNumber, readIssuedExpenses, upsertIssuedExpense, type IssuedExpenseLine, type IssuedExpenseRecord } from './expense-records'
 import { validateOperationDate } from './operation-date-rules'
+import { cleanPhoneValue } from './phone-values'
+import { SearchableDatalistInput } from './SearchableDatalistInput'
 import type { Context, ScreenSpec } from './types'
 
 type Customer = { id: string; identification: string; businessName: string; address: string; phone: string; email: string; state: string }
@@ -24,6 +27,9 @@ type IndividualExpenseDraft = {
   issueDate: string
   customerInput: string
   selectedCustomerId: string
+  contactAddress: string
+  contactPhone: string
+  contactEmail: string
   headerDetail: string
   activeTab: 'DETAIL' | 'ACCOUNTING'
   lines: ChargeLine[]
@@ -94,7 +100,7 @@ export function IndividualExpenseGenerationPage({ screen }: { screen: ScreenSpec
 }
 
 function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; context: Context }) {
-  const customers = useMemo(readCustomers, [])
+  const [customers, setCustomers] = useState(readCustomers)
   const items = useMemo(() => readItems(context.company.id), [context.company.id])
   const accounts = useMemo(readAccounts, [])
   const assignments = readJson<{ CUSTOMERS_RECEIVABLE?: string }>(accountingAssignmentKey(context.company.id), {})
@@ -108,6 +114,9 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
   const [issueDate, setIssueDate] = useState(todayDisplay)
   const [customerInput, setCustomerInput] = useState('')
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [contactAddress, setContactAddress] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
   const [headerDetail, setHeaderDetail] = useState('')
   const [activeTab, setActiveTab] = useState<'DETAIL' | 'ACCOUNTING'>('DETAIL')
   const [lines, setLines] = useState<ChargeLine[]>([])
@@ -115,9 +124,15 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
   const [accountingLines, setAccountingLines] = useState<AccountingLine[]>([])
   const [editingAccountingId, setEditingAccountingId] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [contactConfirmOpen, setContactConfirmOpen] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const selectedCustomer = customers.find(customer => customer.id === selectedCustomerId)
+  const changedContactFields = selectedCustomer ? [
+    contactAddress.trim() !== String(selectedCustomer.address ?? '').trim() ? 'Dirección' : '',
+    cleanPhoneValue(contactPhone).trim() !== cleanPhoneValue(selectedCustomer.phone).trim() ? 'Teléfono' : '',
+    contactEmail.trim() !== String(selectedCustomer.email ?? '').trim() ? 'Email' : '',
+  ].filter(Boolean) : []
   const selectedItem = items.find(item => item.description === charge.itemDescription)
   const availableSubItems = selectedItem?.subItems ?? []
   const total = Number(lines.reduce((sum, line) => sum + line.total, 0).toFixed(2))
@@ -148,15 +163,17 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
 
   const openNew = () => {
     setReceiptNumber(nextReceiptNumber(context.company.id)); setIssueDate(todayDisplay()); setCustomerInput(''); setSelectedCustomerId('')
-    setHeaderDetail(''); setActiveTab('DETAIL'); setLines([]); setCharge({ ...emptyCharge }); setAccountingLines([])
-    setEditingDraftId(null); setEditingAccountingId(null); setDeleteConfirm(false); setError(''); setMessage(''); setFormOpen(true)
+    setContactAddress(''); setContactPhone(''); setContactEmail(''); setHeaderDetail(''); setActiveTab('DETAIL'); setLines([]); setCharge({ ...emptyCharge }); setAccountingLines([])
+    setEditingDraftId(null); setEditingAccountingId(null); setDeleteConfirm(false); setContactConfirmOpen(false); setError(''); setMessage(''); setFormOpen(true)
   }
 
   const openDraft = (draft: IndividualExpenseDraft) => {
+    const customer = customers.find(item => item.id === draft.selectedCustomerId)
     setEditingDraftId(draft.id); setReceiptNumber(draft.receiptNumber); setIssueDate(draft.issueDate)
     setCustomerInput(draft.customerInput); setSelectedCustomerId(draft.selectedCustomerId); setHeaderDetail(draft.headerDetail)
+    setContactAddress(draft.contactAddress ?? customer?.address ?? ''); setContactPhone(draft.contactPhone ?? customer?.phone ?? ''); setContactEmail(draft.contactEmail ?? customer?.email ?? '')
     setActiveTab(draft.activeTab); setLines(draft.lines); setCharge({ ...emptyCharge, ...draft.pendingLine })
-    setAccountingLines(draft.accountingLines); setEditingAccountingId(null); setDeleteConfirm(false)
+    setAccountingLines(draft.accountingLines); setEditingAccountingId(null); setDeleteConfirm(false); setContactConfirmOpen(false)
     setError(''); setMessage(''); setFormOpen(true)
   }
 
@@ -168,7 +185,8 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
     const now = new Date().toISOString()
     const draft: IndividualExpenseDraft = {
       id: editingDraftId ?? crypto.randomUUID(), receiptNumber: reservedNumber, issueDate, customerInput,
-      selectedCustomerId, headerDetail, activeTab, lines, pendingLine: charge, accountingLines,
+      selectedCustomerId, contactAddress: contactAddress.trim(), contactPhone: cleanPhoneValue(contactPhone).trim(), contactEmail: contactEmail.trim(),
+      headerDetail, activeTab, lines, pendingLine: charge, accountingLines,
       createdAt: existingDraft?.createdAt ?? now, updatedAt: now,
     }
     persistDrafts(editingDraftId
@@ -179,7 +197,7 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
     upsertIssuedExpense(context.company.id, {
       id: draft.id, companyId: context.company.id, month, year, issueDate, receiptNumber: reservedNumber,
       identification: customer?.identification ?? '', businessName: customer?.businessName ?? (customerInput.trim() || 'Cliente pendiente'),
-      address: customer?.address ?? '', phone: customer?.phone ?? '', email: customer?.email ?? '',
+      address: contactAddress.trim(), phone: cleanPhoneValue(contactPhone).trim(), email: contactEmail.trim(),
       expenseType: 'ORDINARIA', generationType: 'INDIVIDUAL', total,
       pdfFileName: `${reservedNumber}.pdf`, createdAt: draft.createdAt, status: 'PENDIENTE_COMPLETAR',
       lines: toIssuedExpenseLines(lines),
@@ -193,7 +211,8 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
       persistDrafts(drafts.filter(draft => draft.id !== editingDraftId))
       markIssuedExpenseDeleted(context.company.id, editingDraftId, context.actor.name)
     }
-    setFormOpen(false); setDeleteConfirm(false); setCustomerInput(''); setSelectedCustomerId(''); setHeaderDetail('')
+    setFormOpen(false); setDeleteConfirm(false); setContactConfirmOpen(false); setCustomerInput(''); setSelectedCustomerId(''); setHeaderDetail('')
+    setContactAddress(''); setContactPhone(''); setContactEmail('')
     setLines([]); setCharge({ ...emptyCharge }); setAccountingLines([]); setEditingDraftId(null); setEditingAccountingId(null); setError('')
     setMessage(editingDraftId
       ? `El borrador ${receiptNumber} fue eliminado. En Consulta General consta con estado Borrada.`
@@ -204,6 +223,9 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
     setCustomerInput(value)
     const customer = customers.find(item => customerLabel(item) === value)
     setSelectedCustomerId(customer?.id ?? '')
+    setContactAddress(customer?.address ?? '')
+    setContactPhone(cleanPhoneValue(customer?.phone))
+    setContactEmail(customer?.email ?? '')
     setError('')
   }
 
@@ -259,7 +281,27 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
     setAccountingLines(current => [...current, line]); setEditingAccountingId(line.id); setError('')
   }
 
-  const authorize = () => {
+  const persistCustomerContactChanges = (customer: Customer) => {
+    const nextAddress = contactAddress.trim()
+    const nextPhone = cleanPhoneValue(contactPhone).trim()
+    const nextEmail = contactEmail.trim()
+    const storedCustomers = readJson<Customer[]>('saga.customers', [])
+    const updatedCustomers = storedCustomers.map(current => current.id === customer.id ? {
+      ...current,
+      address: nextAddress,
+      phone: nextPhone,
+      email: nextEmail,
+    } : current)
+    localStorage.setItem('saga.customers', JSON.stringify(updatedCustomers))
+    setCustomers(current => current.map(record => record.id === customer.id ? {
+      ...record,
+      address: nextAddress,
+      phone: nextPhone,
+      email: nextEmail,
+    } : record))
+  }
+
+  const authorize = (saveCustomerChanges?: boolean) => {
     const customer = customers.find(item => item.id === selectedCustomerId)
     if (!customer) { setError('Selecciona un Cliente activo.'); return }
     const isoDate = displayDateToIso(issueDate)
@@ -269,7 +311,15 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
     if (!assignments.CUSTOMERS_RECEIVABLE) { setActiveTab('ACCOUNTING'); setError('Configura Cuenta x Cobrar Clientes en Asignación de Cuentas Contables.'); return }
     if (accountingLines.some(line => !accounts.some(account => account.Codigo === line.accountCode))) { setActiveTab('ACCOUNTING'); setError('Todas las líneas contables deben utilizar una cuenta Auxiliar activa.'); return }
     if (!accountingMatches) { setActiveTab('ACCOUNTING'); setError('Asiento no Cuadra. Revisa los valores resaltados de Debe, Haber y Total de la expensa.'); return }
+    if (contactEmail.trim() && !/^\S+@\S+\.\S+$/.test(contactEmail.trim())) { setError('Ingresa un Email válido.'); return }
+    if (changedContactFields.length && saveCustomerChanges === undefined) {
+      setContactConfirmOpen(true)
+      setError('')
+      return
+    }
     if (issued.some(expense => expense.receiptNumber === receiptNumber && expense.id !== editingDraftId)) { setError('La numeración reservada ya fue utilizada. Guarda el registro como borrador para asignar una nueva numeración.'); return }
+    setContactConfirmOpen(false)
+    if (saveCustomerChanges === true) persistCustomerContactChanges(customer)
     const currentReceipt = receiptNumber
     const [, month, year] = issueDate.split('/')
     const expenseId = editingDraftId ?? crypto.randomUUID()
@@ -277,15 +327,15 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
     const existingTrace = issued.find(record => record.id === editingDraftId)
     const expense: IssuedExpenseRecord = {
       id: expenseId, companyId: context.company.id, month, year, issueDate, receiptNumber: currentReceipt,
-      identification: customer.identification, businessName: customer.businessName, address: customer.address,
-      phone: customer.phone, email: customer.email, expenseType: 'ORDINARIA', generationType: 'INDIVIDUAL',
+      identification: customer.identification, businessName: customer.businessName, address: contactAddress.trim(),
+      phone: cleanPhoneValue(contactPhone).trim(), email: contactEmail.trim(), expenseType: 'ORDINARIA', generationType: 'INDIVIDUAL',
       total, pdfFileName: `${currentReceipt}.pdf`, createdAt: existingTrace?.createdAt ?? new Date().toISOString(), status: 'VIGENTE', lines: expenseLines,
     }
     upsertIssuedExpense(context.company.id, expense)
     const voucherKey = accountingVoucherStorageKey(context.company.id)
     const voucherRows = readJson<ExpenseVoucher[]>(voucherKey, [])
     const voucher: ExpenseVoucher = {
-      id: crypto.randomUUID(), number: `EXP-${String(voucherRows.length + 1).padStart(5, '0')}`, date: issueDate,
+      id: crypto.randomUUID(), number: getNextVoucherNumber(voucherRows as unknown as AccountingVoucherRecord[], 'EXPENSA', undefined, context.company.id), date: issueDate,
       type: 'EXPENSA', description: headerDetail.trim() || `Expensa ${currentReceipt} · ${customer.businessName}`,
       debit: totalDebit.toFixed(2), credit: totalCredit.toFixed(2), status: 'AUTORIZADO', sourceExpenseId: expenseId,
       lines: accountingLines.map(line => ({ accountCode: line.accountCode, debit: line.debit, credit: line.credit, description: line.description })),
@@ -300,16 +350,20 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
     localStorage.setItem(receivableKey(context.company.id), JSON.stringify([receivable, ...portfolio]))
     if (editingDraftId) persistDrafts(drafts.filter(draft => draft.id !== editingDraftId))
     setEditingDraftId(null); setReceiptNumber(nextReceiptNumber(context.company.id)); setFormOpen(false); setLines([]); setAccountingLines([]); setError('')
+    setContactAddress(''); setContactPhone(''); setContactEmail(''); setContactConfirmOpen(false)
     setMessage(`La expensa ${currentReceipt} fue autorizada. Se generó el asiento contable y el saldo por cobrar de ${money(total)}.`)
   }
 
   return <div className="page screen-page individual-expense-page">
-    <div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part, index, all) => <span key={`${part}-${index}`}>{part}{index < all.length - 1 && <ChevronRight />}</span>)}</div>
-    <section className="screen-header individual-expense-header"><div><div className="screen-id"><span>{screen.id}</span><b>Expensas</b></div><h1>{screen.titulo_original}</h1></div><div className="individual-expense-actions">{formOpen && <button type="button" className="save-expense-draft" onClick={saveDraft}><Save />Guardar Borrador</button>}{formOpen && <button type="button" className="delete-expense-draft" onClick={() => setDeleteConfirm(true)}><Trash2 />Eliminar</button>}{formOpen && <button type="button" className="authorize-expense" disabled={!lines.length} onClick={authorize}><CheckCircle2 />Autorizar Expensa</button>}<button type="button" className="primary-action" onClick={openNew}><Plus />Nueva Expensa</button></div></section>
+    <DocumentEditorHeader screen={screen} formOpen={formOpen} formTitle="Nueva Expensa" sectionLabel="Expensas" onClose={() => setFormOpen(false)} actions={<><button type="button" className="save-expense-draft" onClick={saveDraft}><Save />Guardar Borrador</button><button type="button" className="delete-expense-draft" onClick={() => setDeleteConfirm(true)}><Trash2 />Eliminar</button><button type="button" className="authorize-expense" disabled={!lines.length} onClick={() => authorize()}><CheckCircle2 />Autorizar Expensa</button></>} listAction={<button type="button" className="primary-action" onClick={openNew}><Plus />Nueva Expensa</button>} />
     {message && <div className="individual-expense-success" role="status"><CheckCircle2 />{message}</div>}
     {error && <div className="individual-expense-error" role="alert"><AlertTriangle />{error}</div>}
 
     {deleteConfirm && <div className="individual-delete-backdrop" role="dialog" aria-modal="true" aria-labelledby="individual-delete-title"><section className="individual-delete-dialog"><span><Trash2 /></span><h2 id="individual-delete-title">¿Eliminar {editingDraftId ? 'el borrador' : 'la expensa en proceso'}?</h2><p>Se descartarán la cabecera, las líneas de detalle y el asiento contable. {editingDraftId ? 'La numeración permanecerá registrada en Consulta General con estado Borrada.' : 'No quedará ningún registro guardado.'}</p><footer><button type="button" className="quiet-button" onClick={() => setDeleteConfirm(false)}>Cancelar</button><button type="button" className="confirm-delete-expense" onClick={discardExpense}>Sí, Eliminar</button></footer></section></div>}
+
+    {contactConfirmOpen && selectedCustomer && <div className="individual-contact-backdrop" role="dialog" aria-modal="true" aria-labelledby="individual-contact-title"><section className="individual-contact-dialog"><span className="individual-contact-icon"><AlertTriangle /></span><h2 id="individual-contact-title">Información del cliente modificada</h2><p>{changedContactFields.length === 1
+      ? `El campo ${changedContactFields[0]} fue modificado, ¿desea grabar este cambio?`
+      : `Los campos ${changedContactFields.join(', ').replace(/, ([^,]*)$/, ' y $1')} fueron modificados, ¿desea grabar estos cambios?`}</p><div className="individual-contact-fields">{changedContactFields.map(field => <span key={field}>{field}</span>)}</div><small>Si selecciona No, la expensa se autorizará con los datos editados sin cambiar el registro maestro del cliente.</small><footer><button type="button" className="contact-change-no" onClick={() => authorize(false)}><X />No</button><button type="button" className="contact-change-yes" onClick={() => authorize(true)}><Check />Sí</button></footer></section></div>}
 
     {formOpen ? <>
       <section className="individual-expense-card individual-expense-customer">
@@ -317,10 +371,10 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
         <div className="individual-expense-grid">
           <label><span>Número de Expensa</span><input readOnly value={receiptNumber} /></label>
           <label><span>Fecha de Emisión <b>Obligatorio</b></span><input inputMode="numeric" maxLength={10} value={issueDate} onChange={event => { setIssueDate(formatFullDateInput(event.target.value)); setError('') }} placeholder="DD/MM/AAAA" /></label>
-          <label className="wide"><span>Cliente <b>Obligatorio</b></span><input list="individual-customer-options" value={customerInput} onChange={event => selectCustomer(event.target.value)} placeholder="Escribe identificación o razón social para filtrar" /><datalist id="individual-customer-options">{customers.map(customer => <option key={customer.id} value={customerLabel(customer)} />)}</datalist></label>
-          <label><span>Dirección</span><input readOnly value={selectedCustomer?.address || '—'} /></label>
-          <label><span>Teléfono</span><input readOnly value={selectedCustomer?.phone || '—'} /></label>
-          <label><span>Email</span><input readOnly value={selectedCustomer?.email || '—'} /></label>
+          <label className="wide"><span>Cliente <b>Obligatorio</b></span><SearchableDatalistInput list="individual-customer-options" value={customerInput} onChange={event => selectCustomer(event.target.value)} onClear={() => selectCustomer('')} clearLabel="Borrar cliente" placeholder="Escribe identificación o razón social para filtrar" /><datalist id="individual-customer-options">{customers.map(customer => <option key={customer.id} value={customerLabel(customer)} />)}</datalist></label>
+          <label><span>Dirección</span><input disabled={!selectedCustomer} className={changedContactFields.includes('Dirección') ? 'contact-modified' : ''} value={contactAddress} onChange={event => { setContactAddress(event.target.value); setError('') }} placeholder="Dirección del cliente" /></label>
+          <label><span>Teléfono</span><input disabled={!selectedCustomer} className={changedContactFields.includes('Teléfono') ? 'contact-modified' : ''} inputMode="tel" maxLength={30} value={contactPhone} onChange={event => { setContactPhone(cleanPhoneValue(event.target.value)); setError('') }} placeholder="Teléfono del cliente" /></label>
+          <label><span>Email</span><input disabled={!selectedCustomer} className={changedContactFields.includes('Email') ? 'contact-modified' : ''} type="email" maxLength={150} value={contactEmail} onChange={event => { setContactEmail(event.target.value); setError('') }} placeholder="Email del cliente" /></label>
           <label className="wide"><span>Detalle</span><textarea maxLength={100} rows={2} value={headerDetail} onChange={event => setHeaderDetail(event.target.value)} placeholder="Detalle general de la expensa" /><small>{headerDetail.length}/100</small></label>
         </div>
       </section>
@@ -329,10 +383,10 @@ function IndividualExpenseManager({ screen, context }: { screen: ScreenSpec; con
         <nav className="individual-expense-tabs"><button type="button" className={activeTab === 'DETAIL' ? 'active' : ''} onClick={() => setActiveTab('DETAIL')}>Detalle</button><button type="button" className={activeTab === 'ACCOUNTING' ? 'active' : ''} onClick={() => setActiveTab('ACCOUNTING')}>Contabilidad</button></nav>
         {activeTab === 'DETAIL' ? <div className="individual-detail-table"><table><thead><tr><th>Acciones</th><th>Rubro</th><th>Subrubro</th><th>Detalle</th><th>Cantidad</th><th>Valor</th><th>Total</th></tr></thead><tbody>
           {lines.map(line => <tr key={line.id}><td><button type="button" className="individual-line-delete" onClick={() => deleteChargeLine(line.id)} aria-label={`Eliminar ${line.detail}`} title="Eliminar"><Trash2 /></button></td><td>{line.itemDescription}</td><td>{line.subItemDescription || '—'}</td><td>{line.detail}</td><td className="number">{line.quantity}</td><td className="number">{money(line.unitValue)}</td><td className="number"><strong>{money(line.total)}</strong></td></tr>)}
-          <tr className="individual-line-editor"><td><button type="button" className="individual-line-save" onClick={saveChargeLine} aria-label="Guardar línea" title="Guardar línea"><Save /></button></td><td><input list="individual-item-options" value={charge.itemDescription} onChange={event => selectItem(event.target.value)} placeholder="Filtrar Rubro" /><datalist id="individual-item-options">{items.map(item => <option key={item.id} value={itemLabel(item)} />)}</datalist></td><td>{availableSubItems.length ? <><input list="individual-subitem-options" value={charge.subItemDescription} onChange={event => setCharge(current => ({ ...current, subItemDescription: event.target.value }))} placeholder="Filtrar Subrubro" /><datalist id="individual-subitem-options">{availableSubItems.map(item => <option key={item.id} value={subItemLabel(item)} />)}</datalist></> : <span>—</span>}</td><td><input maxLength={160} value={charge.detail} onChange={event => setCharge(current => ({ ...current, detail: event.target.value }))} placeholder="Detalle del cobro" /></td><td><input type="number" min="0.01" step="0.01" value={charge.quantity} onChange={event => setCharge(current => ({ ...current, quantity: event.target.value }))} /></td><td><input type="text" inputMode="decimal" value={charge.unitValue} onFocus={event => event.currentTarget.select()} onClick={event => event.currentTarget.select()} onChange={event => setCharge(current => ({ ...current, unitValue: event.target.value }))} aria-label="Valor de la línea" /></td><td className="number"><strong>{money((Number(charge.quantity) || 0) * (Number(charge.unitValue) || 0))}</strong></td></tr>
+          <tr className="individual-line-editor"><td><button type="button" className="individual-line-save" onClick={saveChargeLine} aria-label="Guardar línea" title="Guardar línea"><Save /></button></td><td><SearchableDatalistInput list="individual-item-options" value={charge.itemDescription} onChange={event => selectItem(event.target.value)} onClear={() => selectItem('')} clearLabel="Borrar rubro" placeholder="Filtrar Rubro" /><datalist id="individual-item-options">{items.map(item => <option key={item.id} value={itemLabel(item)} />)}</datalist></td><td>{availableSubItems.length ? <><SearchableDatalistInput list="individual-subitem-options" value={charge.subItemDescription} onChange={event => setCharge(current => ({ ...current, subItemDescription: event.target.value }))} onClear={() => setCharge(current => ({ ...current, subItemDescription: '' }))} clearLabel="Borrar subrubro" placeholder="Filtrar Subrubro" /><datalist id="individual-subitem-options">{availableSubItems.map(item => <option key={item.id} value={subItemLabel(item)} />)}</datalist></> : <span>—</span>}</td><td><input maxLength={160} value={charge.detail} onChange={event => setCharge(current => ({ ...current, detail: event.target.value }))} placeholder="Detalle del cobro" /></td><td><input type="number" min="0.01" step="0.01" value={charge.quantity} onChange={event => setCharge(current => ({ ...current, quantity: event.target.value }))} /></td><td><input type="text" inputMode="decimal" value={charge.unitValue} onFocus={event => event.currentTarget.select()} onClick={event => event.currentTarget.select()} onChange={event => setCharge(current => ({ ...current, unitValue: event.target.value }))} aria-label="Valor de la línea" /></td><td className="number"><strong>{money((Number(charge.quantity) || 0) * (Number(charge.unitValue) || 0))}</strong></td></tr>
           <tr className="individual-detail-total"><td colSpan={6}>Total</td><td className="number">{money(total)}</td></tr>
         </tbody></table></div> : <div className="individual-accounting"><div className="individual-accounting-toolbar"><div><strong>Asiento Contable</strong><span>El Debe y el Haber deben coincidir con el total de la expensa.</span></div><button type="button" className="quiet-button" onClick={addAccountingLine}><Plus />Agregar Línea</button></div><div className="individual-accounting-table"><table><thead><tr><th>Acciones</th><th>Cuenta Contable</th><th>Debe</th><th>Haber</th><th>Descripción</th></tr></thead><tbody>
-          {accountingLines.map(line => { const editing = editingAccountingId === line.id; return <tr key={line.id}><td><div className="individual-accounting-actions"><button type="button" onClick={() => setEditingAccountingId(editing ? null : line.id)} aria-label={editing ? 'Guardar cambios contables' : 'Editar línea contable'}>{editing ? <Check /> : <Pencil />}</button>{!line.automatic && <button type="button" onClick={() => setAccountingLines(current => current.filter(item => item.id !== line.id))} aria-label="Eliminar línea contable"><Trash2 /></button>}</div></td><td>{editing ? <><input list="individual-account-options" value={line.accountCode} onChange={event => updateAccountingLine(line.id, 'accountCode', event.target.value)} placeholder="Filtrar Plan Contable" /><datalist id="individual-account-options">{accounts.map(account => <option key={account.Codigo} value={account.Codigo}>{account['Descripción']}</option>)}</datalist></> : <span>{line.accountCode || '—'}<small>{accounts.find(account => account.Codigo === line.accountCode)?.['Descripción']}</small></span>}</td><td className={!accountingMatches ? 'mismatch' : ''}>{editing ? <input inputMode="decimal" value={line.debit || ''} onChange={event => updateAccountingLine(line.id, 'debit', event.target.value)} /> : line.debit ? money(line.debit) : '—'}</td><td className={!accountingMatches ? 'mismatch' : ''}>{editing ? <input inputMode="decimal" value={line.credit || ''} onChange={event => updateAccountingLine(line.id, 'credit', event.target.value)} /> : line.credit ? money(line.credit) : '—'}</td><td>{editing ? <input maxLength={160} value={line.description} onChange={event => updateAccountingLine(line.id, 'description', event.target.value)} /> : line.description}</td></tr> })}
+          {accountingLines.map(line => { const editing = editingAccountingId === line.id; return <tr key={line.id}><td><div className="individual-accounting-actions"><button type="button" onClick={() => setEditingAccountingId(editing ? null : line.id)} aria-label={editing ? 'Guardar cambios contables' : 'Editar línea contable'}>{editing ? <Check /> : <Pencil />}</button>{!line.automatic && <button type="button" onClick={() => setAccountingLines(current => current.filter(item => item.id !== line.id))} aria-label="Eliminar línea contable"><Trash2 /></button>}</div></td><td>{editing ? <><SearchableDatalistInput list="individual-account-options" value={line.accountCode} onChange={event => updateAccountingLine(line.id, 'accountCode', event.target.value)} onClear={() => updateAccountingLine(line.id, 'accountCode', '')} clearLabel="Borrar cuenta contable" placeholder="Filtrar Plan Contable" /><datalist id="individual-account-options">{accounts.map(account => <option key={account.Codigo} value={account.Codigo}>{account['Descripción']}</option>)}</datalist></> : <span>{line.accountCode || '—'}<small>{accounts.find(account => account.Codigo === line.accountCode)?.['Descripción']}</small></span>}</td><td className={!accountingMatches ? 'mismatch' : ''}>{editing ? <input inputMode="decimal" value={line.debit || ''} onChange={event => updateAccountingLine(line.id, 'debit', event.target.value)} /> : line.debit ? money(line.debit) : '—'}</td><td className={!accountingMatches ? 'mismatch' : ''}>{editing ? <input inputMode="decimal" value={line.credit || ''} onChange={event => updateAccountingLine(line.id, 'credit', event.target.value)} /> : line.credit ? money(line.credit) : '—'}</td><td>{editing ? <input maxLength={160} value={line.description} onChange={event => updateAccountingLine(line.id, 'description', event.target.value)} /> : line.description}</td></tr> })}
           {!accountingLines.length && <tr><td colSpan={5}><div className="individual-accounting-empty"><FileText /><span>Guarda una línea de Detalle para generar el asiento.</span></div></td></tr>}
           <tr className={`individual-accounting-total ${!accountingMatches ? 'mismatch' : ''}`}><td colSpan={2}>Totales</td><td>{money(totalDebit)}</td><td>{money(totalCredit)}</td><td>Total Expensa: {money(total)}</td></tr>
         </tbody></table></div></div>}

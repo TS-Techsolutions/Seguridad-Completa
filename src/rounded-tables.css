@@ -1,0 +1,37 @@
+/* Acabado común para todas las tablas operativas del sistema. */
+.screen-page table {
+  border-collapse: separate !important;
+  border-spacing: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.screen-page table thead:first-child tr:first-child > :first-child {
+  border-top-left-radius: 13px;
+}
+
+.screen-page table thead:first-child tr:first-child > :last-child {
+  border-top-right-radius: 13px;
+}
+
+.screen-page table tbody:last-child tr:last-child > :first-child,
+.screen-page table tfoot:last-child tr:last-child > :first-child {
+  border-bottom-left-radius: 13px;
+}
+
+.screen-page table tbody:last-child tr:last-child > :last-child,
+.screen-page table tfoot:last-child tr:last-child > :last-child {
+  border-bottom-right-radius: 13px;
+}
+
+/* Rubros no tenía un panel exterior que recortara las esquinas de la tabla. */
+.expense-items-table {
+  overflow: auto;
+  border: 1px solid #dfe3e9 !important;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.expense-items-table table {
+  border-radius: 13px;
+}

@@ -1,0 +1,57 @@
+.collection-receipt-preview-page { min-height: 100vh; color: #263548; background: #e8edf3; }
+.collection-receipt-toolbar { position: sticky; top: 0; z-index: 5; min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1.1rem; color: #fff; background: #102a43; box-shadow: 0 4px 16px #102a4333; }
+.collection-receipt-toolbar > div { display: grid; gap: .15rem; }
+.collection-receipt-toolbar > .collection-receipt-toolbar-actions { display: flex; align-items: center; gap: .6rem; }
+.collection-receipt-toolbar strong { font-size: .88rem; }
+.collection-receipt-toolbar small { color: #c9d7e3; font-size: .68rem; }
+.collection-receipt-toolbar button { min-height: 2.5rem; display: inline-flex; align-items: center; gap: .45rem; padding: 0 .9rem; border: 0; border-radius: .55rem; color: #fff; background: #1d4ed8; font-weight: 750; cursor: pointer; }
+.collection-receipt-toolbar button.secondary { border: 1px solid #90a4b8; background: #29455f; }
+.collection-receipt-toolbar svg { width: 1rem; }
+.collection-receipt-stage { padding: 1.5rem; overflow: auto; }
+.collection-receipt-document { --receipt-accent: #5365e8; width: 210mm; min-height: 297mm; box-sizing: border-box; margin: auto; padding: 12mm; border: 1px solid #b9c0c8; border-radius: 10px; color: #1f2937; background: #fff; box-shadow: 0 8px 28px #24364a20; font-family: var(--receipt-font, Arial, sans-serif); font-size: 8.5px; }
+.collection-receipt-company { display: grid; grid-template-columns: 90px minmax(0, 1fr) 220px; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 2px solid #d5dae0; }
+.collection-receipt-logo { width: 82px; height: 65px; display: grid; place-items: center; }
+.collection-receipt-logo img { width: 100%; height: 100%; object-fit: contain; }
+.collection-receipt-logo span { width: 100%; height: 100%; display: grid; place-items: center; border: 1px dashed #aeb7c1; color: #98a3af; font-weight: 800; }
+.collection-receipt-company-data { display: grid; gap: 2px; text-align: center; }
+.collection-receipt-company-data h1, .collection-receipt-company-data p { margin: 0; }
+.collection-receipt-company-data h1 { color: #182638; font-size: 13px; }
+.collection-receipt-company-data p { color: #526174; font-size: 8px; }
+.collection-receipt-title { display: grid; gap: 7px; padding: 10px; border: 1px solid #4d5968; border-radius: 10px; text-align: center; }
+.collection-receipt-title span { font-size: 9px; font-weight: 850; }
+.collection-receipt-title strong { color: #405065; font-size: 14px; }
+.collection-receipt-summary { display: grid; grid-template-columns: minmax(0, 1fr) 235px; gap: 10px; margin-top: 12px; }
+.collection-receipt-main-data, .collection-receipt-method-summary, .collection-receipt-box { overflow: hidden; border: 1px solid #4d5968; border-radius: 10px; }
+.collection-receipt-main-data { padding: 7px 9px; }
+.collection-receipt-main-data p { display: grid; grid-template-columns: 105px 1fr; gap: 8px; margin: 0; padding: 4px 0; border-bottom: 1px solid #d8dde3; }
+.collection-receipt-main-data p:last-child { border-bottom: 0; }
+.collection-receipt-main-data b { color: #405065; }
+.collection-receipt-main-data span { font-weight: 650; }
+.collection-receipt-method-summary h2, .collection-receipt-box > h2 { margin: 0; padding: 6px 8px; color: #263548; background: #d5dae0; font-size: 9px; }
+.collection-receipt-method-summary > p { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 4px 8px; border-bottom: 1px solid #e1e5e9; }
+.collection-receipt-method-summary footer { display: flex; justify-content: space-between; padding: 6px 8px; color: #fff; background: #334155; }
+.collection-receipt-box { margin-top: 10px; }
+.collection-receipt-box table { width: 100%; border-collapse: collapse; }
+.collection-receipt-box th, .collection-receipt-box td { padding: 5px 6px; border-right: 1px solid #d5dbe2; border-bottom: 1px solid #d5dbe2; text-align: left; vertical-align: top; }
+.collection-receipt-box th { color: #405065; background: #eef1f4; font-size: 7.5px; text-transform: uppercase; }
+.collection-receipt-box tr > *:last-child { border-right: 0; }
+.collection-receipt-box tbody tr:last-child td { border-bottom: 1px solid #d5dbe2; }
+.collection-receipt-box td:last-child, .collection-receipt-box th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.collection-receipt-box tfoot td { border-bottom: 0; color: #263548; background: #f3f5f7; font-weight: 850; }
+.collection-receipt-box tfoot td:first-child { text-align: right; }
+.collection-receipt-box td small { display: block; margin-top: 2px; color: #778395; }
+.collection-receipt-signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; margin: 58px 20px 0; text-align: center; }
+.collection-receipt-signatures > div { display: grid; gap: 3px; }
+.collection-receipt-signatures span { border-top: 1px solid #333; }
+.collection-receipt-signatures b { text-transform: uppercase; }
+.collection-receipt-signatures strong { min-height: 12px; font-size: 8px; }
+.collection-receipt-signatures small { color: #687587; font-size: 7.5px; }
+.collection-receipt-company, .collection-receipt-summary, .collection-receipt-signatures { break-inside: avoid; page-break-inside: avoid; }
+.collection-receipt-box > h2 { break-after: avoid; page-break-after: avoid; }
+.collection-receipt-not-found { min-height: 100vh; display: grid; place-items: center; align-content: center; gap: .65rem; color: #526174; background: #f4f6f8; text-align: center; }
+.collection-receipt-not-found svg { width: 2.5rem; color: #c1684d; }
+.collection-receipt-not-found h1, .collection-receipt-not-found p { margin: 0; }
+.collection-receipt-not-found button { margin-top: .4rem; padding: .65rem 1rem; border: 0; border-radius: .5rem; color: #fff; background: #1d4ed8; }
+@page { size: A4; margin: 0; }
+@media print { body { background: #fff; } .collection-receipt-toolbar { display: none; } .collection-receipt-stage { padding: 0; } .collection-receipt-document { width: 210mm; min-height: 297mm; margin: 0; padding: 12mm; border: 0; border-radius: 0; box-shadow: none; } }
+@media (max-width: 850px) { .collection-receipt-toolbar { align-items: flex-start; flex-direction: column; } .collection-receipt-toolbar button { width: 100%; justify-content: center; } }

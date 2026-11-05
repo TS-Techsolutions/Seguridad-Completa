@@ -1,0 +1,15 @@
+.document-editor-breadcrumb-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.document-editor-breadcrumb-row .breadcrumbs { margin-bottom: 0; }
+.document-editor-close { width: 2.45rem; min-width: 2.45rem; height: 2.45rem; display: grid; place-items: center; padding: 0; margin: 0; border: 1px solid #dadde5; border-radius: .65rem; color: #687487; background: #fff; cursor: pointer; }
+.document-editor-close:hover { border-color: #c7a9a2; color: #a44d3d; background: #fff6f3; }
+.document-editor-close svg { width: 15px; }
+.document-editor-screen-header { align-items: flex-end; }
+.document-editor-actions { display: flex; align-items: center; gap: .5rem; }
+.document-editor-actions > button { height: 2.45rem; min-width: 8.8rem; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: 0 .78rem; border-radius: .65rem; font: inherit; font-size: .64rem; font-weight: 800; cursor: pointer; }
+.document-editor-actions > button svg { width: 15px; }
+.document-editor-actions > button:nth-child(1) { border: 1px solid #c9d2dc; color: #526174; background: #fff; }
+.document-editor-actions > button:nth-child(2) { border: 1px solid #e0c2ba; color: #a44d3d; background: #fff5f2; }
+.document-editor-actions > button:nth-child(3) { border: 1px solid #2e8065; color: #286d58; background: #ecf8f3; }
+.document-editor-actions > button:disabled { opacity: .45; cursor: not-allowed; }
+.page:has(.document-editor-breadcrumb-row.form-open) button[aria-label*="Cerrar y volver"]:not(.document-editor-close) { display: none; }
+@media (max-width: 900px) { .document-editor-screen-header { align-items: stretch; flex-direction: column; } .document-editor-actions { align-items: stretch; flex-wrap: wrap; } .document-editor-actions > button { flex: 1 1 10rem; } }

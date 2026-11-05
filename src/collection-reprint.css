@@ -1,0 +1,17 @@
+.collection-reprint-page { display: grid; align-content: start; gap: 1rem; }
+.collection-reprint-panel { max-width: 980px; display: grid; gap: 1.1rem; padding: 1.25rem; border-radius: 1rem; }
+.collection-reprint-panel > header { display: flex; align-items: center; gap: .8rem; padding-bottom: .9rem; border-bottom: 1px solid #dce2e8; }
+.collection-reprint-panel > header > svg { width: 2.25rem; height: 2.25rem; padding: .45rem; border-radius: .7rem; color: #405065; background: #eef1f4; }
+.collection-reprint-panel h2, .collection-reprint-panel p { margin: 0; }
+.collection-reprint-panel h2 { color: #263548; font-size: 1rem; }
+.collection-reprint-panel p { margin-top: .2rem; color: #6c7888; font-size: .82rem; }
+.collection-reprint-fields { display: grid; grid-template-columns: minmax(280px, 1.35fr) minmax(220px, 1fr) auto; align-items: end; gap: .9rem; }
+.collection-reprint-fields label { min-width: 0; display: grid; gap: .38rem; color: #405065; font-size: .78rem; font-weight: 750; }
+.collection-reprint-fields input { width: 100%; min-height: 2.65rem; box-sizing: border-box; border: 1px solid #bec8d3; border-radius: .7rem; color: #263548; background: #fff; font: inherit; font-weight: 600; }
+.collection-reprint-fields input:disabled { color: #8a96a4; background: #f3f5f7; }
+.collection-reprint-button { min-width: 125px; min-height: 2.65rem; justify-content: center; border-radius: .7rem; }
+.collection-reprint-button:disabled { cursor: not-allowed; opacity: .5; }
+.collection-reprint-notice, .collection-reprint-error { padding: .75rem .9rem; border-radius: .7rem; font-size: .82rem; font-weight: 650; }
+.collection-reprint-notice { color: #526174; background: #f1f4f7; }
+.collection-reprint-error { color: #9f2f2f; background: #fff0f0; }
+@media (max-width: 900px) { .collection-reprint-fields { grid-template-columns: 1fr; } .collection-reprint-button { width: 100%; } }

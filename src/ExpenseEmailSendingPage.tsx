@@ -33,7 +33,7 @@ type EmailSendBatch = {
   status: EmailDeliveryStatus
   copyEmails: string[]
   templateSubject: string
-  dispatches: Array<{ clientGroup: string; client: string; to: string[]; cc: string[]; subject: string; body: string; expenseIds: string[]; status: EmailDeliveryStatus; providerMessageId?: string; confirmedAt?: string; errorMessage?: string }>
+  dispatches: Array<{ clientGroup: string; client: string; to: string[]; cc: string[]; subject: string; body: string; expenseIds: string[]; attachmentFileNames: string[]; status: EmailDeliveryStatus; providerMessageId?: string; confirmedAt?: string; errorMessage?: string }>
   details: EmailExpenseDetail[]
 }
 
@@ -113,7 +113,7 @@ function ExpenseEmailSendingManager({ screen, context }: { screen: ScreenSpec; c
     const dispatches = Array.from(recipients.entries()).map(([clientGroup, to]) => {
       const groupedDetails = details.filter(detail => detail.clientGroup === clientGroup)
       const variables = { RAZON_SOCIAL: groupedDetails[0]?.client ?? '', COMPROBANTE: groupedDetails.map(detail => detail.receiptNumber).join(', '), MES: month, ANIO: year, FECHA: displayDate(sentAt).split(',')[0], VALOR: money(groupedDetails.reduce((sum, detail) => sum + detail.total, 0)) }
-      return { clientGroup, client: groupedDetails[0]?.client ?? '', to, cc: template.copyEmails, subject: applyTemplate(template.subject, variables), body: applyTemplate(template.body, variables), expenseIds: groupedDetails.map(detail => detail.expenseId), status: 'PENDIENTE' as const }
+      return { clientGroup, client: groupedDetails[0]?.client ?? '', to, cc: template.copyEmails, subject: applyTemplate(template.subject, variables), body: applyTemplate(template.body, variables), expenseIds: groupedDetails.map(detail => detail.expenseId), attachmentFileNames: expenses.filter(expense => groupedDetails.some(detail => detail.expenseId === expense.id)).map(expense => expense.pdfFileName), status: 'PENDIENTE' as const }
     })
     const batch: EmailSendBatch = { id: crypto.randomUUID(), period, expenseType, sentAt, expenseCount: details.length, emailCount: dispatches.length, user: context.actor.name, status: 'PENDIENTE', copyEmails: template.copyEmails, templateSubject: template.subject, dispatches, details }
     const next = [batch, ...history].sort((left, right) => right.sentAt.localeCompare(left.sentAt))

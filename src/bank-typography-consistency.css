@@ -1,0 +1,192 @@
+/* Tipografía uniforme para las pantallas operativas del módulo Bancos y Caja Chica. */
+:is(
+  .bank-accounts-page,
+  .bank-deposit-page,
+  .deposit-annulment-page,
+  .bank-egress-page,
+  .bank-egress-annulment-page,
+  .check-replacement-page,
+  .check-reprint-page,
+  .check-design-page,
+  .bank-generic-page,
+  .petty-cash-page
+) :is(input,select,textarea){
+  font-family:inherit;
+  font-size:.65rem;
+  font-weight:400;
+}
+
+:is(
+  .bank-accounts-page,
+  .bank-deposit-page,
+  .deposit-annulment-page,
+  .bank-egress-page,
+  .bank-egress-annulment-page,
+  .check-replacement-page,
+  .check-reprint-page,
+  .check-design-page,
+  .petty-cash-page
+) label{
+  font-size:.62rem;
+  font-weight:600;
+}
+
+:is(
+  .bank-accounts-page,
+  .bank-deposit-page,
+  .deposit-annulment-page,
+  .bank-egress-page,
+  .bank-egress-annulment-page,
+  .check-replacement-page,
+  .check-reprint-page,
+  .check-design-page,
+  .bank-generic-page,
+  .petty-cash-page
+) table th{
+  font-size:.57rem;
+  font-weight:700;
+}
+
+:is(
+  .bank-accounts-page,
+  .bank-deposit-page,
+  .deposit-annulment-page,
+  .bank-egress-page,
+  .bank-egress-annulment-page,
+  .check-replacement-page,
+  .check-reprint-page,
+  .check-design-page,
+  .bank-generic-page,
+  .petty-cash-page
+) table td{
+  font-size:.65rem;
+  font-weight:400;
+}
+
+:is(
+  .bank-accounts-page,
+  .bank-deposit-page,
+  .deposit-annulment-page,
+  .bank-egress-page,
+  .bank-egress-annulment-page,
+  .check-replacement-page,
+  .check-reprint-page,
+  .check-design-page,
+  .bank-generic-page,
+  .petty-cash-page
+) table td strong{
+  font-size:inherit;
+  font-weight:500;
+}
+
+:is(
+  .bank-account-form,
+  .bank-accounts-list,
+  .pending-deposits-card,
+  .bank-egress-card,
+  .check-replacement-card,
+  .check-design-card
+) > header h2{
+  font-size:.72rem;
+  font-weight:600;
+}
+
+:is(
+  .bank-account-form,
+  .bank-accounts-list,
+  .pending-deposits-card,
+  .bank-egress-card,
+  .check-replacement-card,
+  .check-design-card
+) > header p{
+  font-size:.58rem;
+  font-weight:400;
+}
+
+.bank-accounts-list > header > strong,
+.pending-deposits-card > header > strong,
+.bank-egress-card > header > strong{
+  font-weight:600;
+}
+
+.bank-account-form-grid label,
+.deposit-data-grid label > span,
+.bank-egress-form label,
+.check-replacement-search label,
+.check-design-settings label,
+.check-design-field-editor label{
+  font-weight:600;
+}
+
+.bank-account-form-grid input,
+.bank-account-form-grid select,
+.deposit-data-grid input,
+.deposit-data-grid select,
+.bank-egress-form input,
+.bank-egress-form select,
+.bank-egress-form textarea,
+.check-replacement-search input,
+.check-reprint-combobox > input,
+.check-design-settings input,
+.check-design-settings select,
+.check-design-field-editor input,
+.check-design-field-editor select{
+  font-weight:400;
+}
+
+.check-reprint-options :is(strong,span),
+.petty-cash-account-options :is(strong,span){
+  font-size:.62rem;
+  font-weight:400;
+}
+
+.check-reprint-options small,
+.petty-cash-account-options small{
+  font-size:.55rem;
+  font-weight:400;
+}
+
+.petty-cash-form > header span{
+  font-size:.55rem;
+  font-weight:700;
+}
+
+.petty-cash-form > header h2{
+  font-size:1rem;
+  font-weight:600;
+}
+
+.petty-cash-form-body label{
+  font-size:.62rem;
+  font-weight:600;
+}
+
+.petty-cash-form-body input{
+  height:39px;
+  font-size:.65rem;
+  font-weight:400;
+}
+
+.petty-cash-form-body label > small{
+  font-size:.53rem;
+  font-weight:400;
+}
+
+.petty-cash-toggle strong,
+.petty-cash-state{
+  font-size:.58rem;
+  font-weight:600;
+}
+
+.petty-cash-table td strong{
+  font-weight:500;
+}
+
+.petty-cash-empty strong,
+.bank-accounts-empty strong,
+.pending-deposits-empty strong,
+.bank-egress-empty strong,
+.check-replacement-empty strong{
+  font-weight:600;
+}
+

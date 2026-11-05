@@ -15,9 +15,8 @@ type PermissionMatrix = Record<string,Partial<Record<PermissionAction,boolean>>>
 type RolePermissionMatrices = Record<string,PermissionMatrix>
 type CompanyImage = { name:string; dataUrl:string }
 type BillingType = 'EXPENSAS'|'FACTURACION'
-type VatType = 'GRAVA_IVA'|'IVA_0'
 type GenerationType = 'CLIENTE'|'INMUEBLE'
-type CompanySettings = { ruc:string; name:string; businessName:string; address:string; phone:string; email:string; operationStartDate:string; billingType:BillingType; vatType:VatType; generationType:GenerationType; billsWater:boolean; logo?:CompanyImage; miniLogo?:CompanyImage; loginBackground?:CompanyImage; smtpServer:string; smtpPort:string; senderEmail:string; smtpPassword:string; from:string }
+type CompanySettings = { ruc:string; name:string; businessName:string; address:string; phone:string; email:string; operationStartDate:string; billingType:BillingType; generationType:GenerationType; billsWater:boolean; logo?:CompanyImage; miniLogo?:CompanyImage; loginBackground?:CompanyImage; smtpServer:string; smtpPort:string; senderEmail:string; smtpPassword:string; from:string }
 type EmailTemplate = { subject:string; body:string }
 type EmailTemplates = { passwordRecovery:EmailTemplate; payrollReceipt:EmailTemplate }
 type DocumentType = { id:string; name:string; status:Status; clients:boolean; employees:boolean }
@@ -36,7 +35,7 @@ const initialRoles:PlatformRole[]=[
   {id:'ROL-003',name:'Talento Humano',description:'Gestión de empleados, novedades y procesos laborales',status:'ACTIVO'},
   {id:'ROL-004',name:'Empleado',description:'Consulta y gestión de su información personal',status:'ACTIVO'},
 ]
-const initialCompany:CompanySettings={ruc:'1790012345001',name:'Empresa Demostración',businessName:'Empresa Demostración S.A.',address:'Quito, Ecuador',phone:'02 400 0000',email:'',operationStartDate:'2026-10-01',billingType:'EXPENSAS',vatType:'GRAVA_IVA',generationType:'CLIENTE',billsWater:false,smtpServer:'',smtpPort:'587',senderEmail:'',smtpPassword:'',from:''}
+const initialCompany:CompanySettings={ruc:'1790012345001',name:'Empresa Demostración',businessName:'Empresa Demostración S.A.',address:'Quito, Ecuador',phone:'02 400 0000',email:'',operationStartDate:'2026-10-01',billingType:'EXPENSAS',generationType:'CLIENTE',billsWater:false,smtpServer:'',smtpPort:'587',senderEmail:'',smtpPassword:'',from:''}
 const initialTemplates:EmailTemplates={
   passwordRecovery:{subject:'Código para restablecer su contraseña',body:'Hola {{NOMBRE}},\n\nUtilice el siguiente código de seguridad para restablecer su contraseña:\n\n{{CODIGO}}\n\nEste código es personal y no debe compartirlo con otras personas.'},
   payrollReceipt:{subject:'Rol de pago disponible',body:'Hola {{NOMBRE}},\n\nSu rol de pago correspondiente a {{PERIODO}} se encuentra disponible para consulta y descarga en la plataforma.'},
@@ -179,7 +178,6 @@ function CompanyPage(){
       <label>Inicio de Operaciones <span>Obligatorio</span><input inputMode="numeric" maxLength={10} placeholder="DD/MM/AAAA" value={isoToDisplayDate(draft.operationStartDate)} onChange={e=>update({operationStartDate:dateInputToIsoOrDraft(e.target.value)})}/></label>
       <label>Tipo de Cobro<select value={draft.billingType} onChange={e=>update({billingType:e.target.value as BillingType})}><option value="EXPENSAS">Expensas</option><option value="FACTURACION">Facturación</option></select></label>
       <label>Tipo de Generación<select value={draft.generationType} onChange={e=>update({generationType:e.target.value as GenerationType})}><option value="CLIENTE">Generación por Cliente</option><option value="INMUEBLE">Generación por Inmueble</option></select></label>
-      {draft.billingType==='FACTURACION'&&<fieldset className="company-tax-options"><legend>Tipo de IVA</legend><label><input type="radio" name="company-vat-type" value="GRAVA_IVA" checked={draft.vatType==='GRAVA_IVA'} onChange={()=>update({vatType:'GRAVA_IVA'})}/>Grava IVA</label><label><input type="radio" name="company-vat-type" value="IVA_0" checked={draft.vatType==='IVA_0'} onChange={()=>update({vatType:'IVA_0'})}/>IVA 0%</label></fieldset>}
       <div className="company-water-billing-field"><strong>Se Factura Agua</strong><label className="company-water-billing-toggle"><input type="checkbox" role="switch" aria-checked={draft.billsWater} checked={draft.billsWater} onChange={e=>update({billsWater:e.target.checked})}/><span aria-hidden="true"/><b>{draft.billsWater?'Sí':'No'}</b></label></div>
     </div></section>}
     {tab==='visual'&&<section className="panel company-panel"><PanelTitle icon={<Palette/>} title="Identidad Visual"/><div className="visual-grid">{([

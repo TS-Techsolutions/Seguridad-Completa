@@ -1,6 +1,7 @@
 import type { IssuedExpenseRecord } from './expense-records'
 
 export type PreExpenseKind = 'ORDINARIA' | 'EXTRAORDINARIA' | 'AGUA'
+export type PreBillingDocument = 'EXPENSE' | 'INVOICE'
 
 export type PreExpenseBatch = {
   id: string
@@ -9,12 +10,15 @@ export type PreExpenseBatch = {
   issueDate: string
   generatedAt: string
   records: IssuedExpenseRecord[]
+  documentMode?: PreBillingDocument
 }
-const storageKey = (companyId: string) => `saga.pre-expense-batches:${companyId}`
+const storageKey = (companyId: string, documentMode: PreBillingDocument) => documentMode === 'INVOICE'
+  ? `saga.pre-invoice-batches:${companyId}`
+  : `saga.pre-expense-batches:${companyId}`
 
-export function readPreExpenseBatches(companyId: string): PreExpenseBatch[] {
+export function readPreExpenseBatches(companyId: string, documentMode: PreBillingDocument = 'EXPENSE'): PreExpenseBatch[] {
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey(companyId)) ?? '[]')
+    const saved = JSON.parse(localStorage.getItem(storageKey(companyId, documentMode)) ?? '[]')
     return (Array.isArray(saved) ? saved as PreExpenseBatch[] : [])
       .sort((left, right) => right.generatedAt.localeCompare(left.generatedAt))
   } catch {
@@ -22,12 +26,13 @@ export function readPreExpenseBatches(companyId: string): PreExpenseBatch[] {
   }
 }
 
-export function readPreExpenseBatch(companyId: string, batchId: string) {
-  return readPreExpenseBatches(companyId).find(batch => batch.id === batchId)
+export function readPreExpenseBatch(companyId: string, batchId: string, documentMode: PreBillingDocument = 'EXPENSE') {
+  return readPreExpenseBatches(companyId, documentMode).find(batch => batch.id === batchId)
 }
 
 export function savePreExpenseBatch(batch: PreExpenseBatch) {
-  const next = [batch, ...readPreExpenseBatches(batch.companyId).filter(item => item.id !== batch.id)].slice(0, 10)
-  localStorage.setItem(storageKey(batch.companyId), JSON.stringify(next))
+  const documentMode = batch.documentMode ?? 'EXPENSE'
+  const next = [batch, ...readPreExpenseBatches(batch.companyId, documentMode).filter(item => item.id !== batch.id)].slice(0, 10)
+  localStorage.setItem(storageKey(batch.companyId, documentMode), JSON.stringify(next))
   return batch
 }

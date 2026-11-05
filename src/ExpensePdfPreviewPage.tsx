@@ -64,11 +64,15 @@ export function buildExpenseDocumentData(record: IssuedExpenseRecord): ExpenseDo
       quantity: displayQuantity(line.valueMode === 'FIJO' ? line.quantity : 1),
       unitPrice: unitPrice === null ? '-' : displayMoney(unitPrice),
       total: displayMoney(line.total),
+      totalWithTax: displayMoney(line.totalWithVat ?? line.total),
     }
   }) : [{ id: record.id, concept, aliquot: '—', quantity: '1,00', unitPrice: displayMoney(record.total), total: displayMoney(record.total) }]
+  const vatRates = Array.from(new Set(record.vatRates ?? [])).sort((left, right) => left - right)
+  const isInvoice = record.vatRates !== undefined
+  const taxLabel = vatRates.length ? `IVA (${vatRates.map(rate => `${displayMoney(rate)}%`).join(' / ')})` : 'IVA'
   return {
     receiptNumber: record.receiptNumber,
-    documentType: expenseTypeLabel(record),
+    documentType: isInvoice ? expenseTypeLabel(record).replace('EXPENSA', 'PRE-FACTURA') : expenseTypeLabel(record),
     issueDate: record.issueDate,
     owner: record.businessName || 'No registrado',
     ownerId: record.identification || 'No registrada',
@@ -79,10 +83,15 @@ export function buildExpenseDocumentData(record: IssuedExpenseRecord): ExpenseDo
     paymentMethod: 'OTROS CON UTILIZACIÓN DEL SISTEMA FINANCIERO',
     paymentTerm: '0',
     paymentUnit: 'Día(s)',
-    subtotal: displayMoney(record.total),
+    subtotal: displayMoney(record.subtotal ?? record.total),
+    subtotalLabel: isInvoice ? 'Subtotal (sin IVA)' : 'Subtotal',
     discount: '0,00',
-    tax: '0,00',
+    tax: displayMoney(record.vatTotal ?? 0),
+    taxLabel,
     total: displayMoney(record.total),
+    totalLabel: isInvoice ? 'VALOR TOTAL (INCLUIDO IVA) $' : 'VALOR TOTAL $',
+    includeTaxColumn: vatRates.length > 0,
+    showDiscount: !isInvoice,
     lines: detailLines,
   }
 }

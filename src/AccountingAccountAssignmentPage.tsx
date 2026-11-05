@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Search, X } from 'lucide-react'
 import { activeCompanyStorageKey } from './api'
+import { advanceTypesChangedEvent, readAdvanceTypes, type AdvanceType } from './advance-types-store'
 import type { ScreenSpec } from './types'
 
 type Account = {
@@ -11,16 +12,19 @@ type Account = {
   Estado: string
 }
 
-type AssignmentCode = 'CUSTOMERS_RECEIVABLE' | 'SUPPLIERS_PAYABLE'
+type AssignmentCode = string
 type AccountAssignments = Record<AssignmentCode, string>
+type ConfigurationType = { code: AssignmentCode; label: string; detail?: string }
 type DropdownPosition = { top: number; left: number; width: number; maxHeight: number }
 
 const planKey = 'saga.accounting.plan'
-const configurationTypes: Array<{ code: AssignmentCode; label: string }> = [
+const baseConfigurationTypes: ConfigurationType[] = [
   { code: 'CUSTOMERS_RECEIVABLE', label: 'Cuenta x Cobrar Clientes' },
   { code: 'SUPPLIERS_PAYABLE', label: 'Cuenta x Pagar Proveedores' },
+  { code: 'GENERAL_CASH', label: 'Caja General' },
+  { code: 'PETTY_CASH', label: 'Caja Chica' },
 ]
-const emptyAssignments: AccountAssignments = { CUSTOMERS_RECEIVABLE: '', SUPPLIERS_PAYABLE: '' }
+const emptyAssignments: AccountAssignments = { CUSTOMERS_RECEIVABLE: '', SUPPLIERS_PAYABLE: '', GENERAL_CASH: '', PETTY_CASH: '' }
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -124,6 +128,7 @@ function AccountCombobox({
         onChange={event => { setQuery(event.target.value); showOptions(event.currentTarget); if (value) onChange('') }}
         onKeyDown={event => { if (event.key === 'Escape') setOpen(false) }}
       />
+      {query && <button type="button" className="searchable-combo-clear" aria-label="Borrar cuenta contable" title="Borrar cuenta contable" onMouseDown={event => event.preventDefault()} onClick={() => { setQuery(''); onChange(''); setOpen(true) }}><X /></button>}
       <ChevronDown className={open ? 'open' : ''} />
     </div>
     {options && createPortal(options, document.body)}
@@ -133,11 +138,29 @@ function AccountCombobox({
 export function AccountingAccountAssignmentPage({ screen }: { screen: ScreenSpec }) {
   const accounts = readAuxiliaryAccounts()
   const storageKey = assignmentStorageKey()
-  const [assignments, setAssignments] = useState<AccountAssignments>(() => ({ ...emptyAssignments, ...readJson<Partial<AccountAssignments>>(storageKey, {}) }))
+  const [advanceTypes, setAdvanceTypes] = useState<AdvanceType[]>(readAdvanceTypes)
+  const [assignments, setAssignments] = useState<AccountAssignments>(() => ({ ...emptyAssignments, ...readJson<AccountAssignments>(storageKey, {}) }))
   const [savedAssignments, setSavedAssignments] = useState<AccountAssignments>(assignments)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const configurationTypes = useMemo<ConfigurationType[]>(() => [
+    ...baseConfigurationTypes,
+    ...advanceTypes
+      .slice()
+      .sort((left, right) => left.type.localeCompare(right.type, 'es'))
+      .map(record => ({ code: `ADVANCE_TYPE:${record.id}`, label: record.type, detail: `Tipo de anticipo · ${record.state === 'ACTIVO' ? 'Activo' : 'Inactivo'}` })),
+  ], [advanceTypes])
   const dirty = configurationTypes.some(item => assignments[item.code] !== savedAssignments[item.code])
+
+  useEffect(() => {
+    const refreshAdvanceTypes = () => setAdvanceTypes(readAdvanceTypes())
+    window.addEventListener(advanceTypesChangedEvent, refreshAdvanceTypes)
+    window.addEventListener('storage', refreshAdvanceTypes)
+    return () => {
+      window.removeEventListener(advanceTypesChangedEvent, refreshAdvanceTypes)
+      window.removeEventListener('storage', refreshAdvanceTypes)
+    }
+  }, [])
 
   const changeAssignment = (code: AssignmentCode, accountCode: string) => {
     setAssignments(current => ({ ...current, [code]: accountCode }))
@@ -175,7 +198,7 @@ export function AccountingAccountAssignmentPage({ screen }: { screen: ScreenSpec
           <tbody>{configurationTypes.map(item => {
             const selected = accounts.find(account => account.Codigo === assignments[item.code])
             return <tr key={item.code}>
-              <td><strong>{item.label}</strong></td>
+              <td><strong>{item.label}</strong>{item.detail && <small className="account-assignment-type-detail">{item.detail}</small>}</td>
               <td>
                 <AccountCombobox id={`assignment-${item.code}`} accounts={accounts} value={assignments[item.code]} onChange={value => changeAssignment(item.code, value)} />
                 {selected && <small className="account-assignment-selected">Cuenta auxiliar · {selected.Estado}</small>}

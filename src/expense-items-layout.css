@@ -1,3 +1,11 @@
+.expense-item-form {
+  width: min(1080px, 97vw);
+}
+
+.expense-item-form-grid > .wide {
+  grid-column: 1 / -1;
+}
+
 .expense-item-first-row {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
@@ -79,8 +87,77 @@
   align-items: start;
 }
 
+.expense-value-account.with-vat {
+  grid-template-columns: 210px minmax(280px, 1fr) minmax(280px, .8fr);
+}
+
 .expense-value-account > label {
   align-self: start;
+}
+
+.expense-vat-field {
+  min-width: 0;
+  background: #fff;
+}
+
+.expense-vat-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0 !important;
+}
+
+.expense-vat-options > button {
+  flex: 0 0 auto;
+  min-height: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: .34rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #465264;
+  font: inherit;
+  font-size: .67rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.expense-vat-options > button > i {
+  width: 13px;
+  height: 13px;
+  display: block;
+  box-sizing: border-box;
+  border: 1.5px solid #9da8b6;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+.expense-vat-options > button.selected > i {
+  border-color: #5365e8;
+  background: #5365e8;
+}
+
+.expense-vat-options > button:focus-visible {
+  outline: 2px solid #5365e8;
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.expense-vat-field p {
+  display: flex;
+  align-items: flex-start;
+  gap: .4rem;
+  margin: .2rem 0 0;
+  color: #a04b36;
+  font-size: .58rem;
+  line-height: 1.4;
+}
+
+.expense-vat-field p svg {
+  width: 14px;
+  min-width: 14px;
 }
 
 .expense-value-field > small {
@@ -197,6 +274,7 @@
   .expense-item-first-row,
   .expense-text-builder,
   .expense-value-account,
+  .expense-value-account.with-vat,
   .expense-recurrence-row,
   .expense-dual-grid {
     grid-template-columns: 1fr;

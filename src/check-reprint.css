@@ -1,0 +1,95 @@
+.check-reprint-combobox {
+  position: relative;
+  min-width: 0;
+}
+
+.check-reprint-combobox > input {
+  width: 100%;
+  height: 2.5rem;
+  box-sizing: border-box;
+  border: 1px solid #cfd8e2;
+  border-radius: .6rem;
+  outline: 0;
+  background: #fff;
+  padding: 0 4.3rem 0 .7rem;
+  color: #37475b;
+  font: inherit;
+}
+
+.check-reprint-combobox > input:focus {
+  border-color: #5365e8;
+  box-shadow: 0 0 0 3px rgb(83 101 232 / 8%);
+}
+
+.check-reprint-combobox > input:disabled {
+  color: #a0a8b4;
+  background: #f5f7f9;
+}
+
+.check-reprint-clear,
+.check-reprint-toggle {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  color: #778495;
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.check-reprint-clear { right: 2.2rem; }
+.check-reprint-toggle { right: .35rem; }
+.check-reprint-clear:hover,
+.check-reprint-toggle:hover { color: #4052c8; background: #eef1ff; }
+.check-reprint-toggle:disabled { opacity: .45; cursor: not-allowed; }
+.check-reprint-clear svg,
+.check-reprint-toggle svg { width: 14px; height: 14px; }
+.check-reprint-toggle svg { transition: transform .15s; }
+.check-reprint-toggle svg.open { transform: rotate(180deg); }
+
+.check-reprint-options {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #cfd8e2;
+  border-radius: .65rem;
+  background: #fff;
+  box-shadow: 0 15px 35px rgb(34 48 71 / 18%);
+}
+
+.check-reprint-options > button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(90px, auto) minmax(0, 1fr) auto;
+  gap: .65rem;
+  align-items: center;
+  padding: .68rem .75rem;
+  border: 0;
+  border-bottom: 1px solid #edf0f3;
+  color: #4e5e72;
+  background: #fff;
+  text-align: left;
+  font: inherit;
+}
+
+.check-reprint-options > button:last-of-type { border-bottom: 0; }
+.check-reprint-options > button:hover,
+.check-reprint-options > button[aria-selected="true"] { background: #f0f3ff; }
+.check-reprint-options strong { color: #33445a; font-size: .65rem; }
+.check-reprint-options span { overflow: hidden; font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
+.check-reprint-options small { color: #8290a2; font-size: .58rem; white-space: nowrap; }
+.check-reprint-no-options { padding: 1rem; color: #8290a2; font-size: .62rem; text-align: center; }
+
+@media (max-width: 760px) {
+  .check-reprint-options > button { grid-template-columns: 1fr; gap: .2rem; }
+}

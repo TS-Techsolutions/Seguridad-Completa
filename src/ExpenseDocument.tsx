@@ -3,7 +3,7 @@ import type { BlockId, ColumnId, DesignConfig } from './ExpenseDesignPage'
 import type { Context } from './types'
 import { readCompanyIdentity } from './operation-date-rules'
 
-export type ExpenseDocumentLine = Record<ColumnId, string> & { id: string }
+export type ExpenseDocumentLine = Record<ColumnId, string> & { id: string; totalWithTax?: string }
 
 export type ExpenseDocumentData = {
   receiptNumber: string
@@ -22,9 +22,14 @@ export type ExpenseDocumentData = {
   paymentTerm: string
   paymentUnit: string
   subtotal: string
+  subtotalLabel?: string
   discount: string
   tax: string
+  taxLabel?: string
   total: string
+  totalLabel?: string
+  includeTaxColumn?: boolean
+  showDiscount?: boolean
   lines: ExpenseDocumentLine[]
 }
 
@@ -69,15 +74,15 @@ export function ExpenseDocument({ design, company, data, large = false, classNam
       </div>
     </section>,
     detail: <section className="expense-document-detail"><table>
-      <thead><tr>{enabledColumns.map(column => <th key={column.id}>{column.label}</th>)}</tr></thead>
-      <tbody>{data.lines.map(line => <tr key={line.id}>{enabledColumns.map(column => <td key={column.id}>{line[column.id]}</td>)}</tr>)}</tbody>
+      <thead><tr>{enabledColumns.map(column => <th key={column.id}>{column.label}</th>)}{data.includeTaxColumn && <th>Total con IVA</th>}</tr></thead>
+      <tbody>{data.lines.map(line => <tr key={line.id}>{enabledColumns.map(column => <td key={column.id}>{line[column.id]}</td>)}{data.includeTaxColumn && <td>{line.totalWithTax ?? line.total}</td>}</tr>)}</tbody>
     </table></section>,
     payment: <section className="expense-document-payment">
       <div>
         <p><b>SON:</b> {data.amountInWords}</p>
         <table><thead><tr><th>Forma de pago</th><th>Plazo</th><th>Unidad</th><th>Valor</th></tr></thead><tbody><tr><td>{data.paymentMethod}</td><td>{data.paymentTerm}</td><td>{data.paymentUnit}</td><td>{data.total}</td></tr></tbody></table>
       </div>
-      <table><tbody><tr><td>Subtotal</td><td>{data.subtotal}</td></tr><tr><td>Descuento</td><td>{data.discount}</td></tr><tr><td>IVA</td><td>{data.tax}</td></tr><tr><th>VALOR TOTAL $</th><th>{data.total}</th></tr></tbody></table>
+      <table><tbody><tr><td>{data.subtotalLabel ?? 'Subtotal'}</td><td>{data.subtotal}</td></tr>{data.showDiscount !== false && <tr><td>Descuento</td><td>{data.discount}</td></tr>}<tr><td>{data.taxLabel ?? 'IVA'}</td><td>{data.tax}</td></tr><tr><th>{data.totalLabel ?? 'VALOR TOTAL $'}</th><th>{data.total}</th></tr></tbody></table>
     </section>,
     legal: <section className="expense-document-legal">{design.legalText}</section>,
     signatures: <section className="expense-document-signatures"><div><span /><b>RECIBÍ CONFORME</b><small>{data.owner}</small></div><div><span /><b>ENTREGADO POR</b><small>ADMINISTRACIÓN</small></div></section>,

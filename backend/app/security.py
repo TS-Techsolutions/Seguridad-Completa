@@ -18,7 +18,12 @@ from .store import DB_PATH, connection
 LEGACY_ENCRYPTED_PREFIX = "enc:v1:"
 ENCRYPTED_PREFIX = "enc:v2:"
 SESSION_COOKIE = "saga_session"
-SESSION_TTL_SECONDS = 8 * 60 * 60
+SESSION_TTL_SECONDS = 15 * 60
+SESSION_VERSION = 2
+PASSWORD_RECOVERY_TTL_SECONDS = 10 * 60
+PASSWORD_RECOVERY_MAX_ATTEMPTS = 5
+PASSWORD_SCHEME = "pbkdf2_sha256"
+PASSWORD_ITERATIONS = 310_000
 
 
 class SecurityConfigurationError(RuntimeError):
@@ -80,6 +85,45 @@ def encryption_key() -> bytes:
 
 def session_key() -> bytes:
     return _secret("SAGA_SESSION_SECRET", ".saga-session.key")
+
+
+def hash_password(password: str) -> str:
+    if not password:
+        raise ValueError("La contraseña no puede estar vacía.")
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PASSWORD_ITERATIONS)
+    return "$".join((
+        PASSWORD_SCHEME,
+        str(PASSWORD_ITERATIONS),
+        base64.urlsafe_b64encode(salt).decode("ascii").rstrip("="),
+        base64.urlsafe_b64encode(digest).decode("ascii").rstrip("="),
+    ))
+
+
+def verify_password(password: str, encoded: str) -> bool:
+    try:
+        scheme, iterations_text, salt_text, digest_text = encoded.split("$", 3)
+        if scheme != PASSWORD_SCHEME:
+            return False
+        iterations = int(iterations_text)
+        salt = base64.urlsafe_b64decode(salt_text + "=" * (-len(salt_text) % 4))
+        expected = base64.urlsafe_b64decode(digest_text + "=" * (-len(digest_text) % 4))
+        supplied = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+        return hmac.compare_digest(expected, supplied)
+    except (ValueError, TypeError):
+        return False
+
+
+def hash_recovery_code(recovery_id: str, code: str) -> str:
+    return hmac.new(
+        session_key(),
+        f"saga-v2|password-recovery|{recovery_id}|{code}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def verify_recovery_code(recovery_id: str, code: str, encoded: str) -> bool:
+    return hmac.compare_digest(hash_recovery_code(recovery_id, code), encoded)
 
 
 def _aad(kind: str, company_id: str, record_key: str) -> bytes:
@@ -163,6 +207,7 @@ def create_session_token(actor_id: str, now: int | None = None) -> str:
         "actor": actor_id,
         "iat": issued_at,
         "exp": issued_at + SESSION_TTL_SECONDS,
+        "ver": SESSION_VERSION,
         "nonce": secrets.token_urlsafe(18),
     }
     encoded = base64.urlsafe_b64encode(
@@ -181,7 +226,7 @@ def verify_session_token(token: str, now: int | None = None) -> dict[str, Any] |
             return None
         payload = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
         current = int(time.time() if now is None else now)
-        if not isinstance(payload, dict) or current >= int(payload.get("exp", 0)):
+        if not isinstance(payload, dict) or payload.get("ver") != SESSION_VERSION or current >= int(payload.get("exp", 0)):
             return None
         actor = payload.get("actor")
         return payload if isinstance(actor, str) and actor else None

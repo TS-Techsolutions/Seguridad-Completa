@@ -11,6 +11,7 @@ import { activeCompanyStorageKey } from './api'
 import type { Catalog, MenuNode, PlatformCompany, RecordItem, ScreenSpec } from './types'
 import { SecurityConfigurationPage } from './SecurityConfiguration'
 import { SidebarUserAccount } from './UserAccount'
+import { requestSessionLogout } from './SessionGate'
 import { PersonalInformationPage } from './PersonalInformationComplete'
 import { HumanTalentPage } from './HumanTalent'
 import { SectionPage } from './SectionPage'
@@ -31,18 +32,63 @@ import { ExpenseGeneralConsultationPage } from './ExpenseGeneralConsultationPage
 import { MassExpenseVoidPage } from './MassExpenseVoidPage'
 import { AccountPlanPage } from './AccountPlanPage'
 import { AccountingAccountAssignmentPage } from './AccountingAccountAssignmentPage'
+import { AdvanceTypesPage } from './AdvanceTypesPage'
+import { VatConfigurationPage } from './VatConfigurationPage'
 import { ExpenseDesignPage } from './ExpenseDesignPage'
 import { ExpensePdfPreviewPage } from './ExpensePdfPreviewPage'
 import { ExpenseItemsPage } from './ExpenseItemsPage'
 import { WaterMeterReadingPage } from './WaterMeterReadingPage'
 import { AutomaticWaterExpenseGenerationPage } from './AutomaticWaterExpenseGenerationPage'
-import { PreExpenseGenerationPage } from './PreExpenseGenerationPage'
+import { PreExpenseGenerationPage, PreInvoiceGenerationPage } from './PreExpenseGenerationPage'
 import { PreExpensePrintPage } from './PreExpensePrintPage'
 import { ContactImportPage } from './ContactImportPage'
 import { AccountingClosurePage } from './AccountingClosurePage'
 import { AccountingVoucherPage } from './AccountingVoucherPage'
+import { AccountingVoucherPreviewPage } from './AccountingVoucherPreviewPage'
+import { AccountingVoucherReprintPage } from './AccountingVoucherReprintPage'
+import { AccountingVoucherModificationPage } from './AccountingVoucherModificationPage'
+import { AccountingVoucherAnnulmentPage } from './AccountingVoucherAnnulmentPage'
+import { AccountingVoucherSummaryPage } from './AccountingVoucherSummaryPage'
+import { AccountingVoucherTypesPage } from './AccountingVoucherTypesPage'
+import { DocumentSequencesPage } from './DocumentSequencesPage'
+import { BankAccountsPage } from './BankAccountsPage'
+import { BankDepositEntryPage } from './BankDepositEntryPage'
+import { BankDepositPreviewPage } from './BankDepositPreviewPage'
+import { BankDepositAnnulmentPage } from './BankDepositAnnulmentPage'
+import { BankDepositAnnulmentPreviewPage } from './BankDepositAnnulmentPreviewPage'
+import { CollectionReceiptPreviewPage } from './CollectionReceiptPreviewPage'
 import { StructureTypesPage } from './StructureTypesPage'
 import { PropertyImportPage } from './PropertyImportPage'
+import { CustomerPortfolioReportPage } from './CustomerPortfolioReportPage'
+import { CustomerAdvanceBalanceReportPage } from './CustomerAdvanceBalanceReportPage'
+import { CustomerAgingReportPage } from './CustomerAgingReportPage'
+import { CollectionReportPage } from './CollectionReportPage'
+import { CxcTrackingReportPage } from './CxcTrackingReportPage'
+import { DebtCollectionCampaignPage } from './DebtCollectionCampaignPage'
+import { CustomerAdvanceCrossingPage } from './CustomerAdvanceCrossingPage'
+import { CustomerAdvanceCrossingPreviewPage } from './CustomerAdvanceCrossingPreviewPage'
+import { CustomerAdvanceCrossingReportPage } from './CustomerAdvanceCrossingReportPage'
+import { CustomerAdvanceCrossingAnnulmentPage } from './CustomerAdvanceCrossingAnnulmentPage'
+import { CustomerAdvanceCrossingAnnulmentPreviewPage } from './CustomerAdvanceCrossingAnnulmentPreviewPage'
+import { CollectionEntryPage } from './CollectionEntryPage'
+import { CollectionReprintPage } from './CollectionReprintPage'
+import { CollectionAnnulmentPage } from './CollectionAnnulmentPage'
+import { CollectionAnnulmentPreviewPage } from './CollectionAnnulmentPreviewPage'
+import { BankMovementImportPage } from './BankMovementImportPage'
+import { CustomerAdvanceImportPage, CustomerReceivableImportPage } from './CustomerAdvanceImportPage'
+import { SupplierAdvancePage } from './SupplierAdvancePage'
+import { SupplierAdvanceAnnulmentPage } from './SupplierAdvanceAnnulmentPage'
+import { SupplierAdvanceImportPage } from './SupplierAdvanceImportPage'
+import { PettyCashRegistryPage } from './PettyCashRegistryPage'
+import { BankEgressPage } from './BankEgressPage'
+import { BankEgressPreviewPage, ChequePrintPreviewPage } from './BankEgressPreviewPage'
+import { BankEgressAnnulmentPage } from './BankEgressAnnulmentPage'
+import { CheckReplacementPage } from './CheckReplacementPage'
+import { CheckReprintPage } from './CheckReprintPage'
+import { CheckDesignPage,CheckDesignTestPage } from './CheckDesignPage'
+import { DocumentZoomShell } from './DocumentZoomControls'
+import { PortfolioAdjustmentPage } from './PortfolioAdjustmentPage'
+import { PortfolioAdjustmentPreviewPage } from './PortfolioAdjustmentPreviewPage'
 import { ScreenWorkspace } from './ScreenWorkspace'
 import { PlatformAdminPage } from './PlatformAdminPage'
 import { CompanySwitcher } from './CompanySwitcher'
@@ -67,7 +113,7 @@ const legacyFavoritesKey='saga.favoriteScreens'
 const workspaceTabsKey='saga.workspaceTabs'
 const sidebarCollapsedKey='saga.sidebarCollapsed'
 const maximumWorkspaceTabs=12
-const hiddenScreenIds=new Set(['XLS-002','XLS-100'])
+const hiddenScreenIds=new Set(['XLS-002','XLS-022','XLS-023','XLS-024','XLS-066','XLS-078','XLS-079','XLS-100'])
 const structureScreenTitle='Definición de Estructura'
 const ownerSummaryScreenTitle='Resumen de Propietarios'
 const waterMeterReadingScreenId='AI-EXP-010'
@@ -92,6 +138,16 @@ const accountingAccountAssignmentScreen:ScreenSpec={
   diseno_visible:'',filtros_campos:[],columnas:['Tipo de configuración','Cuenta contable'],acciones:[],pasos_proceso:[],validaciones:[],
   paquete:'ACCOUNTING_CORE',modulo:'Contabilidad',impacto_datos_contables:'Configuración de las cuentas auxiliares utilizadas por los procesos de cartera.',pruebas_ids:[],
 }
+const advanceTypesScreen:ScreenSpec={
+  id:'AI-CFG-ADVANCE-TYPES-001',
+  titulo_original:'Tipos de Anticipos',
+  texto_original:'Tipos de Anticipos',
+  ruta_original:'Contabilidad > Financiero > Configuración > Tipos de Anticipos',
+  ruta_react:'/contabilidad/financiero/configuracion/tipos-de-anticipos',
+  objetivo:'Configurar los tipos de anticipos disponibles para los procesos financieros de la compañía.',
+  diseno_visible:'',filtros_campos:[],columnas:['Tipo de Anticipo','Estado'],acciones:[],pasos_proceso:[],validaciones:['El tipo de anticipo es obligatorio','No se permiten tipos duplicados'],
+  paquete:'ACCOUNTING_CORE',modulo:'Contabilidad',impacto_datos_contables:'Catálogo financiero por compañía para clasificar anticipos.',pruebas_ids:[],
+}
 const structureTypesScreen:ScreenSpec={
   id:'AI-CFG-STRUCTURE-TYPES-001',
   titulo_original:'Tipos de Estructura',
@@ -110,6 +166,43 @@ const waterExpenseEmailTemplateScreen:ScreenSpec={
   objetivo:'Configurar el asunto, cuerpo y correos de copia de la plantilla utilizada para enviar expensas de agua.',
   diseno_visible:'',filtros_campos:[],columnas:[],acciones:[],pasos_proceso:[],validaciones:[],
   paquete:'PROPERTY_MANAGEMENT',modulo:'Email',impacto_datos_contables:'',pruebas_ids:[],
+}
+const bankDepositEntryScreen:ScreenSpec={
+  id:'AI-BANK-DEPOSIT-ENTRY-001',titulo_original:'Ingreso de Depósito',texto_original:'Ingreso de Depósito',
+  ruta_original:'Bancos > Depósitos > Ingreso de Depósito',ruta_react:'/bancos/depositos/ingreso-de-deposito',
+  objetivo:'Registrar depósitos bancarios a partir de recaudaciones autorizadas pendientes de depositar.',diseno_visible:'',filtros_campos:[],
+  columnas:['Fecha','Detalle','Cuenta Bancaria'],acciones:[],pasos_proceso:[],validaciones:['El asiento debe cuadrar con el total del depósito'],
+  paquete:'ACCOUNTING_CORE',modulo:'Bancos',impacto_datos_contables:'Genera un comprobante contable automático de tipo Depósito.',pruebas_ids:[],
+}
+const cxcTrackingScreen:ScreenSpec={
+  id:'AI-CXC-TRACKING-001',titulo_original:'Seguimiento CxC',texto_original:'Seguimiento CxC',
+  ruta_original:'CxC > Reportes > Seguimiento CxC',ruta_react:'/cxc/reportes/seguimiento-cxc',
+  objetivo:'Seguir la trazabilidad entre Expensas o Facturas, Recaudaciones y Depósitos.',diseno_visible:'',
+  filtros_campos:[],columnas:['# Expensa/Factura','# Recaudación','# Depósito'],acciones:[],pasos_proceso:[],
+  validaciones:['Solo se puede filtrar por Expensa, Recaudación o Depósito a la vez'],
+  paquete:'ACCOUNTING_CORE',modulo:'CxC',impacto_datos_contables:'Reporte de consulta; no genera movimientos contables.',pruebas_ids:[],
+}
+const checkDesignScreen:ScreenSpec={
+  id:'AI-BANK-CHECK-DESIGN-001',titulo_original:'Diseño Impresión de Cheques',texto_original:'Diseño Impresión de Cheques',
+  ruta_original:'Bancos > Cheques > Diseño Impresión de Cheques',ruta_react:'/bancos/cheques/diseno-impresion-de-cheques',
+  objetivo:'Configurar por cuenta bancaria las posiciones y medidas utilizadas al imprimir cheques.',diseno_visible:'',filtros_campos:[],
+  columnas:[],acciones:[],pasos_proceso:[],validaciones:['La plantilla se configura por compañía y cuenta bancaria','La impresión debe realizarse al 100% sin ajustar al papel'],
+  paquete:'ACCOUNTING_CORE',modulo:'Bancos',impacto_datos_contables:'Configuración de impresión; no genera movimientos contables.',pruebas_ids:[],
+}
+const accountingVoucherSummaryScreen:ScreenSpec={
+  id:'AI-ACC-VOUCHER-SUMMARY-001',titulo_original:'Resumen de Comp. Contables',texto_original:'Resumen de Comp. Contables',
+  ruta_original:'Contabilidad > Financiero > Comprobantes Contables > Resumen de Comp. Contables',ruta_react:'/contabilidad/financiero/comprobantes-contables/resumen-de-comp-contables',
+  objetivo:'Consultar, descargar, modificar o anular comprobantes contables dentro de un período.',diseno_visible:'',filtros_campos:[],
+  columnas:['Tipo Comprobante','# Comprobante','Fecha Emisión','Proveedor/Cliente','Detalle','Total','Estado','Última Modificación','Usuario'],acciones:[],pasos_proceso:[],
+  validaciones:['Fecha Desde no puede ser posterior a Fecha Hasta','Los registros modificados o anulados conservan su trazabilidad'],
+  paquete:'ACCOUNTING_CORE',modulo:'Contabilidad',impacto_datos_contables:'Reporte operativo de comprobantes contables por compañía.',pruebas_ids:[],
+}
+const documentSequencesScreen:ScreenSpec={
+  id:'AI-DOC-SEQUENCES-001',titulo_original:'Secuencia de Documentos',texto_original:'Secuencia de Documentos',
+  ruta_original:'Contabilidad > Financiero > Configuración > Secuencia de Documentos',ruta_react:'/contabilidad/financiero/configuracion/secuencia-de-documentos',
+  objetivo:'Configurar la primera numeración de Expensas, Comprobantes Contables y Cheques por compañía.',diseno_visible:'',filtros_campos:[],
+  columnas:[],acciones:[],pasos_proceso:[],validaciones:['Las secuencias deben estar entre 1 y 999999','Cada Tipo de Comprobante conserva una secuencia independiente'],
+  paquete:'ACCOUNTING_CORE',modulo:'Contabilidad',impacto_datos_contables:'Configura numeradores por compañía sin modificar documentos históricos.',pruebas_ids:[],
 }
 type PropertyAdditionScreen={label:string;slug:string;id?:string}
 type PropertyAdditionGroup={label:string;slug:string;order:number;prefix:string;screens:PropertyAdditionScreen[]}
@@ -135,6 +228,46 @@ const propertyAdministrationAdditions:PropertyAdditionGroup[]=[
 ]
 
 function customizeCatalog(data:Catalog):Catalog{
+  const collectionAnnulmentTitle='Anulación de Recaudación'
+  const customerAgingTitle='Rep. Antigüedad de Cartera'
+  const bankMovementImportTitle='Carga Depósitos/Transferencias'
+  const cxcAdjustmentsTitle='Anticipos y Ajustes'
+  const renamedLoadScreens:Record<string,string>={
+    'XLS-007':'Carga de Inmuebles',
+    'XLS-026':'Carga Plan Contable',
+    'XLS-043':'Carga de Proveedores/Clientes',
+    'XLS-048':'Carga Anticipos Proveedores',
+    'XLS-060':'Carga de Proveedores/Clientes',
+    'XLS-069':'Carga Anticipos Clientes',
+    'XLS-074':'Carga Antigüedad de Cartera',
+    'XLS-045':'Anticipos Proveedores',
+  }
+  data={...data,
+    screens:data.screens.map(screen=>renamedLoadScreens[screen.id]
+      ? {...screen,titulo_original:renamedLoadScreens[screen.id],texto_original:renamedLoadScreens[screen.id],ruta_original:[...screen.ruta_original.split(' > ').slice(0,-1),renamedLoadScreens[screen.id]].join(' > ')}
+      : screen.id==='XLS-086'
+      ? {...screen,titulo_original:bankMovementImportTitle,texto_original:bankMovementImportTitle,ruta_original:[...screen.ruta_original.split(' > ').slice(0,-1),bankMovementImportTitle].join(' > ')}
+      : screen.id==='XLS-063'
+      ? {...screen,titulo_original:collectionAnnulmentTitle,texto_original:collectionAnnulmentTitle,ruta_original:[...screen.ruta_original.split(' > ').slice(0,-1),collectionAnnulmentTitle].join(' > ')}
+      : screen.id==='XLS-080'
+        ? {...screen,titulo_original:customerAgingTitle,texto_original:customerAgingTitle,ruta_original:[...screen.ruta_original.split(' > ').slice(0,-1),customerAgingTitle].join(' > ')}
+        : screen),
+    menu:data.menu.map(node=>node.screen_id&&renamedLoadScreens[node.screen_id]
+      ? {...node,label:renamedLoadScreens[node.screen_id],breadcrumb:[...node.breadcrumb.slice(0,-1),renamedLoadScreens[node.screen_id]]}
+      : node.screen_id==='XLS-086'
+      ? {...node,label:bankMovementImportTitle,breadcrumb:[...node.breadcrumb.slice(0,-1),bankMovementImportTitle]}
+      : node.screen_id==='XLS-063'
+      ? {...node,label:collectionAnnulmentTitle,breadcrumb:[...node.breadcrumb.slice(0,-1),collectionAnnulmentTitle]}
+      : node.screen_id==='XLS-080'
+        ? {...node,label:customerAgingTitle,breadcrumb:[...node.breadcrumb.slice(0,-1),customerAgingTitle]}
+        : node),
+  }
+  data={...data,
+    screens:data.screens.map(screen=>screen.ruta_original.startsWith('CxC > Ajustes > ')
+      ?{...screen,ruta_original:screen.ruta_original.replace('CxC > Ajustes > ',`CxC > ${cxcAdjustmentsTitle} > `)}:screen),
+    menu:data.menu.map(node=>node.breadcrumb[0]==='CxC'&&node.breadcrumb.includes('Ajustes')
+      ?{...node,label:node.label==='Ajustes'?cxcAdjustmentsTitle:node.label,breadcrumb:node.breadcrumb.map(part=>part==='Ajustes'?cxcAdjustmentsTitle:part)}:node),
+  }
   const cxpNode=data.menu.find(node=>node.level===0&&node.label==='CxP')
   const pettyCashNode=data.menu.find(node=>node.level===0&&node.label==='Caja Chica')
   const advancesNode=data.menu.find(node=>node.parent_id===cxpNode?.node_id&&node.label==='Anticipos')
@@ -142,8 +275,24 @@ function customizeCatalog(data:Catalog):Catalog{
   const accountingNode=data.menu.find(node=>node.level===0&&node.label==='Contabilidad')
   const taxationNode=data.menu.find(node=>node.level===0&&node.label==='Tributación')
   const financialConfigurationNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='Contabilidad > Financiero > Configuración')
+  const legacyDocumentSequencesNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='Contabilidad > Financiero > Configuración > Secuencia de Documentos')
+  const financialPlanNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='Contabilidad > Financiero > Plan Contable')
+  const financialVouchersNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='Contabilidad > Financiero > Comprobantes Contables')
+  const financialVoucherChildren=financialVouchersNode?data.menu.filter(node=>node.parent_id===financialVouchersNode.node_id):[]
+  const lastFinancialVoucherOrder=financialVoucherChildren.length?Math.max(...financialVoucherChildren.map(node=>node.order))+1:1
   const generalConfigurationNode=data.menu.find(node=>node.level===0&&node.label==='Configuración General')
   const emailNode=data.menu.find(node=>node.level===0&&node.label==='Email')
+  const cxcReportsNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='CxC > Reportes')
+  const banksNode=data.menu.find(node=>node.level===0&&node.label==='Bancos')
+  const bankDepositsNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='Bancos > Depósitos')
+  const bankChecksNode=data.menu.find(node=>node.parent_id===banksNode?.node_id&&node.label==='Cheques')
+  const checkReprintNode=data.menu.find(node=>node.parent_id===bankChecksNode?.node_id&&node.screen_id==='XLS-089')
+  const bankExpensesNode=data.menu.find(node=>node.parent_id===banksNode?.node_id&&node.label==='Egresos')
+  const cxcReportChildren=cxcReportsNode?data.menu.filter(node=>node.parent_id===cxcReportsNode.node_id):[]
+  const firstCxcReportOrder=cxcReportChildren.length?Math.min(...cxcReportChildren.map(node=>node.order))-1:0
+  const lastCxcReportOrder=cxcReportChildren.length?Math.max(...cxcReportChildren.map(node=>node.order))+1:0
+  const bankDepositChildren=bankDepositsNode?data.menu.filter(node=>node.parent_id===bankDepositsNode.node_id):[]
+  const firstBankDepositOrder=bankDepositChildren.length?Math.min(...bankDepositChildren.map(node=>node.order))-1:0
   const extraordinaryExpenseEmailNode=data.menu.find(node=>node.parent_id===emailNode?.node_id&&node.screen_id==='XLS-013')
   const companyNode=data.menu.find(node=>node.parent_id===generalConfigurationNode?.node_id&&node.screen_id==='SEC-004')
   const permissionsNode=data.menu.find(node=>node.parent_id===generalConfigurationNode?.node_id&&node.screen_id==='SEC-003')
@@ -170,6 +319,12 @@ function customizeCatalog(data:Catalog):Catalog{
     breadcrumb:accountingAccountAssignmentScreen.ruta_original.split(' > '),type:'screen',screen_id:accountingAccountAssignmentScreen.id,
     route:accountingAccountAssignmentScreen.ruta_react,package:'ACCOUNTING_CORE',
   }]:[]
+  const advanceTypesMenu:MenuNode[]=financialConfigurationNode?[{
+    node_id:'CUSTOM-AI-CFG-ADVANCE-TYPES-001',label:advanceTypesScreen.titulo_original,level:financialConfigurationNode.level+1,
+    parent_id:financialConfigurationNode.node_id,order:firstFinancialConfigurationOrder-1,
+    breadcrumb:advanceTypesScreen.ruta_original.split(' > '),type:'screen',screen_id:advanceTypesScreen.id,
+    route:advanceTypesScreen.ruta_react,package:'ACCOUNTING_CORE',
+  }]:[]
   const vatConfigurationMenu:MenuNode[] = financialConfigurationNode?[{
     node_id:'CUSTOM-AI-CFG-IVA-001',label:vatConfigurationScreen.titulo_original,level:financialConfigurationNode.level+1,
     parent_id:financialConfigurationNode.node_id,order:firstFinancialConfigurationOrder+1,
@@ -188,9 +343,35 @@ function customizeCatalog(data:Catalog):Catalog{
     breadcrumb:waterExpenseEmailTemplateScreen.ruta_original.split(' > '),type:'screen',screen_id:waterExpenseEmailTemplateScreen.id,
     route:waterExpenseEmailTemplateScreen.ruta_react,package:'PROPERTY_MANAGEMENT',
   }]:[]
+  const bankDepositEntryMenu:MenuNode[]=bankDepositsNode?[{
+    node_id:'CUSTOM-AI-BANK-DEPOSIT-ENTRY-001',label:bankDepositEntryScreen.titulo_original,level:bankDepositsNode.level+1,
+    parent_id:bankDepositsNode.node_id,order:firstBankDepositOrder,breadcrumb:bankDepositEntryScreen.ruta_original.split(' > '),
+    type:'screen',screen_id:bankDepositEntryScreen.id,route:bankDepositEntryScreen.ruta_react,package:'ACCOUNTING_CORE',
+  }]:[]
+  const cxcTrackingMenu:MenuNode[]=cxcReportsNode?[{
+    node_id:'CUSTOM-AI-CXC-TRACKING-001',label:cxcTrackingScreen.titulo_original,level:cxcReportsNode.level+1,
+    parent_id:cxcReportsNode.node_id,order:lastCxcReportOrder,breadcrumb:cxcTrackingScreen.ruta_original.split(' > '),
+    type:'screen',screen_id:cxcTrackingScreen.id,route:cxcTrackingScreen.ruta_react,package:'ACCOUNTING_CORE',
+  }]:[]
+  const checkDesignMenu:MenuNode[]=bankChecksNode?[{
+    node_id:'CUSTOM-AI-BANK-CHECK-DESIGN-001',label:checkDesignScreen.titulo_original,level:bankChecksNode.level+1,
+    parent_id:bankChecksNode.node_id,order:(checkReprintNode?.order??2)+.5,breadcrumb:checkDesignScreen.ruta_original.split(' > '),
+    type:'screen',screen_id:checkDesignScreen.id,route:checkDesignScreen.ruta_react,package:'ACCOUNTING_CORE',
+  }]:[]
+  const accountingVoucherSummaryMenu:MenuNode[]=financialVouchersNode?[{
+    node_id:'CUSTOM-AI-ACC-VOUCHER-SUMMARY-001',label:accountingVoucherSummaryScreen.titulo_original,level:financialVouchersNode.level+1,
+    parent_id:financialVouchersNode.node_id,order:lastFinancialVoucherOrder,breadcrumb:accountingVoucherSummaryScreen.ruta_original.split(' > '),
+    type:'screen',screen_id:accountingVoucherSummaryScreen.id,route:accountingVoucherSummaryScreen.ruta_react,package:'ACCOUNTING_CORE',
+  }]:[]
+  const documentSequencesMenu:MenuNode[]=financialConfigurationNode?[{
+    node_id:'CUSTOM-AI-DOC-SEQUENCES-001',label:documentSequencesScreen.titulo_original,level:financialConfigurationNode.level+1,
+    parent_id:financialConfigurationNode.node_id,order:legacyDocumentSequencesNode?.order??firstFinancialConfigurationOrder+2,
+    breadcrumb:documentSequencesScreen.ruta_original.split(' > '),type:'screen',screen_id:documentSequencesScreen.id,
+    route:documentSequencesScreen.ruta_react,package:'ACCOUNTING_CORE',
+  }]:[]
   return {...data,
-    screens:[...data.screens.filter(screen=>!hiddenScreenIds.has(screen.id)).map(screen=>{let moved=['XLS-039','XLS-040'].includes(screen.id)?{...screen,modulo:'CxP',ruta_original:`CxP > Caja Chica > ${screen.titulo_original}`}:screen;if(screen.ruta_original.startsWith('Tributación > '))moved={...moved,modulo:'Contabilidad',ruta_original:`Contabilidad > ${screen.ruta_original}`};return moved.id==='XLS-001'?{...moved,titulo_original:structureScreenTitle,texto_original:structureScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),structureScreenTitle].join(' > ')}:moved.id==='XLS-006'?{...moved,titulo_original:ownerSummaryScreenTitle,texto_original:ownerSummaryScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),ownerSummaryScreenTitle].join(' > ')}:moved}),...additionalScreens,accountingAccountAssignmentScreen,vatConfigurationScreen,structureTypesScreen,waterExpenseEmailTemplateScreen],
-    menu:[...data.menu.filter(node=>!node.screen_id||!hiddenScreenIds.has(node.screen_id)).map(node=>{let moved=node;if(companyNode&&node.node_id===companyNode.node_id)moved={...moved,order:firstConfigurationOrder};if(cxpNode&&pettyCashNode&&node.node_id===pettyCashNode.node_id)moved={...node,parent_id:cxpNode.node_id,level:1,order:(advancesNode?.order??71)+.5,breadcrumb:['CxP','Caja Chica']};else if(pettyCashNode&&node.breadcrumb[0]==='Caja Chica')moved={...node,level:node.level+1,breadcrumb:['CxP',...node.breadcrumb]};if(accountingNode&&taxationNode&&node.node_id===taxationNode.node_id)moved={...moved,parent_id:accountingNode.node_id,level:1,order:taxationOrder,breadcrumb:['Contabilidad','Tributación']};else if(taxationNode&&node.breadcrumb[0]==='Tributación')moved={...moved,level:node.level+1,breadcrumb:['Contabilidad',...node.breadcrumb]};return moved.screen_id==='XLS-001'?{...moved,label:structureScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),structureScreenTitle]}:moved.screen_id==='XLS-006'?{...moved,label:ownerSummaryScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),ownerSummaryScreenTitle]}:moved}),...additionalMenu,...accountingAccountAssignmentMenu,...vatConfigurationMenu,...structureTypesMenu,...waterExpenseEmailTemplateMenu],
+    screens:[...data.screens.filter(screen=>!hiddenScreenIds.has(screen.id)).map(screen=>{let moved=['XLS-039','XLS-040'].includes(screen.id)?{...screen,modulo:'CxP',ruta_original:`CxP > Caja Chica > ${screen.titulo_original}`}:screen;if(screen.ruta_original.startsWith('Tributación > '))moved={...moved,modulo:'Contabilidad',ruta_original:`Contabilidad > ${screen.ruta_original}`};return moved.id==='XLS-001'?{...moved,titulo_original:structureScreenTitle,texto_original:structureScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),structureScreenTitle].join(' > ')}:moved.id==='XLS-006'?{...moved,titulo_original:ownerSummaryScreenTitle,texto_original:ownerSummaryScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),ownerSummaryScreenTitle].join(' > ')}:moved}),...additionalScreens,advanceTypesScreen,accountingAccountAssignmentScreen,vatConfigurationScreen,structureTypesScreen,waterExpenseEmailTemplateScreen,bankDepositEntryScreen,cxcTrackingScreen,checkDesignScreen,accountingVoucherSummaryScreen,documentSequencesScreen],
+    menu:[...data.menu.filter(node=>node.node_id!==legacyDocumentSequencesNode?.node_id&&(!node.screen_id||!hiddenScreenIds.has(node.screen_id))).map(node=>{let moved=node;if(companyNode&&node.node_id===companyNode.node_id)moved={...moved,order:firstConfigurationOrder};if(financialPlanNode&&financialVouchersNode&&node.node_id===financialVouchersNode.node_id)moved={...moved,order:financialPlanNode.order-.5};if(cxcReportsNode&&node.parent_id===cxcReportsNode.node_id&&node.screen_id==='XLS-081')moved={...moved,order:firstCxcReportOrder};if(bankExpensesNode&&bankChecksNode&&node.node_id===bankExpensesNode.node_id)moved={...moved,order:bankChecksNode.order-.5};if(cxpNode&&pettyCashNode&&node.node_id===pettyCashNode.node_id)moved={...node,parent_id:cxpNode.node_id,level:1,order:(advancesNode?.order??71)+.5,breadcrumb:['CxP','Caja Chica']};else if(pettyCashNode&&node.breadcrumb[0]==='Caja Chica')moved={...node,level:node.level+1,breadcrumb:['CxP',...node.breadcrumb]};if(accountingNode&&taxationNode&&node.node_id===taxationNode.node_id)moved={...moved,parent_id:accountingNode.node_id,level:1,order:taxationOrder,breadcrumb:['Contabilidad','Tributación']};else if(taxationNode&&node.breadcrumb[0]==='Tributación')moved={...moved,level:node.level+1,breadcrumb:['Contabilidad',...node.breadcrumb]};return moved.screen_id==='XLS-001'?{...moved,label:structureScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),structureScreenTitle]}:moved.screen_id==='XLS-006'?{...moved,label:ownerSummaryScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),ownerSummaryScreenTitle]}:moved}),...additionalMenu,...advanceTypesMenu,...accountingAccountAssignmentMenu,...vatConfigurationMenu,...documentSequencesMenu,...structureTypesMenu,...waterExpenseEmailTemplateMenu,...bankDepositEntryMenu,...cxcTrackingMenu,...checkDesignMenu,...accountingVoucherSummaryMenu],
   }
 }
 
@@ -251,9 +432,33 @@ export default function App(){
   if(catalog.isLoading||context.isLoading)return <Boot/>
   if(catalog.error||!catalog.data||!context.data)return <Fatal/>
   const expensePreviewMatch=location.pathname.match(/^\/vista-previa\/expensas\/([^/]+)$/)
-  if(expensePreviewMatch)return <ExpensePdfPreviewPage context={context.data} recordId={decodeURIComponent(expensePreviewMatch[1])}/>
+  if(expensePreviewMatch)return <DocumentZoomShell><ExpensePdfPreviewPage context={context.data} recordId={decodeURIComponent(expensePreviewMatch[1])}/></DocumentZoomShell>
+  const collectionPreviewMatch=location.pathname.match(/^\/vista-previa\/recaudaciones\/([^/]+)$/)
+  if(collectionPreviewMatch)return <DocumentZoomShell><CollectionReceiptPreviewPage context={context.data} recordId={decodeURIComponent(collectionPreviewMatch[1])}/></DocumentZoomShell>
+  const depositPreviewMatch=location.pathname.match(/^\/vista-previa\/depositos\/([^/]+)$/)
+  if(depositPreviewMatch)return <DocumentZoomShell><BankDepositPreviewPage context={context.data} recordId={decodeURIComponent(depositPreviewMatch[1])}/></DocumentZoomShell>
+  const accountingVoucherPreviewMatch=location.pathname.match(/^\/vista-previa\/comprobantes-contables\/([^/]+)$/)
+  if(accountingVoucherPreviewMatch)return <DocumentZoomShell><AccountingVoucherPreviewPage context={context.data} recordId={decodeURIComponent(accountingVoucherPreviewMatch[1])}/></DocumentZoomShell>
+  const depositAnnulmentPreviewMatch=location.pathname.match(/^\/vista-previa\/anulaciones-deposito\/([^/]+)$/)
+  if(depositAnnulmentPreviewMatch)return <DocumentZoomShell><BankDepositAnnulmentPreviewPage context={context.data} recordId={decodeURIComponent(depositAnnulmentPreviewMatch[1])}/></DocumentZoomShell>
+  const collectionAnnulmentPreviewMatch=location.pathname.match(/^\/vista-previa\/anulaciones-recaudacion\/([^/]+)$/)
+  if(collectionAnnulmentPreviewMatch)return <DocumentZoomShell><CollectionAnnulmentPreviewPage context={context.data} recordId={decodeURIComponent(collectionAnnulmentPreviewMatch[1])}/></DocumentZoomShell>
+  const advanceCrossingPreviewMatch=location.pathname.match(/^\/vista-previa\/cruce-anticipos-clientes\/([^/]+)$/)
+  if(advanceCrossingPreviewMatch)return <DocumentZoomShell><CustomerAdvanceCrossingPreviewPage context={context.data} recordId={decodeURIComponent(advanceCrossingPreviewMatch[1])}/></DocumentZoomShell>
+  const advanceCrossingAnnulmentPreviewMatch=location.pathname.match(/^\/vista-previa\/anulaciones-cruce-anticipos-clientes\/([^/]+)$/)
+  if(advanceCrossingAnnulmentPreviewMatch)return <DocumentZoomShell><CustomerAdvanceCrossingAnnulmentPreviewPage context={context.data} recordId={decodeURIComponent(advanceCrossingAnnulmentPreviewMatch[1])}/></DocumentZoomShell>
+  const bankEgressPreviewMatch=location.pathname.match(/^\/vista-previa\/egresos\/([^/]+)$/)
+  if(bankEgressPreviewMatch)return <DocumentZoomShell><BankEgressPreviewPage context={context.data} recordId={decodeURIComponent(bankEgressPreviewMatch[1])}/></DocumentZoomShell>
+  const chequePreviewMatch=location.pathname.match(/^\/vista-previa\/cheques\/([^/]+)$/)
+  if(chequePreviewMatch)return <DocumentZoomShell><ChequePrintPreviewPage context={context.data} recordId={decodeURIComponent(chequePreviewMatch[1])}/></DocumentZoomShell>
+  const checkDesignTestMatch=location.pathname.match(/^\/vista-previa\/diseno-cheques\/prueba\/([^/]+)$/)
+  if(checkDesignTestMatch)return <DocumentZoomShell><CheckDesignTestPage context={context.data} bankAccountId={decodeURIComponent(checkDesignTestMatch[1])}/></DocumentZoomShell>
   const preExpensePreviewMatch=location.pathname.match(/^\/vista-previa\/pre-expensas\/([^/]+)(?:\/([^/]+))?$/)
-  if(preExpensePreviewMatch)return <PreExpensePrintPage context={context.data} batchId={decodeURIComponent(preExpensePreviewMatch[1])} recordId={preExpensePreviewMatch[2]?decodeURIComponent(preExpensePreviewMatch[2]):undefined}/>
+  if(preExpensePreviewMatch)return <DocumentZoomShell><PreExpensePrintPage context={context.data} batchId={decodeURIComponent(preExpensePreviewMatch[1])} recordId={preExpensePreviewMatch[2]?decodeURIComponent(preExpensePreviewMatch[2]):undefined}/></DocumentZoomShell>
+  const preInvoicePreviewMatch=location.pathname.match(/^\/vista-previa\/pre-facturas\/([^/]+)(?:\/([^/]+))?$/)
+  if(preInvoicePreviewMatch)return <DocumentZoomShell><PreExpensePrintPage context={context.data} batchId={decodeURIComponent(preInvoicePreviewMatch[1])} recordId={preInvoicePreviewMatch[2]?decodeURIComponent(preInvoicePreviewMatch[2]):undefined} documentMode="INVOICE"/></DocumentZoomShell>
+  const portfolioAdjustmentPreviewMatch=location.pathname.match(/^\/vista-previa\/ajustes-cartera\/([^/]+)$/)
+  if(portfolioAdjustmentPreviewMatch)return <DocumentZoomShell><PortfolioAdjustmentPreviewPage context={context.data} recordId={decodeURIComponent(portfolioAdjustmentPreviewMatch[1])}/></DocumentZoomShell>
   const searchTerm=normalizeMenuSearch(search)
   const filtered=catalog.data.screens.filter(screen=>(!waterConditionalScreenIds.has(screen.id)||billsWater)&&(!searchTerm||normalizeMenuSearch(`${screen.titulo_original} ${screen.ruta_original}`).includes(searchTerm)))
   const closeWorkspaceTab=(screenId:string)=>{
@@ -271,7 +476,7 @@ export default function App(){
       <div className="security-brand-bar"><div className="security-brand"><button onClick={()=>{navigate('/');setMobileOpen(false)}} aria-label="Inicio SAGA"><span>SG</span></button><div><strong>SAGA ERP</strong><small>Gestión empresarial</small></div></div><button type="button" className="security-collapse-toggle" onClick={()=>{setMenuCollapsed(current=>!current);setSearch('')}} aria-label={menuCollapsed?'Expandir menú principal':'Colapsar menú principal'} title={menuCollapsed?'Expandir menú':'Colapsar menú'}>{menuCollapsed?<PanelLeftOpen/>:<PanelLeftClose/>}</button></div>
       <button onClick={()=>setMobileOpen(false)} className="mobile-x security-close" aria-label="Cerrar navegación"><X/></button>
       <p className="security-eyebrow">ÁREA DE TRABAJO</p>
-      <label className="security-search"><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar pantalla"/></label>
+      <div className="security-search"><Search/><input aria-label="Buscar pantalla" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar pantalla"/>{search&&<button type="button" className="security-search-clear" onClick={()=>setSearch('')} aria-label="Limpiar búsqueda de pantallas" title="Limpiar búsqueda"><X/></button>}</div>
       <nav className="security-nav" aria-label="Módulos y pantallas">
         {searchTerm?<MenuSearchResults screens={filtered} favorites={favoriteIds} billingType={billingType} onToggleFavorite={toggleFavorite} onNavigate={route=>{navigate(route);setSearch('');setMobileOpen(false)}}/>:<><button className={`security-root ${location.pathname==='/'?'active':''}`} onClick={()=>{navigate('/');setMobileOpen(false)}} aria-label="Inicio" title={menuCollapsed?'Inicio':undefined}><LayoutGrid/><span>Inicio</span></button>
         {(context.data.actor.platformAdmin||context.data.actor.groupAdmin)&&<button className={`security-root ${platformActive?'active':''}`} onClick={()=>{navigate('/plataforma/empresas');setMobileOpen(false);setMenuRoot(null)}} aria-label="Administración de la Plataforma" title={menuCollapsed?'Administración de la Plataforma':undefined}><ShieldCheck/><span>Administración Plataforma</span></button>}
@@ -280,7 +485,7 @@ export default function App(){
           {expanded&&!menuCollapsed&&<div className="security-module-list"><MenuTree catalog={catalog.data} root={root.label} filtered={filtered} favorites={favoriteIds} billingType={billingType} onToggleFavorite={toggleFavorite} onNavigate={()=>setMobileOpen(false)}/></div>}
         </section>})}</>}
       </nav>
-      <div className="security-footer"><SidebarUserAccount name={context.data.actor.name.split(' ')[0]} role={context.data.actor.platformAdmin?'Superadministrador':context.data.actor.groupAdmin?'Administrador de Grupo':context.data.actor.companyRole}/></div>
+      <div className="security-footer"><SidebarUserAccount name={context.data.actor.name.split(' ')[0]} role={context.data.actor.platformAdmin?'Superadministrador':context.data.actor.groupAdmin?'Administrador de Grupo':context.data.actor.companyRole} onLogout={requestSessionLogout}/></div>
     </aside>
     {mobileOpen&&<button className="security-scrim" aria-label="Cerrar navegación" onClick={()=>setMobileOpen(false)}/>} 
     <main className="workspace">
@@ -366,7 +571,33 @@ function OverviewPage({catalog,favorites,billsWater,onToggleFavorite}:{catalog:C
 function ScreenPage({screen,billingType,billsWater}:{screen:ScreenSpec;billingType:CompanyBillingType;billsWater:boolean}){
   if((screen.id.startsWith('AI-EXP-')&&billingType==='FACTURACION')||(screen.id.startsWith('AI-FAC-')&&billingType==='EXPENSAS'))return <DisabledBillingModulePage screen={screen} billingType={billingType}/>
   if(waterConditionalScreenIds.has(screen.id)&&!billsWater)return <WaterBillingDisabledPage screen={screen}/>
-  return screen.id===accountingAccountAssignmentScreen.id?<AccountingAccountAssignmentPage screen={screen}/>:screen.id==='AI-CFG-IVA-001'?<AddedAccountingConfigurationScreen screen={screen}/>:screen.id===structureTypesScreen.id?<StructureTypesPage screen={screen}/>:screen.id==='AI-EXP-001'?<AutomaticExpenseGenerationPage screen={screen} recurrence="NORMAL"/>:screen.id==='AI-EXP-002'?<IndividualExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-008'?<AutomaticExpenseGenerationPage screen={screen} recurrence="EXTRAORDINARIA"/>:screen.id==='AI-EXP-004'?<ExpenseEmailSendingPage screen={screen}/>:screen.id===waterMeterReadingScreenId?<WaterMeterReadingPage screen={screen}/>:screen.id===automaticWaterExpenseScreenId?<AutomaticWaterExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-005'?<ExpenseGeneralConsultationPage screen={screen}/>:screen.id==='AI-EXP-006'?<PreExpenseGenerationPage screen={screen} billsWater={billsWater}/>:screen.id==='AI-EXP-007'?<ExpenseDesignPage screen={screen}/>:screen.id==='AI-EXP-009'?<MassExpenseVoidPage screen={screen}/>:screen.id.startsWith('AI-EXP-')||screen.id.startsWith('AI-FAC-')?<AddedPropertyScreen screen={screen}/>:screen.id==='XLS-001'?<PropertyTypePage screen={screen}/>:screen.id==='XLS-003'?<SectionPage screen={screen}/>:screen.id==='XLS-004'?<ExpenseItemsPage screen={screen}/>:screen.id==='XLS-005'?<PropertyDetailPageV2 screen={screen}/>:screen.id==='XLS-006'?<PropertyOwnerSummaryPage screen={screen}/>:screen.id==='XLS-007'?<PropertyImportPage screen={screen}/>:screen.id==='XLS-008'?<PropertyOwnerHistoryPage screen={screen}/>:screen.id==='XLS-009'?<RecipientConfigurationPage screen={screen}/>:screen.id==='XLS-010'?<EmailCenterPage screen={screen}/>:screen.id==='XLS-011'?<BulletinPage screen={screen}/>:['XLS-012','XLS-013','XLS-014','XLS-015',waterExpenseEmailTemplateScreen.id].includes(screen.id)?<EmailTemplatePage key={screen.id} screen={screen}/>:screen.id==='XLS-025'?<AccountPlanPage screen={screen}/>:screen.id==='XLS-026'?<AccountPlanMigrationPage screen={screen}/>:screen.id==='XLS-027'?<AccountingVoucherPage screen={screen}/>:screen.id==='XLS-038'?<AccountingClosurePage screen={screen}/>:screen.id==='XLS-041'?<SupplierGroupPage screen={screen}/>:['XLS-043','XLS-060'].includes(screen.id)?<ContactImportPage screen={screen}/>:screen.id==='XLS-059'?<CustomerRegistryPage screen={screen}/>:screen.id==='XLS-042'?<ProviderRegistryPage screen={screen}/>:<GenericScreenPage screen={screen}/>
+  if(screen.id==='XLS-063')return <CollectionAnnulmentPage screen={screen}/>
+  if(screen.id==='XLS-086')return <BankMovementImportPage screen={screen}/>
+  if(screen.id==='XLS-069')return <CustomerAdvanceImportPage screen={screen}/>
+  if(screen.id==='XLS-074')return <CustomerReceivableImportPage screen={screen}/>
+  if(screen.id==='XLS-065')return <CustomerAdvanceCrossingPage screen={screen}/>
+  if(screen.id==='XLS-067')return <CustomerAdvanceCrossingAnnulmentPage screen={screen}/>
+  if(screen.id==='XLS-080')return <CustomerAgingReportPage screen={screen}/>
+  if(screen.id==='XLS-084')return <CustomerAdvanceCrossingReportPage screen={screen}/>
+  if(screen.id==='XLS-082')return <CollectionReportPage screen={screen}/>
+  if(screen.id==='XLS-083')return <CustomerAdvanceBalanceReportPage screen={screen}/>
+  if(screen.id==='XLS-045')return <SupplierAdvancePage screen={screen}/>
+  if(screen.id==='XLS-047')return <SupplierAdvanceAnnulmentPage screen={screen}/>
+  if(screen.id==='XLS-048')return <SupplierAdvanceImportPage screen={screen}/>
+  if(screen.id==='XLS-039')return <PettyCashRegistryPage screen={screen}/>
+  if(screen.id==='XLS-090')return <BankEgressPage screen={screen}/>
+  if(screen.id==='XLS-091')return <BankEgressAnnulmentPage screen={screen}/>
+  if(screen.id==='XLS-088')return <CheckReplacementPage screen={screen}/>
+  if(screen.id==='XLS-089')return <CheckReprintPage screen={screen}/>
+  if(screen.id==='XLS-068')return <PortfolioAdjustmentPage screen={screen}/>
+  if(screen.id==='XLS-028')return <AccountingVoucherReprintPage screen={screen}/>
+  if(screen.id==='XLS-029')return <AccountingVoucherModificationPage screen={screen}/>
+  if(screen.id==='XLS-030')return <AccountingVoucherAnnulmentPage screen={screen}/>
+  if(screen.id===accountingVoucherSummaryScreen.id)return <AccountingVoucherSummaryPage screen={screen}/>
+  if(screen.id===documentSequencesScreen.id)return <DocumentSequencesPage screen={screen}/>
+  if(screen.id===checkDesignScreen.id)return <CheckDesignPage screen={screen}/>
+  if(screen.id===cxcTrackingScreen.id)return <CxcTrackingReportPage screen={screen}/>
+  return screen.id===bankDepositEntryScreen.id?<BankDepositEntryPage screen={screen}/>:screen.id==='XLS-087'?<BankDepositAnnulmentPage screen={screen}/>:screen.id===advanceTypesScreen.id?<AdvanceTypesPage screen={screen}/>:screen.id===accountingAccountAssignmentScreen.id?<AccountingAccountAssignmentPage screen={screen}/>:screen.id==='AI-CFG-IVA-001'?<VatConfigurationPage screen={screen}/>:screen.id===structureTypesScreen.id?<StructureTypesPage screen={screen}/>:screen.id==='XLS-016'?<AccountingVoucherTypesPage screen={screen}/>:screen.id==='XLS-085'?<BankAccountsPage screen={screen}/>:screen.id==='XLS-081'?<CustomerPortfolioReportPage screen={screen}/>:screen.id==='XLS-075'?<DebtCollectionCampaignPage screen={screen}/>:screen.id==='XLS-061'?<CollectionEntryPage screen={screen}/>:screen.id==='XLS-062'?<CollectionReprintPage screen={screen}/>:screen.id==='AI-EXP-001'?<AutomaticExpenseGenerationPage screen={screen} recurrence="NORMAL"/>:screen.id==='AI-EXP-002'?<IndividualExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-008'?<AutomaticExpenseGenerationPage screen={screen} recurrence="EXTRAORDINARIA"/>:screen.id==='AI-EXP-004'?<ExpenseEmailSendingPage screen={screen}/>:screen.id===waterMeterReadingScreenId?<WaterMeterReadingPage screen={screen}/>:screen.id===automaticWaterExpenseScreenId?<AutomaticWaterExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-005'?<ExpenseGeneralConsultationPage screen={screen}/>:screen.id==='AI-EXP-006'?<PreExpenseGenerationPage screen={screen} billsWater={billsWater}/>:screen.id==='AI-EXP-007'?<ExpenseDesignPage screen={screen}/>:screen.id==='AI-EXP-009'?<MassExpenseVoidPage screen={screen}/>:screen.id==='AI-FAC-004'?<PreInvoiceGenerationPage screen={screen} billsWater={billsWater}/>:screen.id.startsWith('AI-EXP-')||screen.id.startsWith('AI-FAC-')?<AddedPropertyScreen screen={screen}/>:screen.id==='XLS-001'?<PropertyTypePage screen={screen}/>:screen.id==='XLS-003'?<SectionPage screen={screen}/>:screen.id==='XLS-004'?<ExpenseItemsPage screen={screen}/>:screen.id==='XLS-005'?<PropertyDetailPageV2 screen={screen}/>:screen.id==='XLS-006'?<PropertyOwnerSummaryPage screen={screen}/>:screen.id==='XLS-007'?<PropertyImportPage screen={screen}/>:screen.id==='XLS-008'?<PropertyOwnerHistoryPage screen={screen}/>:screen.id==='XLS-009'?<RecipientConfigurationPage screen={screen}/>:screen.id==='XLS-010'?<EmailCenterPage screen={screen}/>:screen.id==='XLS-011'?<BulletinPage screen={screen}/>:['XLS-012','XLS-013','XLS-014','XLS-015',waterExpenseEmailTemplateScreen.id].includes(screen.id)?<EmailTemplatePage key={screen.id} screen={screen}/>:screen.id==='XLS-025'?<AccountPlanPage screen={screen}/>:screen.id==='XLS-026'?<AccountPlanMigrationPage screen={screen}/>:screen.id==='XLS-027'?<AccountingVoucherPage screen={screen}/>:screen.id==='XLS-038'?<AccountingClosurePage screen={screen}/>:screen.id==='XLS-041'?<SupplierGroupPage screen={screen}/>:['XLS-043','XLS-060'].includes(screen.id)?<ContactImportPage screen={screen}/>:screen.id==='XLS-059'?<CustomerRegistryPage screen={screen}/>:screen.id==='XLS-042'?<ProviderRegistryPage screen={screen}/>:<GenericScreenPage screen={screen}/>
 }
 
 function DisabledBillingModulePage({screen,billingType}:{screen:ScreenSpec;billingType:CompanyBillingType}){const enabled=billingType==='EXPENSAS'?'Expensas':'Facturas';const disabled=enabled==='Expensas'?'Facturas':'Expensas';return <div className="page screen-page billing-disabled-page"><div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part,index,all)=><span key={`${part}-${index}`}>{part}{index<all.length-1&&<ChevronRight/>}</span>)}</div><section><LockKeyhole/><span>Submódulo deshabilitado</span><h1>{disabled} no está disponible</h1><p>La compañía tiene configurado el Tipo de Cobro <strong>{enabled}</strong>. Para utilizar estas pantallas, cambia el Tipo de Cobro en Configuración General → Compañía.</p></section></div>}
@@ -375,10 +606,6 @@ function WaterBillingDisabledPage({screen}:{screen:ScreenSpec}){return <div clas
 
 function AddedPropertyScreen({screen}:{screen:ScreenSpec}){
   return <div className="page screen-page"><div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part,index,all)=><span key={`${part}-${index}`}>{part}{index<all.length-1&&<ChevronRight/>}</span>)}</div><section className="screen-header"><div><div className="screen-id"><span>{screen.id}</span><b>Módulo opcional</b></div><h1>{screen.titulo_original}</h1></div></section></div>
-}
-
-function AddedAccountingConfigurationScreen({screen}:{screen:ScreenSpec}){
-  return <div className="page screen-page"><div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part,index,all)=><span key={`${part}-${index}`}>{part}{index<all.length-1&&<ChevronRight/>}</span>)}</div><section className="screen-header"><div><div className="screen-id"><span>{screen.id}</span><b>Núcleo contable</b></div><h1>{screen.titulo_original}</h1></div></section></div>
 }
 
 function PropertyTypePage({screen}:{screen:ScreenSpec}){
@@ -475,18 +702,19 @@ function PropertyTypePage({screen}:{screen:ScreenSpec}){
 }
 
 function GenericScreenPage({screen}:{screen:ScreenSpec}){
-  const queryClient=useQueryClient(); const [drawer,setDrawer]=useState(false); const [selected,setSelected]=useState<RecordItem|null>(null); const [tab,setTab]=useState('ATS')
-  const records=useQuery({queryKey:['records',screen.id],queryFn:()=>api.records(screen.id)})
+  const isReport=/(^|>)\s*Reportes?\s*(>|$)/i.test(screen.ruta_original)||/Rep\.|Balance|Estado de|Libro Mayor|Análisis|Saldos|Acumulados|Compras Mensuales|Resumen/.test(screen.titulo_original)
+  const queryClient=useQueryClient(); const [drawer,setDrawer]=useState(false); const [selected,setSelected]=useState<RecordItem|null>(null); const [tab,setTab]=useState('ATS'); const [reportGenerated,setReportGenerated]=useState(false)
+  const records=useQuery({queryKey:['records',screen.id],queryFn:()=>api.records(screen.id),enabled:!isReport||reportGenerated})
   const action=useMutation({mutationFn:({recordId,label}:{recordId:string;label:string})=>api.action(screen.id,recordId,label),onSuccess:()=>queryClient.invalidateQueries({queryKey:['records',screen.id]})})
-  const isReport=/Rep\.|Balance|Estado de|Libro Mayor|Análisis|Saldos|Acumulados|Compras Mensuales|Resumen/.test(screen.titulo_original)
   const primary=screen.acciones[0]?.etiqueta??'Crear registro'
-  return <div className="page screen-page">
+  const generateReport=()=>{if(reportGenerated)void records.refetch();else setReportGenerated(true)}
+  return <div className={`page screen-page ${screen.modulo==='Bancos'?'bank-generic-page':''}`}>
     <div className="breadcrumbs">{screen.ruta_original.split(' > ').map((x,i,a)=><span key={`${x}-${i}`}>{x}{i<a.length-1&&<ChevronRight/>}</span>)}</div>
-    <section className="screen-header"><div><div className="screen-id"><span>{screen.id}</span><b>{screen.paquete==='PROPERTY_MANAGEMENT'?'Módulo opcional':'Núcleo contable'}</b></div><h1>{screen.titulo_original}</h1></div><div className="screen-actions"><button className="primary-action" onClick={()=>setDrawer(true)}><Plus/>{primary}</button></div></section>
+    <section className="screen-header"><div><div className="screen-id"><span>{screen.id}</span><b>{screen.paquete==='PROPERTY_MANAGEMENT'?'Módulo opcional':'Núcleo contable'}</b></div><h1>{screen.titulo_original}</h1></div><div className="screen-actions"><button className="primary-action" onClick={isReport?generateReport:()=>setDrawer(true)}>{isReport?<Search/>:<Plus/>}{isReport?'Generar reporte':primary}</button></div></section>
     {screen.id==='XLS-098'&&<div className="special-tabs"><button className={tab==='ATS'?'active':''} onClick={()=>setTab('ATS')}>ATS <small>Transaccional</small></button><button className={tab==='RDEP'?'active':''} onClick={()=>setTab('RDEP')}>RDEP <small>Dependencia</small></button><span>Procesos, lotes y esquemas separados</span></div>}
     {screen.id==='XLS-079'&&<div className="direction-banner"><div><SlidersHorizontal/><span><strong>Dirección de retención</strong><small>El título original se conserva. Selecciona la perspectiva del reporte.</small></span></div><select><option>Emitidas</option><option>Recibidas</option></select></div>}
     <section className="filter-bar"><label><Search/><input placeholder={`Buscar en ${screen.titulo_original}`}/></label>{screen.filtros_campos.slice(0,3).map(f=><button key={f.nombre}><Filter/>{f.nombre}<ChevronDown/></button>)}<button className="filter-more"><SlidersHorizontal/>Más filtros</button></section>
-    <div className="screen-layout"><section className="panel records-panel"><div className="records-head"><div><h2>{isReport?'Resultados del reporte':'Registros'}</h2><span>{records.data?.length??0} resultados · actualización persistente</span></div><button onClick={()=>records.refetch()}><RefreshCw/>Actualizar</button></div>{records.isLoading?<TableSkeleton/>:records.error?<InlineError message={(records.error as Error).message}/>:<RecordsTable screen={screen} records={records.data??[]} onSelect={setSelected} onAction={(r)=>action.mutate({recordId:r.id,label:screen.acciones[0]?.etiqueta??'confirmar'})}/>}</section>
+    <div className="screen-layout"><section className="panel records-panel"><div className="records-head"><div><h2>{isReport?'Resultados del reporte':'Registros'}</h2><span>{isReport&&!reportGenerated?'Sin información generada':`${records.data?.length??0} resultados · actualización persistente`}</span></div><button onClick={isReport?generateReport:()=>void records.refetch()}>{isReport?<Search/>:<RefreshCw/>}{isReport?'Generar reporte':'Actualizar'}</button></div>{isReport&&!reportGenerated?<div className="favorites-empty"><Search/><strong>Reporte pendiente de generar</strong><p>Selecciona los filtros y genera el reporte para mostrar la información.</p></div>:records.isLoading?<TableSkeleton/>:records.error?<InlineError message={(records.error as Error).message}/>:<RecordsTable screen={screen} records={records.data??[]} onSelect={setSelected} onAction={(r)=>action.mutate({recordId:r.id,label:screen.acciones[0]?.etiqueta??'confirmar'})}/>}</section>
       <aside className="process-aside"><section className="panel process-card"><div className="process-card-head"><Sparkles/><div><span>Flujo contractual</span><strong>{screen.pasos_proceso.length} pasos definidos</strong></div></div><ol>{screen.pasos_proceso.slice(0,5).map((step,i)=><li key={step}><span>{i+1}</span><p>{step}</p></li>)}</ol></section><section className="panel integrity-card"><strong>Impacto e integridad</strong><p>{screen.impacto_datos_contables}</p><div><ShieldCheck/><span>{screen.validaciones.length} validaciones</span></div><div><FileCheck2/><span>{screen.pruebas_ids.length} pruebas trazadas</span></div></section></aside>
     </div>
     {drawer&&<RecordDrawer screen={screen} onClose={()=>setDrawer(false)} onDone={()=>{setDrawer(false);queryClient.invalidateQueries({queryKey:['records',screen.id]})}}/>}

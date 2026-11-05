@@ -11,11 +11,19 @@ function contextHeaders() {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/v1${path}`, { ...init, credentials:'same-origin', headers: { 'Content-Type':'application/json', ...contextHeaders(), ...(init?.headers ?? {}) } })
   const body = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(body.error?.message ?? 'No se pudo completar la operación.')
+  if (response.status === 401) window.dispatchEvent(new CustomEvent('saga:session-expired'))
+  if (!response.ok) throw new Error(body.error?.message ?? body.detail?.message ?? (typeof body.detail==='string'?body.detail:undefined) ?? 'No se pudo completar la operación.')
   return body.data as T
 }
 
 export const api = {
+  sessionStatus: () => request<{authenticated:boolean;actor?:{id:string;username:string;name:string;email:string;role:string}|null}>('/session/status'),
+  sessionLogin: (identifier:string,password:string) => request<{authenticated:boolean;actor:{id:string;username:string;name:string;email:string;role:string}}>('/session/login', {method:'POST',body:JSON.stringify({identifier,password})}),
+  sessionLogout: () => request<{authenticated:boolean}>('/session/logout', {method:'POST'}),
+  sessionKeepAlive: () => request<{authenticated:boolean}>('/session/keepalive', {method:'POST'}),
+  changePassword: (currentPassword:string,newPassword:string) => request<{updated:boolean}>('/session/password', {method:'PUT',body:JSON.stringify({current_password:currentPassword,new_password:newPassword})}),
+  requestPasswordRecovery: (identifier:string) => request<{recoveryId:string;maskedEmail:string;expiresInSeconds:number;deliveryMode:'EMAIL'|'VALIDATION';previewCode?:string}>('/session/password-recovery/request', {method:'POST',body:JSON.stringify({identifier})}),
+  confirmPasswordRecovery: (recoveryId:string,code:string,newPassword:string) => request<{updated:boolean;name:string}>('/session/password-recovery/confirm', {method:'POST',body:JSON.stringify({recovery_id:recoveryId,code,new_password:newPassword})}),
   catalog: () => request<Catalog>('/catalog'),
   context: async () => {
     try {

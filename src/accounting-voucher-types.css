@@ -1,0 +1,24 @@
+.voucher-types-page { display: grid; align-content: start; gap: 1rem; }
+.voucher-types-list { overflow: hidden; padding: 0; border-radius: 1rem; }
+.voucher-types-list > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem; border-bottom: 1px solid #dce2e8; }
+.voucher-types-list > header > div { display: flex; align-items: center; gap: .75rem; }
+.voucher-types-list > header svg { width: 2.25rem; height: 2.25rem; padding: .45rem; border-radius: .7rem; color: #405065; background: #eef1f4; }
+.voucher-types-list h2, .voucher-types-list p { margin: 0; }
+.voucher-types-list h2 { color: #263548; font-size: 1rem; }
+.voucher-types-list p { margin-top: .18rem; color: #6d7988; font-size: .78rem; }
+.voucher-types-list > header > strong { display: grid; color: #263548; font-size: 1.25rem; text-align: right; }
+.voucher-types-list > header > strong small { color: #778395; font-size: .68rem; font-weight: 650; text-transform: uppercase; }
+.voucher-types-table { overflow: auto; }
+.voucher-types-table table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.voucher-types-table th, .voucher-types-table td { padding: .72rem .85rem; border-bottom: 1px solid #e0e5ea; text-align: left; vertical-align: middle; }
+.voucher-types-table th { color: #405065; background: #eef1f4; font-size: .69rem; text-transform: uppercase; }
+.voucher-types-table tbody tr:last-child td { border-bottom: 0; }
+.voucher-types-table code { color: #34465a; font-size: .73rem; font-weight: 750; }
+.voucher-types-table td { color: #526174; font-size: .78rem; }
+.voucher-types-table td strong { color: #263548; }
+.voucher-type-origin { display: inline-flex; padding: .28rem .52rem; border-radius: 999px; font-size: .68rem; font-weight: 800; }
+.voucher-type-origin.manual { color: #3f4f62; background: #edf1f5; }
+.voucher-type-origin.automatico { color: #31537a; background: #e8f1fb; }
+.voucher-types-empty { min-height: 180px; display: grid; place-items: center; align-content: center; gap: .35rem; color: #7a8795; text-align: center; }
+.voucher-types-empty svg { width: 1.8rem; }
+.voucher-types-empty span { font-size: .76rem; }

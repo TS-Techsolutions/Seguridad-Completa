@@ -1,3 +1,5 @@
+import { configuredExpenseStart } from './document-sequences'
+
 export type ExpenseType = 'ORDINARIA' | 'EXTRAORDINARIA' | 'AGUA'
 export type ExpenseGenerationType = 'AUTOMATICA' | 'INDIVIDUAL'
 export type ExpenseStatus = 'VIGENTE' | 'ANULADA' | 'PENDIENTE_COMPLETAR' | 'BORRADA'
@@ -14,6 +16,9 @@ export type IssuedExpenseLine = {
   quantity: number
   unitPrice: number | null
   total: number
+  vatRate?: number
+  vatAmount?: number
+  totalWithVat?: number
 }
 
 export type IssuedExpenseRecord = {
@@ -31,6 +36,9 @@ export type IssuedExpenseRecord = {
   expenseType: ExpenseType
   generationType: ExpenseGenerationType
   total: number
+  subtotal?: number
+  vatTotal?: number
+  vatRates?: number[]
   pdfFileName: string
   createdAt: string
   status: ExpenseStatus
@@ -39,6 +47,9 @@ export type IssuedExpenseRecord = {
   voidedBy?: string
   deletedAt?: string
   deletedBy?: string
+  sourceUploadId?: string
+  sourceDocument?: string
+  importedReceivable?: boolean
 }
 
 const storageKey = (companyId: string) => `saga.issued-expenses:${companyId}`
@@ -65,7 +76,7 @@ export function readIssuedExpenses(companyId: string): IssuedExpenseRecord[] {
     const saved = JSON.parse(localStorage.getItem(storageKey(companyId)) ?? '[]')
     return (Array.isArray(saved) ? saved as IssuedExpenseRecord[] : [])
       .map(record => {
-        const receiptNumber = normalizedReceiptNumber(record.receiptNumber)
+        const receiptNumber = record.importedReceivable ? record.receiptNumber : normalizedReceiptNumber(record.receiptNumber)
         return {
           ...record,
           receiptNumber,
@@ -115,6 +126,12 @@ export function appendIssuedExpenses(companyId: string, records: IssuedExpenseRe
   return next
 }
 
+export function removeIssuedExpensesBySourceUpload(companyId: string, sourceUploadId: string) {
+  const next = readIssuedExpenses(companyId).filter(record => record.sourceUploadId !== sourceUploadId)
+  localStorage.setItem(storageKey(companyId), JSON.stringify(next))
+  return next
+}
+
 export function upsertIssuedExpense(companyId: string, record: IssuedExpenseRecord) {
   const current = readIssuedExpenses(companyId)
   const next = [record, ...current.filter(item => item.id !== record.id)]
@@ -139,5 +156,6 @@ export function nextReceiptNumber(companyId: string, offset = 0) {
   } catch { reservedNumbers = [] }
   const currentSequence = [...readIssuedExpenses(companyId).map(record => record.receiptNumber), ...reservedNumbers]
     .reduce((highest, receiptNumber) => Math.max(highest, receiptSequence(receiptNumber)), 0)
-  return `${receiptPrefix}${String(currentSequence + offset + 1).padStart(6, '0')}`
+  const next = Math.max(currentSequence + 1, configuredExpenseStart(companyId)) + offset
+  return `${receiptPrefix}${String(next).padStart(6, '0')}`
 }
