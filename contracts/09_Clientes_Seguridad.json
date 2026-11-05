@@ -1,0 +1,20 @@
+{
+  "source": "Proyecto Seguridad",
+  "module": "Clientes",
+  "screens": [
+    {
+      "title": "Clientes",
+      "path": "/clientes",
+      "description": "Administra la información comercial, contractual y operativa de los clientes.",
+      "columns": ["Código", "Identificación", "Razón Social", "Contacto", "Estado"],
+      "action": "Nuevo cliente"
+    },
+    {
+      "title": "Estado de Cuentas",
+      "path": "/clientes/estado-cuentas",
+      "description": "Consulta movimientos, saldos y documentos asociados a cada cliente.",
+      "columns": ["Cliente", "Documento", "Fecha", "Detalle", "Saldo"],
+      "action": "Consultar estado"
+    }
+  ]
+}

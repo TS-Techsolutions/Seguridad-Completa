@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import secrets
 import smtplib
@@ -12,8 +13,10 @@ from functools import lru_cache
 from pathlib import Path
 from sqlite3 import IntegrityError
 from typing import Any, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, Header, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -39,10 +42,20 @@ from .security import (
 COMPANY_ID = "cmp-demo-ecuador"
 ACTOR_ID = "usr-platform-admin"
 CONTRACTS = ROOT / "contracts"
+MOBILE_SESSION_TTL_DAYS = 30
+PORTAL_BULLETIN_STORAGE_KEY = "saga.bulletin-documents"
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def business_date(timezone_name: str) -> str:
+    try:
+        target = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        target = timezone(timedelta(hours=-5)) if timezone_name == "America/Guayaquil" else timezone.utc
+    return datetime.now(timezone.utc).astimezone(target).strftime("%d/%m/%Y")
 
 
 def masked_email(value: str) -> str:
@@ -189,6 +202,50 @@ def personal_information_catalog() -> dict[str, list[dict[str, Any]]]:
 
 
 @lru_cache(maxsize=1)
+def clients_catalog() -> dict[str, list[dict[str, Any]]]:
+    source = json.loads((CONTRACTS / "09_Clientes_Seguridad.json").read_text(encoding="utf-8-sig"))
+    root_id = "NODE-CLI-ROOT"
+    root_label = source["module"]
+    nodes: list[dict[str, Any]] = [{
+        "node_id": root_id, "label": root_label, "level": 0, "parent_id": None, "order": 900,
+        "breadcrumb": [root_label], "type": "group", "screen_id": None, "route": None, "package": None,
+    }]
+    screens: list[dict[str, Any]] = []
+    for number, item in enumerate(source["screens"], 1):
+        screen_id = f"CLI-{number:03d}"
+        breadcrumb = [root_label, item["title"]]
+        screens.append({
+            "id": screen_id, "titulo_original": item["title"], "texto_original": item["title"],
+            "ruta_original": " > ".join(breadcrumb), "ruta_react": item["path"], "objetivo": item["description"],
+            "diseno_visible": "Pantalla incorporada desde el módulo Clientes del proyecto Seguridad.",
+            "filtros_campos": [
+                {"nombre": "empresa", "tipo": "selector", "obligatorio": True, "validacion": "empresa autorizada"},
+                {"nombre": "cliente", "tipo": "texto", "obligatorio": False, "validacion": "cliente existente"},
+                {"nombre": "estado", "tipo": "selector", "obligatorio": False, "validacion": "estado permitido"},
+            ],
+            "columnas": item["columns"],
+            "acciones": [{"etiqueta": item["action"], "resultado": "actualiza la gestión del cliente con trazabilidad", "permiso": "clients.write"}],
+            "pasos_proceso": [
+                "Seleccionar la empresa y localizar el cliente.",
+                "Consultar o capturar la información comercial y operativa.",
+                "Validar identificación, contratos y datos obligatorios.",
+                "Guardar el registro con trazabilidad.",
+                "Consultar el resultado y su estado de cuenta.",
+            ],
+            "validaciones": ["Empresa autorizada", "Cliente válido", "Datos obligatorios", "Registro no duplicado"],
+            "paquete": "CLIENT_MANAGEMENT", "modulo": root_label,
+            "impacto_datos_contables": "La ficha del cliente no genera movimientos contables. El estado de cuenta presenta información registrada por los procesos autorizados.",
+            "pruebas_ids": [f"T-UI-{screen_id}", f"T-PROC-{screen_id}"],
+        })
+        nodes.append({
+            "node_id": f"NODE-{screen_id}", "label": item["title"], "level": 1, "parent_id": root_id,
+            "order": 900 + number, "breadcrumb": breadcrumb, "type": "screen", "screen_id": screen_id,
+            "route": item["path"], "package": "CLIENT_MANAGEMENT",
+        })
+    return {"screens": screens, "nodes": nodes}
+
+
+@lru_cache(maxsize=1)
 def security_general_catalog() -> dict[str, list[dict[str, Any]]]:
     source = json.loads((CONTRACTS / "07_Configuracion_General_Seguridad.json").read_text(encoding="utf-8-sig"))
     root_label = source["module"]
@@ -234,7 +291,9 @@ def security_general_catalog() -> dict[str, list[dict[str, Any]]]:
     return {"screens": screens, "nodes": nodes}
 
 
-HIDDEN_SCREEN_IDS = {"XLS-002", "XLS-100"}
+HIDDEN_SCREEN_IDS = {"XLS-002", "XLS-012", "XLS-013", "XLS-100"}
+REMOVED_MODULE_ROOTS = {"Administración Inmuebles"}
+EMAIL_SCREEN_IDS = {"XLS-014", "XLS-015"}
 SCREEN_LABEL_OVERRIDES = {"XLS-001": "Definición de Estructura"}
 GROUP_ADMIN_SCREEN_IDS = {"SEC-001", "SEC-002", "SEC-003"}
 GROUP_ADMIN_STATE_READ_KEYS = {
@@ -247,7 +306,7 @@ GROUP_ADMIN_STATE_WRITE_KEYS = {"saga.security.users", "saga.security.roles", "s
 def all_screens() -> list[dict[str, Any]]:
     base_screens = []
     for source in manifest()["pantallas"]:
-        if source["id"] in HIDDEN_SCREEN_IDS:
+        if source["id"] in HIDDEN_SCREEN_IDS or source.get("modulo") in REMOVED_MODULE_ROOTS:
             continue
         screen = source.copy()
         if screen["id"] in SCREEN_LABEL_OVERRIDES:
@@ -255,14 +314,17 @@ def all_screens() -> list[dict[str, Any]]:
             screen["titulo_original"] = label
             screen["texto_original"] = label
             screen["ruta_original"] = " > ".join([*screen["ruta_original"].split(" > ")[:-1], label])
+        if screen["id"] in EMAIL_SCREEN_IDS:
+            screen["modulo"] = "CxC"
+            screen["ruta_original"] = " > ".join(["CxC", "Email", screen["titulo_original"]])
         base_screens.append(screen)
-    return [*base_screens, *human_talent_catalog()["screens"], *personal_information_catalog()["screens"], *security_general_catalog()["screens"]]
+    return [*base_screens, *clients_catalog()["screens"], *human_talent_catalog()["screens"], *personal_information_catalog()["screens"], *security_general_catalog()["screens"]]
 
 
 def all_menu_nodes() -> list[dict[str, Any]]:
     base_nodes = []
     for source in menu()["nodes"]:
-        if source.get("screen_id") in HIDDEN_SCREEN_IDS:
+        if source.get("screen_id") in HIDDEN_SCREEN_IDS or source.get("breadcrumb", [None])[0] in REMOVED_MODULE_ROOTS:
             continue
         node = source.copy()
         if node.get("screen_id") in SCREEN_LABEL_OVERRIDES:
@@ -270,8 +332,21 @@ def all_menu_nodes() -> list[dict[str, Any]]:
             node["label"] = label
             node["breadcrumb"] = [*node["breadcrumb"][:-1], label]
         base_nodes.append(node)
+
+    email_root = next(node for node in base_nodes if node["level"] == 0 and node["label"] == "Email")
+    cxc_root = next(node for node in base_nodes if node["level"] == 0 and node["label"] == "CxC")
+    cxc_retentions = next(node for node in base_nodes if node["parent_id"] == cxc_root["node_id"] and node["label"] == "Retenciones")
+    for node in base_nodes:
+        if node["node_id"] == email_root["node_id"]:
+            node["level"] = 1
+            node["parent_id"] = cxc_root["node_id"]
+            node["order"] = cxc_retentions["order"] + 0.5
+            node["breadcrumb"] = ["CxC", "Email"]
+        elif node["breadcrumb"][0] == "Email":
+            node["level"] += 1
+            node["breadcrumb"] = ["CxC", *node["breadcrumb"]]
     root_labels = [node["label"] for node in base_nodes if node["level"] == 0]
-    preferred_order = ["Administración Inmuebles", "Email", "CxC", "CxP", "Contabilidad"]
+    preferred_order = ["CxC", "CxP", "Contabilidad"]
     ordered_labels = [*preferred_order, *(label for label in root_labels if label not in preferred_order)]
     ordered_nodes = [
         node
@@ -279,8 +354,10 @@ def all_menu_nodes() -> list[dict[str, Any]]:
         for node in base_nodes
         if node["breadcrumb"][0] == label
     ]
-    insert_at = next((index for index, node in enumerate(ordered_nodes) if node["level"] == 0 and node["label"] == "Configuración General"), len(ordered_nodes))
-    with_people = [*ordered_nodes[:insert_at], *human_talent_catalog()["nodes"], *personal_information_catalog()["nodes"], *ordered_nodes[insert_at:]]
+    clients_insert_at = next((index for index, node in enumerate(ordered_nodes) if node["level"] == 0 and node["label"] == "CxC"), len(ordered_nodes))
+    with_clients = [*ordered_nodes[:clients_insert_at], *clients_catalog()["nodes"], *ordered_nodes[clients_insert_at:]]
+    insert_at = next((index for index, node in enumerate(with_clients) if node["level"] == 0 and node["label"] == "Configuración General"), len(with_clients))
+    with_people = [*with_clients[:insert_at], *human_talent_catalog()["nodes"], *personal_information_catalog()["nodes"], *with_clients[insert_at:]]
     existing_configuration = [node for node in with_people if node["breadcrumb"][0] == "Configuración General" and node["type"] == "screen"]
     security_nodes = security_general_catalog()["nodes"]
     company_node = next(node for node in security_nodes if node["screen_id"] == "SEC-004")
@@ -330,6 +407,51 @@ def request_actor_role(request: Request) -> str:
     with connection() as db:
         row = db.execute("SELECT role FROM platform_user WHERE id=? AND status='ACTIVE'", (request_actor_id(request),)).fetchone()
     return row["role"] if row else ""
+
+
+def mobile_token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def authenticate_mobile_token(token: str) -> dict[str, Any] | None:
+    if not token:
+        return None
+    stamp = utc_now()
+    with connection() as db:
+        row = db.execute(
+            """
+            SELECT ms.id AS session_id,ms.user_id,u.username,u.name,u.email,u.role
+            FROM mobile_session ms
+            JOIN platform_user u ON u.id=ms.user_id AND u.status='ACTIVE'
+            WHERE ms.token_hash=? AND ms.revoked_at IS NULL AND ms.expires_at>?
+            """,
+            (mobile_token_hash(token), stamp),
+        ).fetchone()
+        if not row:
+            return None
+        db.execute("UPDATE mobile_session SET last_used_at=? WHERE id=?", (stamp, row["session_id"]))
+    return dict(row)
+
+
+def resolve_resident_context(actor_id: str, context_id: str, allowed_roles: set[str] | None = None) -> dict[str, Any]:
+    stamp = utc_now()
+    with connection() as db:
+        row = db.execute(
+            """
+            SELECT rm.*,c.name AS company_name,c.timezone,c.currency,t.name AS tenant_name
+            FROM resident_membership rm
+            JOIN company c ON c.id=rm.company_id AND c.tenant_id=rm.tenant_id AND c.status='ACTIVE'
+            JOIN tenant t ON t.id=rm.tenant_id AND t.status='ACTIVE'
+            WHERE rm.id=? AND rm.user_id=? AND rm.status='ACTIVE'
+              AND rm.valid_from<=? AND (rm.valid_until IS NULL OR rm.valid_until>?)
+            """,
+            (context_id, actor_id, stamp, stamp),
+        ).fetchone()
+    if not row:
+        raise HTTPException(404, detail={"code": "RESIDENT_CONTEXT_NOT_FOUND", "message": "El contexto residencial no existe o ya no está vigente."})
+    if allowed_roles and row["role"] not in allowed_roles:
+        raise HTTPException(403, detail={"code": "RESIDENT_ROLE_DENIED", "message": "El vínculo no permite ejecutar esta operación."})
+    return dict(row)
 
 
 def authorize_actor_screen(request: Request, screen_id: str) -> None:
@@ -384,6 +506,18 @@ app = FastAPI(
 )
 allowed_hosts = [item.strip() for item in os.getenv("SAGA_ALLOWED_HOSTS", "127.0.0.1,localhost,testserver").split(",") if item.strip()]
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+cors_origins = [item.strip() for item in os.getenv(
+    "SAGA_CORS_ORIGINS",
+    "http://127.0.0.1:8081,http://localhost:8081,http://127.0.0.1:19006,http://localhost:19006" if not is_production() else "",
+).split(",") if item.strip()]
+if cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Request-Id"],
+    )
 
 
 def validate_request_access(actor_id: str, company_id: str, platform_route: bool = False) -> None:
@@ -424,26 +558,41 @@ def validate_request_access(actor_id: str, company_id: str, platform_route: bool
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request.state.request_id = request.headers.get("X-Request-Id", str(uuid.uuid4()))
+    if request.method == "OPTIONS":
+        return await call_next(request)
     client_host = request.client.host if request.client else None
     local_request = is_loopback(client_host)
     if not local_request and os.getenv("SAGA_ALLOW_REMOTE", "false").lower() != "true":
         return JSONResponse(status_code=403, content={"error": {"code": "REMOTE_ACCESS_DISABLED", "message": "El acceso remoto a la API está deshabilitado."}, "trace": {"request_id": request.state.request_id}})
 
     api_request = request.url.path.startswith("/api/v1/")
+    resident_route = request.url.path.startswith("/api/v1/resident/")
+    resident_login_route = request.url.path == "/api/v1/resident/session/login"
     session_login_route = request.url.path == "/api/v1/session/login"
     session_logout_route = request.url.path == "/api/v1/session/logout"
     session_status_route = request.url.path == "/api/v1/session/status"
     password_recovery_route = request.url.path.startswith("/api/v1/session/password-recovery/")
-    public_session_route = session_login_route or session_logout_route or session_status_route or password_recovery_route
+    public_session_route = session_login_route or session_logout_route or session_status_route or password_recovery_route or resident_login_route
     token = request.cookies.get(SESSION_COOKIE)
     session = verify_session_token(token) if token else None
-    if token and not session and not public_session_route:
-        return JSONResponse(status_code=401, content={"error": {"code": "INVALID_SESSION", "message": "La sesión no es válida o ha expirado."}, "trace": {"request_id": request.state.request_id}})
-    if not session and api_request and not public_session_route:
-        return JSONResponse(status_code=401, content={"error": {"code": "AUTHENTICATION_REQUIRED", "message": "Se requiere una sesión autenticada."}, "trace": {"request_id": request.state.request_id}})
-    request.state.actor_id = str(session["actor"]) if session else ""
-    request.state.company_id = request.headers.get("X-Company-Id", COMPANY_ID)
-    if api_request and session and not public_session_route:
+    mobile_session = None
+    if resident_route and not resident_login_route:
+        authorization = request.headers.get("Authorization", "")
+        scheme, _, credential = authorization.partition(" ")
+        mobile_session = authenticate_mobile_token(credential.strip()) if scheme.lower() == "bearer" else None
+        if not mobile_session:
+            return JSONResponse(status_code=401, content={"error": {"code": "MOBILE_AUTHENTICATION_REQUIRED", "message": "Se requiere una sesión móvil válida."}, "trace": {"request_id": request.state.request_id}})
+        request.state.actor_id = mobile_session["user_id"]
+        request.state.mobile_session_id = mobile_session["session_id"]
+        request.state.company_id = ""
+    else:
+        if token and not session and not public_session_route:
+            return JSONResponse(status_code=401, content={"error": {"code": "INVALID_SESSION", "message": "La sesión no es válida o ha expirado."}, "trace": {"request_id": request.state.request_id}})
+        if not session and api_request and not public_session_route:
+            return JSONResponse(status_code=401, content={"error": {"code": "AUTHENTICATION_REQUIRED", "message": "Se requiere una sesión autenticada."}, "trace": {"request_id": request.state.request_id}})
+        request.state.actor_id = str(session["actor"]) if session else ""
+        request.state.company_id = request.headers.get("X-Company-Id", COMPANY_ID)
+    if api_request and session and not public_session_route and not resident_route:
         try:
             unscoped_route = request.url.path.startswith("/api/v1/platform/") or request.url.path.startswith("/api/v1/session/")
             validate_request_access(
@@ -455,7 +604,7 @@ async def request_context(request: Request, call_next):
             detail = exc.detail if isinstance(exc.detail, dict) else {"code": "ACCESS_DENIED", "message": str(exc.detail)}
             return JSONResponse(status_code=exc.status_code, content={"error": detail, "trace": {"request_id": request.state.request_id}})
     response = await call_next(request)
-    if session and api_request and not (session_login_route or session_logout_route):
+    if session and api_request and not resident_route and not (session_login_route or session_logout_route):
         response.set_cookie(
             key=SESSION_COOKIE,
             value=create_session_token(str(session["actor"])),
@@ -498,7 +647,7 @@ def catalog(request: Request):
             if (node["level"] == 0 and node["label"] == "Configuración General")
             or node.get("screen_id") in GROUP_ADMIN_SCREEN_IDS
         ]
-    data = {"version": manifest()["version"], "screens": screens, "menu": nodes, "complementaryCount": manifest()["complementary_screen_count"] + len(human_talent_catalog()["screens"]) + len(personal_information_catalog()["screens"]) + len(security_general_catalog()["screens"])}
+    data = {"version": manifest()["version"], "screens": screens, "menu": nodes, "complementaryCount": manifest()["complementary_screen_count"] + len(clients_catalog()["screens"]) + len(human_talent_catalog()["screens"]) + len(personal_information_catalog()["screens"]) + len(security_general_catalog()["screens"])}
     return success(request, data, {"screenCount": len(screens), "menuNodeCount": len(data["menu"])})
 
 
@@ -529,6 +678,10 @@ def session_companies(request: Request):
 class SessionLoginRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=160)
     password: str = Field(min_length=1, max_length=200)
+
+
+class MobileSessionLoginRequest(SessionLoginRequest):
+    device_label: str = Field(default="Expo", min_length=1, max_length=120)
 
 
 class PasswordChangeRequest(BaseModel):
@@ -581,6 +734,293 @@ def session_login(payload: SessionLoginRequest, request: Request):
         path="/api/",
     )
     return response
+
+
+@app.post("/api/v1/resident/session/login")
+def resident_session_login(payload: MobileSessionLoginRequest, request: Request):
+    identifier = payload.identifier.strip().lower()
+    with connection() as db:
+        actor = db.execute(
+            "SELECT id,username,name,email,role,status,password_hash FROM platform_user WHERE status='ACTIVE' AND (lower(username)=? OR lower(email)=?)",
+            (identifier, identifier),
+        ).fetchone()
+        if not actor or not verify_password(payload.password, actor["password_hash"]):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail={"code": "INVALID_CREDENTIALS", "message": "El usuario o la contraseña son incorrectos."})
+        membership = db.execute(
+            "SELECT 1 FROM resident_membership WHERE user_id=? AND status='ACTIVE' LIMIT 1",
+            (actor["id"],),
+        ).fetchone()
+        if not membership:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "RESIDENT_MEMBERSHIP_REQUIRED", "message": "El usuario no tiene vínculos residenciales vigentes."})
+        raw_token = secrets.token_urlsafe(48)
+        session_id = str(uuid.uuid4())
+        created_at = utc_now()
+        expires_at = (datetime.now(timezone.utc) + timedelta(days=MOBILE_SESSION_TTL_DAYS)).isoformat()
+        db.execute(
+            "INSERT INTO mobile_session(id,user_id,token_hash,device_label,created_at,expires_at,revoked_at,last_used_at) VALUES(?,?,?,?,?,?,NULL,?)",
+            (session_id, actor["id"], mobile_token_hash(raw_token), payload.device_label.strip(), created_at, expires_at, created_at),
+        )
+    return success(request, {
+        "accessToken": raw_token,
+        "tokenType": "Bearer",
+        "expiresAt": expires_at,
+        "actor": {key: actor[key] for key in ("id", "username", "name", "email", "role")},
+    })
+
+
+@app.post("/api/v1/resident/session/logout")
+def resident_session_logout(request: Request):
+    with connection() as db:
+        db.execute(
+            "UPDATE mobile_session SET revoked_at=? WHERE id=? AND user_id=? AND revoked_at IS NULL",
+            (utc_now(), request.state.mobile_session_id, request_actor_id(request)),
+        )
+    return success(request, {"authenticated": False})
+
+
+@app.get("/api/v1/resident/bootstrap")
+def resident_bootstrap(request: Request):
+    actor_id = request_actor_id(request)
+    stamp = utc_now()
+    with connection() as db:
+        actor = db.execute(
+            "SELECT id,username,name,email,role FROM platform_user WHERE id=? AND status='ACTIVE'",
+            (actor_id,),
+        ).fetchone()
+        rows = db.execute(
+            """
+            SELECT rm.id,rm.tenant_id,rm.company_id,rm.condominium_id,rm.condominium_label,
+                   rm.unit_id,rm.unit_label,rm.role,c.name AS company_name,c.timezone,c.currency
+            FROM resident_membership rm
+            JOIN company c ON c.id=rm.company_id AND c.tenant_id=rm.tenant_id AND c.status='ACTIVE'
+            JOIN tenant t ON t.id=rm.tenant_id AND t.status='ACTIVE'
+            WHERE rm.user_id=? AND rm.status='ACTIVE'
+              AND rm.valid_from<=? AND (rm.valid_until IS NULL OR rm.valid_until>?)
+            ORDER BY c.name,rm.condominium_label,rm.unit_label
+            """,
+            (actor_id, stamp, stamp),
+        ).fetchall()
+    contexts = [{
+        "contextId": row["id"],
+        "company": {"id": row["company_id"], "name": row["company_name"]},
+        "condominium": {"id": row["condominium_id"], "name": row["condominium_label"]},
+        "unit": {"id": row["unit_id"], "name": row["unit_label"]} if row["unit_id"] else None,
+        "role": row["role"],
+        "timezone": row["timezone"],
+        "currency": row["currency"],
+        "capabilities": ["BULLETIN_READ"],
+    } for row in rows]
+    return success(request, {"actor": dict(actor), "contexts": contexts, "serverTime": stamp, "apiVersion": app.version})
+
+
+def portal_bulletins(company_id: str) -> tuple[list[dict[str, Any]], int]:
+    with connection() as db:
+        row = db.execute(
+            "SELECT value,version FROM client_state WHERE company_id=? AND storage_key=?",
+            (company_id, PORTAL_BULLETIN_STORAGE_KEY),
+        ).fetchone()
+    if not row:
+        return [], 0
+    try:
+        decoded = json.loads(decrypt_value(row["value"], "client_state", company_id, PORTAL_BULLETIN_STORAGE_KEY))
+    except (json.JSONDecodeError, TypeError):
+        decoded = []
+    return (decoded if isinstance(decoded, list) else []), int(row["version"])
+
+
+def save_portal_bulletins(company_id: str, items: list[dict[str, Any]], actor_id: str) -> int:
+    stamp = utc_now()
+    value = json.dumps(items, ensure_ascii=False, separators=(",", ":"))
+    protected = encrypt_value(value, "client_state", company_id, PORTAL_BULLETIN_STORAGE_KEY)
+    with connection() as db:
+        db.execute(
+            """
+            INSERT INTO client_state(company_id,storage_key,value,version,updated_at,actor)
+            VALUES(?,?,?,1,?,?)
+            ON CONFLICT(company_id,storage_key) DO UPDATE SET
+              value=excluded.value,version=client_state.version+1,updated_at=excluded.updated_at,actor=excluded.actor
+            """,
+            (company_id, PORTAL_BULLETIN_STORAGE_KEY, protected, stamp, actor_id),
+        )
+        row = db.execute(
+            "SELECT version FROM client_state WHERE company_id=? AND storage_key=?",
+            (company_id, PORTAL_BULLETIN_STORAGE_KEY),
+        ).fetchone()
+    return int(row["version"])
+
+
+def sync_bulletin_deliveries(db: Any, company_id: str, items: list[dict[str, Any]], stamp: str | None = None) -> None:
+    stamp = stamp or utc_now()
+    company = db.execute("SELECT tenant_id FROM company WHERE id=?", (company_id,)).fetchone()
+    if not company:
+        return
+    bulletin_ids = [str(item.get("id", "")).strip() for item in items if str(item.get("id", "")).strip()]
+    if not bulletin_ids:
+        return
+    users = db.execute(
+        """
+        SELECT DISTINCT rm.user_id
+        FROM resident_membership rm
+        JOIN platform_user u ON u.id=rm.user_id AND u.status='ACTIVE'
+        WHERE rm.company_id=? AND rm.tenant_id=? AND rm.status='ACTIVE'
+          AND rm.valid_from<=? AND (rm.valid_until IS NULL OR rm.valid_until>?)
+        """,
+        (company_id, company["tenant_id"], stamp, stamp),
+    ).fetchall()
+    db.executemany(
+        """
+        INSERT OR IGNORE INTO resident_bulletin_delivery(
+          bulletin_id,tenant_id,company_id,user_id,sent_at,read_at,read_context_id
+        ) VALUES(?,?,?,?,?,NULL,NULL)
+        """,
+        [(bulletin_id, company["tenant_id"], company_id, user["user_id"], stamp) for bulletin_id in bulletin_ids for user in users],
+    )
+
+
+def resident_bulletin_view(item: dict[str, Any], read_at: str | None = None) -> dict[str, Any]:
+    return {
+        "id": str(item.get("id", "")),
+        "date": str(item.get("date", "")),
+        "title": str(item.get("fileName") or item.get("title") or "Boletín"),
+        "detail": str(item.get("detail", "")),
+        "fileName": str(item.get("fileName", "")),
+        "fileSize": int(item.get("fileSize", 0) or 0),
+        "status": "PUBLISHED",
+        "readAt": read_at,
+    }
+
+
+@app.get("/api/v1/resident/bulletins")
+def list_resident_bulletins(context_id: str, request: Request):
+    context = resolve_resident_context(request_actor_id(request), context_id)
+    items, version = portal_bulletins(context["company_id"])
+    with connection() as db:
+        sync_bulletin_deliveries(db, context["company_id"], items)
+        reads = {
+            row["bulletin_id"]: row["read_at"]
+            for row in db.execute(
+                "SELECT bulletin_id,read_at FROM resident_bulletin_delivery WHERE company_id=? AND user_id=?",
+                (context["company_id"], request_actor_id(request)),
+            ).fetchall()
+        }
+    return success(request, [resident_bulletin_view(item, reads.get(str(item.get("id", "")))) for item in items], {
+        "contextId": context_id,
+        "version": version,
+        "companyId": context["company_id"],
+    })
+
+
+@app.post("/api/v1/resident/bulletins/{bulletin_id}/read")
+def mark_resident_bulletin_read(bulletin_id: str, context_id: str, request: Request):
+    actor_id = request_actor_id(request)
+    context = resolve_resident_context(actor_id, context_id)
+    items, _ = portal_bulletins(context["company_id"])
+    item = next((entry for entry in items if str(entry.get("id", "")) == bulletin_id), None)
+    if not item:
+        raise HTTPException(404, detail={"code": "BULLETIN_NOT_FOUND", "message": "El documento ya no está publicado."})
+    stamp = utc_now()
+    with connection() as db:
+        sync_bulletin_deliveries(db, context["company_id"], items, stamp)
+        delivery = db.execute(
+            "SELECT read_at FROM resident_bulletin_delivery WHERE bulletin_id=? AND company_id=? AND user_id=?",
+            (bulletin_id, context["company_id"], actor_id),
+        ).fetchone()
+        if not delivery:
+            raise HTTPException(403, detail={"code": "BULLETIN_DELIVERY_DENIED", "message": "El documento no fue enviado a este usuario."})
+        read_at = delivery["read_at"] or stamp
+        db.execute(
+            "UPDATE resident_bulletin_delivery SET read_at=?,read_context_id=? WHERE bulletin_id=? AND company_id=? AND user_id=? AND read_at IS NULL",
+            (read_at, context_id, bulletin_id, context["company_id"], actor_id),
+        )
+        audit(
+            db, "MOB-BOL-04", bulletin_id, "resident.bulletin.read",
+            {"context_id": context_id, "tenant_id": context["tenant_id"], "company_id": context["company_id"]},
+            context["company_id"], actor_id,
+        )
+    return success(request, resident_bulletin_view(item, read_at), {"contextId": context_id})
+
+
+@app.get("/api/v1/admin/resident/bulletins/{bulletin_id}/delivery")
+def resident_bulletin_delivery_detail(bulletin_id: str, request: Request):
+    if request_actor_role(request) == "GROUP_ADMIN":
+        raise HTTPException(403, detail={"code": "GROUP_ADMIN_BULLETIN_DENIED", "message": "El Administrador de Grupo no puede consultar lecturas operativas."})
+    company_id = request_company_id(request)
+    items, _ = portal_bulletins(company_id)
+    item = next((entry for entry in items if str(entry.get("id", "")) == bulletin_id), None)
+    if not item:
+        raise HTTPException(404, detail={"code": "BULLETIN_NOT_FOUND", "message": "El documento no está publicado en esta empresa."})
+    with connection() as db:
+        sync_bulletin_deliveries(db, company_id, items)
+        rows = db.execute(
+            """
+            SELECT d.user_id,u.name,u.email,d.sent_at,d.read_at
+            FROM resident_bulletin_delivery d
+            JOIN platform_user u ON u.id=d.user_id
+            WHERE d.company_id=? AND d.bulletin_id=?
+            ORDER BY u.name,u.email
+            """,
+            (company_id, bulletin_id),
+        ).fetchall()
+    recipients = [{"userId": row["user_id"], "name": row["name"], "email": row["email"], "sentAt": row["sent_at"], "readAt": row["read_at"]} for row in rows]
+    read_count = sum(1 for recipient in recipients if recipient["readAt"])
+    return success(request, {
+        "bulletinId": bulletin_id,
+        "fileName": str(item.get("fileName") or item.get("title") or "Boletín"),
+        "sentCount": len(recipients),
+        "readCount": read_count,
+        "pendingCount": len(recipients) - read_count,
+        "recipients": recipients,
+    })
+
+
+def resident_alarm_view(row: Any) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "ownerName": row["owner_name"],
+        "propertyName": row["property_name"],
+        "activatedAt": row["activated_at"],
+        "message": f'ALARMA - Propietario {row["owner_name"]} ({row["property_name"]})',
+    }
+
+
+@app.post("/api/v1/resident/alarm", status_code=status.HTTP_201_CREATED)
+def activate_resident_alarm(context_id: str, request: Request):
+    actor_id = request_actor_id(request)
+    context = resolve_resident_context(actor_id, context_id)
+    with connection() as db:
+        actor = db.execute("SELECT name FROM platform_user WHERE id=? AND status='ACTIVE'", (actor_id,)).fetchone()
+        if not actor:
+            raise HTTPException(401, detail={"code": "ACTOR_NOT_AUTHENTICATED", "message": "El usuario no tiene una sesión activa."})
+        alarm_id = str(uuid.uuid4())
+        activated_at = utc_now()
+        property_name = str(context.get("unit_label") or context.get("condominium_label") or "Inmueble")
+        db.execute(
+            """
+            INSERT INTO resident_alarm(id,tenant_id,company_id,user_id,context_id,owner_name,property_name,activated_at,resolved_at)
+            VALUES(?,?,?,?,?,?,?,?,NULL)
+            """,
+            (alarm_id, context["tenant_id"], context["company_id"], actor_id, context_id, actor["name"], property_name, activated_at),
+        )
+        row = db.execute("SELECT * FROM resident_alarm WHERE id=?", (alarm_id,)).fetchone()
+        audit(
+            db, "MOB-ALARM", alarm_id, "resident.alarm.activated",
+            {"context_id": context_id, "tenant_id": context["tenant_id"], "company_id": context["company_id"], "property_name": property_name},
+            context["company_id"], actor_id,
+        )
+    return success(request, resident_alarm_view(row), {"contextId": context_id})
+
+
+@app.get("/api/v1/admin/resident/alarm")
+def active_resident_alarm(request: Request):
+    company_id = request_company_id(request)
+    if request_actor_role(request) == "GROUP_ADMIN":
+        raise HTTPException(403, detail={"code": "GROUP_ADMIN_ALARM_DENIED", "message": "El Administrador de Grupo no puede consultar alarmas operativas."})
+    with connection() as db:
+        row = db.execute(
+            "SELECT * FROM resident_alarm WHERE company_id=? AND resolved_at IS NULL ORDER BY activated_at DESC LIMIT 1",
+            (company_id,),
+        ).fetchone()
+    return success(request, resident_alarm_view(row) if row else None, {"companyId": company_id})
 
 
 @app.post("/api/v1/session/keepalive")
@@ -1211,6 +1651,14 @@ def write_client_state(payload: ClientStateUpdate, request: Request):
                     )
                 except (TypeError, ValueError):
                     raise HTTPException(422, detail={"code": "INVALID_COMPANY_SETTINGS", "message": "La configuración de la compañía no contiene JSON válido."})
+            if key == PORTAL_BULLETIN_STORAGE_KEY:
+                try:
+                    bulletin_items = json.loads(value)
+                    if not isinstance(bulletin_items, list):
+                        raise ValueError
+                    sync_bulletin_deliveries(db, company_id, bulletin_items, stamp)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    raise HTTPException(422, detail={"code": "INVALID_BULLETIN_STATE", "message": "El boletín no contiene JSON válido."})
         if payload.removed:
             db.executemany(
                 "DELETE FROM client_state WHERE company_id=? AND storage_key=?",

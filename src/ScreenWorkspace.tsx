@@ -236,7 +236,7 @@ export function ScreenWorkspace({screen,children}:ScreenWorkspaceProps){
       setHasNativeSearch(nativeSearch)
       if(tables.length&&!documentEditorOpen){
         actionsHost=root.querySelector<HTMLElement>('[data-runtime-table-tools]')
-        const header=title?.closest<HTMLElement>('.screen-header,.config-header,.hr-header,.personal-header,header')??title?.parentElement
+        const header=title?.closest<HTMLElement>('.screen-header,.page-header,.config-header,.hr-header,.personal-header,header')??title?.parentElement
         const buttons=header?Array.from(header.querySelectorAll<HTMLButtonElement>('button')):[]
         const newButton=buttons.find(button=>/\b(nuevo|nueva|crear|agregar|registrar)\b/i.test(button.textContent??''))
         if(newButton){newButton.classList.add('runtime-standard-primary');newButton.parentElement?.classList.add('runtime-standard-actions')}

@@ -198,7 +198,7 @@ function CustomerAdvanceCrossingAnnulmentManager({ screen, context }: { screen: 
     }, ...vouchers]))
 
     persistDrafts(drafts.filter(row => row.id !== editingId)); setFormOpen(false); setEditingId(null)
-    setMessage(`La anulación ${number} fue generada. Las Expensas/Facturas y los Anticipos quedaron libres para utilizarse nuevamente.`)
+    setMessage(`La anulación ${number} fue generada. Las Facturas y los Anticipos quedaron libres para utilizarse nuevamente.`)
     window.open(`/vista-previa/anulaciones-cruce-anticipos-clientes/${encodeURIComponent(annulmentId)}`, '_blank', 'noopener,noreferrer')
   }
 

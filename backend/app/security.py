@@ -222,6 +222,9 @@ def verify_session_token(token: str, now: int | None = None) -> dict[str, Any] |
         encoded, supplied_signature = token.split(".", 1)
         expected = hmac.new(session_key(), encoded.encode("ascii"), hashlib.sha256).digest()
         signature = base64.urlsafe_b64decode(supplied_signature + "=" * (-len(supplied_signature) % 4))
+        canonical_signature = base64.urlsafe_b64encode(signature).decode("ascii").rstrip("=")
+        if not hmac.compare_digest(canonical_signature, supplied_signature):
+            return None
         if not hmac.compare_digest(expected, signature):
             return None
         payload = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))

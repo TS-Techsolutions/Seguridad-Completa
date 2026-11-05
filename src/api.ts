@@ -1,5 +1,22 @@
 import type { Catalog, Context, Overview, PlatformCompany, PlatformCompanyCreate, PlatformCompanyGroup, PlatformCompanyGroupCreate, RecordItem } from './types'
 
+export type BulletinDeliveryDetail = {
+  bulletinId: string
+  fileName: string
+  sentCount: number
+  readCount: number
+  pendingCount: number
+  recipients: Array<{ userId: string; name: string; email: string; sentAt: string; readAt: string | null }>
+}
+
+export type ResidentAlarm = {
+  id: string
+  ownerName: string
+  propertyName: string
+  activatedAt: string
+  message: string
+}
+
 export const activeCompanyStorageKey = 'saga.activeCompanyId'
 
 function contextHeaders() {
@@ -50,4 +67,6 @@ export const api = {
   updateCompanyStatus: (companyId:string,status:'ACTIVE'|'SUSPENDED') => request<PlatformCompany>(`/platform/companies/${encodeURIComponent(companyId)}/status`, {method:'PATCH',body:JSON.stringify({status})}),
   companyGroups: () => request<PlatformCompanyGroup[]>('/platform/company-groups'),
   createCompanyGroup: (values:PlatformCompanyGroupCreate) => request<PlatformCompanyGroup>('/platform/company-groups', {method:'POST',body:JSON.stringify(values)}),
+  bulletinDelivery: (bulletinId:string) => request<BulletinDeliveryDetail>(`/admin/resident/bulletins/${encodeURIComponent(bulletinId)}/delivery`),
+  activeResidentAlarm: () => request<ResidentAlarm | null>('/admin/resident/alarm'),
 }

@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from app.main import ACTOR_ID, COMPANY_ID, ClientStateUpdate, CompanyGroupCreate, PasswordRecoveryConfirmRequest, PasswordRecoveryRequest, PlatformCompanyCreate, RecordCreate, SessionLoginRequest, all_menu_nodes, all_screens, authorize_screen, catalog, confirm_password_recovery, create_company_group, create_platform_company, create_record, ensure_seeded, human_talent_catalog, list_company_groups, list_platform_companies, list_records, manifest, personal_information_catalog, read_client_state, request_password_recovery, security_general_catalog, session_companies, session_login, session_logout, validate_request_access, write_client_state
+from app.main import ACTOR_ID, COMPANY_ID, ClientStateUpdate, CompanyGroupCreate, MobileSessionLoginRequest, PasswordRecoveryConfirmRequest, PasswordRecoveryRequest, PlatformCompanyCreate, RecordCreate, SessionLoginRequest, activate_resident_alarm, active_resident_alarm, all_menu_nodes, all_screens, authenticate_mobile_token, authorize_screen, catalog, clients_catalog, confirm_password_recovery, create_company_group, create_platform_company, create_record, ensure_seeded, human_talent_catalog, list_company_groups, list_platform_companies, list_records, list_resident_bulletins, manifest, mark_resident_bulletin_read, personal_information_catalog, read_client_state, request_password_recovery, resident_bootstrap, resident_bulletin_delivery_detail, resident_session_login, security_general_catalog, session_companies, session_login, session_logout, validate_request_access, write_client_state
 from app.security import ENCRYPTED_PREFIX, PASSWORD_RECOVERY_TTL_SECONDS, SESSION_TTL_SECONDS, SecurityConfigurationError, create_session_token, decrypt_value, hash_password, verify_password, verify_session_token
 from app.store import DB_PATH, connection, initialize
 
@@ -26,11 +27,30 @@ def request(company_id: str = COMPANY_ID, actor_id: str = ACTOR_ID) -> Request:
     return value
 
 
+def resident_request(actor_id: str = "usr-admin") -> Request:
+    value = request("", actor_id)
+    value.state.mobile_session_id = "pytest-mobile-session"
+    return value
+
+
 def test_contract_contains_101_unique_screens_and_routes():
     screens = manifest()["pantallas"]
     assert len(screens) == 101
     assert len({screen["id"] for screen in screens}) == 101
     assert len({screen["ruta_react"] for screen in screens}) == 101
+
+
+def test_seeded_jeche_user_is_platform_superadministrator():
+    with connection() as db:
+        actor = db.execute(
+            "SELECT username,email,role,status,password_hash FROM platform_user WHERE username=?",
+            ("jeche",),
+        ).fetchone()
+    assert actor is not None
+    assert actor["email"] == "jeche@empresa.com"
+    assert actor["role"] == "PLATFORM_ADMIN"
+    assert actor["status"] == "ACTIVE"
+    assert verify_password("jeche123", actor["password_hash"])
 
 
 def test_corrected_menu_contains_nine_roots_in_excel_order():
@@ -54,6 +74,14 @@ def test_human_talent_is_copied_after_tax_module():
     assert roots[roots.index("Talento Humano") + 1] == "Información Personal"
 
 
+def test_clients_module_is_copied_from_security():
+    screens = clients_catalog()["screens"]
+    assert [screen["titulo_original"] for screen in screens] == ["Clientes", "Estado de Cuentas"]
+    assert [screen["ruta_react"] for screen in screens] == ["/clientes", "/clientes/estado-cuentas"]
+    roots = [node["label"] for node in all_menu_nodes() if node["level"] == 0]
+    assert roots[0] == "Clientes"
+
+
 def test_personal_information_is_copied_without_schedule():
     screens = personal_information_catalog()["screens"]
     assert [screen["titulo_original"] for screen in screens] == ["Mi Perfil", "Novedades", "Vacaciones", "Roles de Pago", "Mi Historial"]
@@ -66,7 +94,25 @@ def test_personal_information_is_copied_without_schedule():
 
 def test_receivables_and_payables_are_before_accounting():
     roots = [node["label"] for node in all_menu_nodes() if node["level"] == 0]
-    assert roots[:5] == ["Administración Inmuebles", "Email", "CxC", "CxP", "Contabilidad"]
+    assert roots[:4] == ["Clientes", "CxC", "CxP", "Contabilidad"]
+
+
+def test_email_is_nested_in_receivables_after_withholdings():
+    nodes = all_menu_nodes()
+    cxc = next(node for node in nodes if node["level"] == 0 and node["label"] == "CxC")
+    children = sorted((node for node in nodes if node["parent_id"] == cxc["node_id"]), key=lambda node: node["order"])
+    labels = [node["label"] for node in children]
+    assert labels[labels.index("Retenciones") + 1] == "Email"
+    email = next(node for node in children if node["label"] == "Email")
+    email_screens = [node for node in nodes if node["parent_id"] == email["node_id"]]
+    assert [node["screen_id"] for node in email_screens] == ["XLS-014", "XLS-015"]
+    assert all(node["breadcrumb"][:2] == ["CxC", "Email"] for node in [email, *email_screens])
+    assert all(screen["id"] not in {"XLS-012", "XLS-013"} for screen in all_screens())
+
+
+def test_property_management_module_is_not_exposed():
+    assert all(screen.get("modulo") != "Administración Inmuebles" for screen in all_screens())
+    assert all(node["breadcrumb"][0] != "Administración Inmuebles" for node in all_menu_nodes())
 
 
 def test_security_general_configuration_screens_are_copied_into_existing_module():
@@ -77,7 +123,7 @@ def test_security_general_configuration_screens_are_copied_into_existing_module(
     assert len(configuration_nodes) == 7
     assert configuration_nodes[0]["screen_id"] == "SEC-004"
     assert all(node["screen_id"] != "XLS-100" for node in configuration_nodes)
-    assert len(all_screens()) == 145
+    assert len(all_screens()) == 135
     assert all(screen["id"] not in {"XLS-002", "XLS-100"} for screen in all_screens())
     assert all(node.get("screen_id") != "XLS-002" for node in all_menu_nodes())
 
@@ -204,6 +250,79 @@ def test_password_hash_is_salted_and_default_admin_can_authenticate():
     with pytest.raises(HTTPException) as denied:
         session_login(SessionLoginRequest(identifier="admin", password="incorrecta"), request())
     assert denied.value.status_code == 401
+
+
+def test_portal_publishes_mobile_reads_and_web_reports_delivery_once_per_user():
+    login = resident_session_login(
+        MobileSessionLoginRequest(identifier="admin", password="admin", device_label="pytest"),
+        resident_request(),
+    )["data"]
+    authenticated = authenticate_mobile_token(login["accessToken"])
+    assert authenticated and authenticated["user_id"] == "usr-admin"
+
+    bootstrap = resident_bootstrap(resident_request())["data"]
+    assert [item["contextId"] for item in bootstrap["contexts"]] == ["ctx-demo-a101-admin"]
+    assert bootstrap["contexts"][0]["company"]["id"] == COMPANY_ID
+
+    bulletin = {"id": "bulletin-contract-1", "date": "05/11/2026", "fileName": "Circular de prueba.pdf", "fileSize": 1024, "detail": "Publicada desde el portal web."}
+    with connection() as db:
+        db.execute(
+            "INSERT OR IGNORE INTO resident_membership(id,tenant_id,company_id,user_id,condominium_id,condominium_label,unit_id,unit_label,role,status,valid_from,valid_until,created_at) VALUES(?,?,?,?,?,?,?,?,?,'ACTIVE',?,NULL,?)",
+            ("ctx-demo-a102-admin", "tenant-demo-saga", COMPANY_ID, "usr-admin", "cond-demo", "Condominio Demo", "unit-a102", "A-102", "OWNER", "2026-11-01T00:00:00+00:00", "2026-11-01T00:00:00+00:00"),
+        )
+    write_client_state(ClientStateUpdate(entries={"saga.bulletin-documents": json.dumps([bulletin])}), request(COMPANY_ID, "usr-admin"))
+    listed = list_resident_bulletins("ctx-demo-a101-admin", resident_request())["data"]
+    assert listed[0]["id"] == bulletin["id"]
+    assert listed[0]["readAt"] is None
+    before = resident_bulletin_delivery_detail(bulletin["id"], request(COMPANY_ID, "usr-admin"))["data"]
+    assert (before["sentCount"], before["readCount"], before["pendingCount"]) == (1, 0, 1)
+    read = mark_resident_bulletin_read(bulletin["id"], "ctx-demo-a101-admin", resident_request())["data"]
+    assert read["readAt"]
+    after = resident_bulletin_delivery_detail(bulletin["id"], request(COMPANY_ID, "usr-admin"))["data"]
+    assert (after["sentCount"], after["readCount"], after["pendingCount"]) == (1, 1, 0)
+
+
+def test_mobile_alarm_uses_authenticated_owner_and_company_context():
+    alarm = activate_resident_alarm("ctx-demo-a101-admin", resident_request())["data"]
+    assert alarm["ownerName"] == "Administrador"
+    assert alarm["propertyName"] == "A-101"
+    assert alarm["message"] == "ALARMA - Propietario Administrador (A-101)"
+    visible = active_resident_alarm(request(COMPANY_ID, "usr-admin"))["data"]
+    assert visible["id"] == alarm["id"]
+    with connection() as db:
+        stored = db.execute("SELECT tenant_id,company_id,user_id,context_id FROM resident_alarm WHERE id=?", (alarm["id"],)).fetchone()
+    assert dict(stored) == {"tenant_id": "tenant-demo-saga", "company_id": COMPANY_ID, "user_id": "usr-admin", "context_id": "ctx-demo-a101-admin"}
+
+
+def test_resident_with_properties_in_multiple_companies_remains_isolated_by_context():
+    other_tenant = "tenant-resident-multi"
+    other_company = "cmp-resident-multi"
+    other_context = "ctx-resident-multi-b202"
+    stamp = "2026-11-04T00:00:00+00:00"
+    with connection() as db:
+        db.execute("INSERT INTO tenant(id,name,plan,status,created_at) VALUES(?,?,?,?,?)", (other_tenant, "Tenant residencial", "BASE", "ACTIVE", stamp))
+        db.execute(
+            "INSERT INTO company(id,name,ruc,environment,period,tenant_id,legal_name,trade_name,email,address,phone,timezone,currency,operation_start_date,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (other_company, "Empresa residencial dos", "1791111111001", "VALIDATION", "2026-11", other_tenant, "Empresa residencial dos", "Residencial dos", "dos@test.local", "Quito", "020000011", "America/Guayaquil", "USD", "2026-11-01", "ACTIVE", stamp),
+        )
+        db.execute("INSERT INTO company_user(company_id,user_id,role) VALUES(?,?,?)", (other_company, "usr-admin", "ADMIN"))
+        db.execute(
+            "INSERT INTO resident_membership(id,tenant_id,company_id,user_id,condominium_id,condominium_label,unit_id,unit_label,role,status,valid_from,valid_until,created_at) VALUES(?,?,?,?,?,?,?,?,?,'ACTIVE',?,NULL,?)",
+            (other_context, other_tenant, other_company, "usr-admin", "cond-dos", "Condominio Dos", "unit-b202", "B-202", "ADMINISTRATOR", stamp, stamp),
+        )
+
+    contexts = resident_bootstrap(resident_request())["data"]["contexts"]
+    assert {item["company"]["id"] for item in contexts} >= {COMPANY_ID, other_company}
+    bulletin = {"id": "bulletin-company-two", "date": "05/11/2026", "fileName": "Solo empresa dos.pdf", "fileSize": 2048, "detail": "No debe aparecer en la primera empresa."}
+    write_client_state(ClientStateUpdate(entries={"saga.bulletin-documents": json.dumps([bulletin])}), request(other_company, "usr-admin"))
+    assert any(item["id"] == bulletin["id"] for item in list_resident_bulletins(other_context, resident_request())["data"])
+    assert all(item["id"] != bulletin["id"] for item in list_resident_bulletins("ctx-demo-a101-admin", resident_request())["data"])
+    with pytest.raises(HTTPException) as cross_company_detail:
+        resident_bulletin_delivery_detail(bulletin["id"], request(COMPANY_ID, "usr-admin"))
+    assert cross_company_detail.value.status_code == 404
+    with pytest.raises(HTTPException) as denied:
+        list_resident_bulletins(other_context, request("", ACTOR_ID))
+    assert denied.value.detail["code"] == "RESIDENT_CONTEXT_NOT_FOUND"
 
 
 def test_session_logout_deletes_the_session_cookie():

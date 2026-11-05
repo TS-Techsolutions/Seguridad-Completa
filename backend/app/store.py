@@ -112,6 +112,65 @@ def initialize() -> None:
               PRIMARY KEY(company_id, storage_key),
               FOREIGN KEY(company_id) REFERENCES company(id)
             );
+            CREATE TABLE IF NOT EXISTS resident_membership (
+              id TEXT PRIMARY KEY,
+              tenant_id TEXT NOT NULL,
+              company_id TEXT NOT NULL,
+              user_id TEXT NOT NULL,
+              condominium_id TEXT NOT NULL,
+              condominium_label TEXT NOT NULL,
+              unit_id TEXT,
+              unit_label TEXT,
+              role TEXT NOT NULL,
+              status TEXT NOT NULL,
+              valid_from TEXT NOT NULL,
+              valid_until TEXT,
+              created_at TEXT NOT NULL,
+              FOREIGN KEY(tenant_id) REFERENCES tenant(id),
+              FOREIGN KEY(company_id) REFERENCES company(id),
+              FOREIGN KEY(user_id) REFERENCES platform_user(id),
+              UNIQUE(company_id, user_id, condominium_id, unit_id, role)
+            );
+            CREATE TABLE IF NOT EXISTS mobile_session (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL,
+              token_hash TEXT NOT NULL UNIQUE,
+              device_label TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              revoked_at TEXT,
+              last_used_at TEXT NOT NULL,
+              FOREIGN KEY(user_id) REFERENCES platform_user(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS resident_bulletin_delivery (
+              bulletin_id TEXT NOT NULL,
+              tenant_id TEXT NOT NULL,
+              company_id TEXT NOT NULL,
+              user_id TEXT NOT NULL,
+              sent_at TEXT NOT NULL,
+              read_at TEXT,
+              read_context_id TEXT,
+              PRIMARY KEY(bulletin_id, company_id, user_id),
+              FOREIGN KEY(tenant_id) REFERENCES tenant(id),
+              FOREIGN KEY(company_id) REFERENCES company(id),
+              FOREIGN KEY(user_id) REFERENCES platform_user(id),
+              FOREIGN KEY(read_context_id) REFERENCES resident_membership(id)
+            );
+            CREATE TABLE IF NOT EXISTS resident_alarm (
+              id TEXT PRIMARY KEY,
+              tenant_id TEXT NOT NULL,
+              company_id TEXT NOT NULL,
+              user_id TEXT NOT NULL,
+              context_id TEXT NOT NULL,
+              owner_name TEXT NOT NULL,
+              property_name TEXT NOT NULL,
+              activated_at TEXT NOT NULL,
+              resolved_at TEXT,
+              FOREIGN KEY(tenant_id) REFERENCES tenant(id),
+              FOREIGN KEY(company_id) REFERENCES company(id),
+              FOREIGN KEY(user_id) REFERENCES platform_user(id),
+              FOREIGN KEY(context_id) REFERENCES resident_membership(id)
+            );
             CREATE INDEX IF NOT EXISTS idx_screen_record_company_screen
               ON screen_record(company_id, screen_id, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_audit_event_company_time
@@ -124,6 +183,66 @@ def initialize() -> None:
               ON company_group_company(group_id, company_id);
             CREATE INDEX IF NOT EXISTS idx_password_recovery_user_time
               ON password_recovery(user_id, requested_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_resident_membership_user
+              ON resident_membership(user_id, status, company_id);
+            CREATE INDEX IF NOT EXISTS idx_resident_membership_scope
+              ON resident_membership(tenant_id, company_id, condominium_id, unit_id);
+            CREATE INDEX IF NOT EXISTS idx_mobile_session_user
+              ON mobile_session(user_id, expires_at, revoked_at);
+            CREATE INDEX IF NOT EXISTS idx_bulletin_delivery_summary
+              ON resident_bulletin_delivery(company_id, bulletin_id, read_at);
+            CREATE INDEX IF NOT EXISTS idx_resident_alarm_active
+              ON resident_alarm(company_id, resolved_at, activated_at DESC);
+            CREATE TRIGGER IF NOT EXISTS trg_resident_membership_tenant_insert
+            BEFORE INSERT ON resident_membership
+            FOR EACH ROW
+            WHEN NOT EXISTS (
+              SELECT 1 FROM company c
+              WHERE c.id = NEW.company_id AND c.tenant_id = NEW.tenant_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT, 'RESIDENT_TENANT_COMPANY_MISMATCH');
+            END;
+            CREATE TRIGGER IF NOT EXISTS trg_resident_membership_tenant_update
+            BEFORE UPDATE OF tenant_id, company_id ON resident_membership
+            FOR EACH ROW
+            WHEN NOT EXISTS (
+              SELECT 1 FROM company c
+              WHERE c.id = NEW.company_id AND c.tenant_id = NEW.tenant_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT, 'RESIDENT_TENANT_COMPANY_MISMATCH');
+            END;
+            CREATE TRIGGER IF NOT EXISTS trg_bulletin_delivery_tenant_insert
+            BEFORE INSERT ON resident_bulletin_delivery
+            FOR EACH ROW
+            WHEN NOT EXISTS (
+              SELECT 1 FROM company c
+              WHERE c.id = NEW.company_id AND c.tenant_id = NEW.tenant_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT, 'BULLETIN_TENANT_COMPANY_MISMATCH');
+            END;
+            CREATE TRIGGER IF NOT EXISTS trg_bulletin_delivery_tenant_update
+            BEFORE UPDATE OF tenant_id, company_id ON resident_bulletin_delivery
+            FOR EACH ROW
+            WHEN NOT EXISTS (
+              SELECT 1 FROM company c
+              WHERE c.id = NEW.company_id AND c.tenant_id = NEW.tenant_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT, 'BULLETIN_TENANT_COMPANY_MISMATCH');
+            END;
+            CREATE TRIGGER IF NOT EXISTS trg_resident_alarm_tenant_insert
+            BEFORE INSERT ON resident_alarm
+            FOR EACH ROW
+            WHEN NOT EXISTS (
+              SELECT 1 FROM company c
+              WHERE c.id = NEW.company_id AND c.tenant_id = NEW.tenant_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT, 'ALARM_TENANT_COMPANY_MISMATCH');
+            END;
             """
         )
         existing_company_columns = {row["name"] for row in db.execute("PRAGMA table_info(company)")}
@@ -168,6 +287,14 @@ def initialize() -> None:
         default_admin = db.execute("SELECT password_hash FROM platform_user WHERE id=?", (default_admin_id,)).fetchone()
         if default_admin and not default_admin["password_hash"]:
             db.execute("UPDATE platform_user SET password_hash=? WHERE id=?", (hash_password("admin"), default_admin_id))
+        super_admin_id = "usr-platform-jeche"
+        db.execute(
+            "INSERT OR IGNORE INTO platform_user(id,username,name,email,role,status,created_at,password_hash) VALUES(?,?,?,?,?,?,?,?)",
+            (super_admin_id, "jeche", "Superusuario Jeche", "jeche@empresa.com", "PLATFORM_ADMIN", "ACTIVE", stamp, hash_password("jeche123")),
+        )
+        super_admin = db.execute("SELECT password_hash FROM platform_user WHERE id=?", (super_admin_id,)).fetchone()
+        if super_admin and not super_admin["password_hash"]:
+            db.execute("UPDATE platform_user SET password_hash=? WHERE id=?", (hash_password("jeche123"), super_admin_id))
         db.execute(
             "INSERT OR IGNORE INTO company(id,name,ruc,environment,period,tenant_id,legal_name,trade_name,email,address,phone,timezone,currency,operation_start_date,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (company_id, "Grupo SAGA Demo Cía. Ltda.", "1790012345001", "VALIDATION", "2026-10", tenant_id, "Grupo SAGA Demo Cía. Ltda.", "SAGA Demo", "prueba@hotmail.com", "Quito, Ecuador", "02 400 0000", "America/Guayaquil", "USD", "2026-10-01", "ACTIVE", stamp),
@@ -180,6 +307,19 @@ def initialize() -> None:
         db.execute("INSERT OR IGNORE INTO company_user(company_id,user_id,role) VALUES(?,?,?)", (company_id, admin_id, "ADMIN"))
         db.execute("INSERT OR IGNORE INTO tenant_user(tenant_id,user_id,role) VALUES(?,?,?)", (tenant_id, default_admin_id, "ADMIN"))
         db.execute("INSERT OR IGNORE INTO company_user(company_id,user_id,role) VALUES(?,?,?)", (company_id, default_admin_id, "ADMIN"))
+        db.execute(
+            """
+            INSERT OR IGNORE INTO resident_membership(
+              id,tenant_id,company_id,user_id,condominium_id,condominium_label,
+              unit_id,unit_label,role,status,valid_from,valid_until,created_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,'ACTIVE',?,NULL,?)
+            """,
+            (
+                "ctx-demo-a101-admin", tenant_id, company_id, default_admin_id,
+                "cond-demo-centro", "Condominio SAGA Centro", "unit-demo-a101", "A-101",
+                "ADMINISTRATOR", stamp, stamp,
+            ),
+        )
         for code, state, reason in [
             ("ACCOUNTING_CORE", "ENABLED", "Paquete base de validación"),
             ("PROPERTY_MANAGEMENT", "ENABLED", "Extensión habilitada para validación")

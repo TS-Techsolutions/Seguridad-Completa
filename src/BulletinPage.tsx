@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
-import { CheckCircle2, ChevronRight, FileText, Trash2, UploadCloud } from 'lucide-react'
+import { CheckCircle2, ChevronRight, Eye, FileText, Trash2, UploadCloud, X } from 'lucide-react'
 import type { ScreenSpec } from './types'
+import { api, type BulletinDeliveryDetail } from './api'
 
 type BulletinDocument = {
   id: string
@@ -42,6 +43,8 @@ export function BulletinPage({ screen }: { screen: ScreenSpec }) {
   const [documents, setDocuments] = useState<BulletinDocument[]>(readDocuments)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [delivery, setDelivery] = useState<BulletinDeliveryDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0] ?? null
@@ -88,6 +91,18 @@ export function BulletinPage({ screen }: { screen: ScreenSpec }) {
     localStorage.setItem(storageKey, JSON.stringify(next))
     setError('')
     setMessage('El documento dejó de publicarse.')
+  }
+
+  const showDelivery = async (document: BulletinDocument) => {
+    setDetailLoading(true)
+    setError('')
+    try {
+      setDelivery(await api.bulletinDelivery(document.id))
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudo consultar el detalle de lectura.')
+    } finally {
+      setDetailLoading(false)
+    }
   }
 
   return (
@@ -171,7 +186,10 @@ export function BulletinPage({ screen }: { screen: ScreenSpec }) {
                   <td><span className="bulletin-file-name"><FileText />{document.fileName}<small>{formatSize(document.fileSize)}</small></span></td>
                   <td>{document.detail}</td>
                   <td><span className="bulletin-status">Publicado</span></td>
-                  <td className="bulletin-row-actions"><button type="button" className="bulletin-delete" title="Dejar de publicar" aria-label={`Dejar de publicar ${document.fileName}`} onClick={() => stopPublishing(document)}><Trash2 /></button></td>
+                  <td className="bulletin-row-actions">
+                    <button type="button" className="bulletin-detail-button" disabled={detailLoading} onClick={() => void showDelivery(document)}><Eye />Detalle</button>
+                    <button type="button" className="bulletin-delete" title="Dejar de publicar" aria-label={`Dejar de publicar ${document.fileName}`} onClick={() => stopPublishing(document)}><Trash2 /></button>
+                  </td>
                 </tr>
               ))}
               {!documents.length && <tr><td colSpan={5} className="bulletin-empty">No hay archivos publicados.</td></tr>}
@@ -179,6 +197,29 @@ export function BulletinPage({ screen }: { screen: ScreenSpec }) {
           </table>
         </div>
       </section>
+      {delivery && (
+        <div className="bulletin-modal-backdrop" role="presentation" onMouseDown={() => setDelivery(null)}>
+          <section className="bulletin-modal" role="dialog" aria-modal="true" aria-labelledby="bulletin-delivery-title" onMouseDown={(event) => event.stopPropagation()}>
+            <button type="button" className="bulletin-modal-close" aria-label="Cerrar detalle" onClick={() => setDelivery(null)}><X /></button>
+            <span className="bulletin-modal-kicker">Seguimiento de lectura</span>
+            <h2 id="bulletin-delivery-title">{delivery.fileName}</h2>
+            <div className="bulletin-metrics">
+              <div><strong>{delivery.sentCount}</strong><span>Usuarios enviados</span></div>
+              <div className="read"><strong>{delivery.readCount}</strong><span>Lecturas confirmadas</span></div>
+              <div className="pending"><strong>{delivery.pendingCount}</strong><span>Pendientes</span></div>
+            </div>
+            <div className="bulletin-recipients">
+              {delivery.recipients.map((recipient) => (
+                <div key={recipient.userId} className="bulletin-recipient">
+                  <span><strong>{recipient.name}</strong><small>{recipient.email}</small></span>
+                  <b className={recipient.readAt ? 'confirmed' : 'pending'}>{recipient.readAt ? 'Leído' : 'Pendiente'}</b>
+                </div>
+              ))}
+              {!delivery.recipients.length && <p>No hay usuarios residenciales activos para este documento.</p>}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

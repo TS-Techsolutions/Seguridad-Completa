@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Fragment, Suspense, lazy, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -12,8 +12,6 @@ import type { Catalog, MenuNode, PlatformCompany, RecordItem, ScreenSpec } from 
 import { SecurityConfigurationPage } from './SecurityConfiguration'
 import { SidebarUserAccount } from './UserAccount'
 import { requestSessionLogout } from './SessionGate'
-import { PersonalInformationPage } from './PersonalInformationComplete'
-import { HumanTalentPage } from './HumanTalent'
 import { SectionPage } from './SectionPage'
 import { PropertyDetailPageV2 } from './PropertyDetailPageV2'
 import { PropertyOwnerSummaryPage } from './PropertyOwnerSummaryPage'
@@ -105,6 +103,7 @@ const rootIcons:Record<string,typeof Archive>={
   Bancos:Landmark,
   Tributación:FileCheck2,
   'Talento Humano':BriefcaseBusiness,
+  Clientes:Building2,
   'Información Personal':UserRound,
   'Configuración General':Settings2,
 }
@@ -113,7 +112,8 @@ const legacyFavoritesKey='saga.favoriteScreens'
 const workspaceTabsKey='saga.workspaceTabs'
 const sidebarCollapsedKey='saga.sidebarCollapsed'
 const maximumWorkspaceTabs=12
-const hiddenScreenIds=new Set(['XLS-002','XLS-022','XLS-023','XLS-024','XLS-066','XLS-078','XLS-079','XLS-100'])
+const PayrollSuite=lazy(()=>import('./PayrollSuite'))
+const hiddenScreenIds=new Set(['XLS-002','XLS-012','XLS-013','XLS-022','XLS-023','XLS-024','XLS-066','XLS-078','XLS-079','XLS-100'])
 const structureScreenTitle='Definición de Estructura'
 const ownerSummaryScreenTitle='Resumen de Propietarios'
 const waterMeterReadingScreenId='AI-EXP-010'
@@ -156,16 +156,6 @@ const structureTypesScreen:ScreenSpec={
   ruta_react:'/configuracion-general/tipos-de-estructura',
   objetivo:'',diseno_visible:'',filtros_campos:[],columnas:['Tipo','Estado'],acciones:[],pasos_proceso:[],validaciones:[],
   paquete:'SECURITY',modulo:'Configuración General',impacto_datos_contables:'',pruebas_ids:[],
-}
-const waterExpenseEmailTemplateScreen:ScreenSpec={
-  id:'AI-EMAIL-WATER-001',
-  titulo_original:'Modificar Email Exp. Agua',
-  texto_original:'Modificar Email Exp. Agua',
-  ruta_original:'Email > Modificar Email Exp. Agua',
-  ruta_react:'/email/modificar-email-exp-agua',
-  objetivo:'Configurar el asunto, cuerpo y correos de copia de la plantilla utilizada para enviar expensas de agua.',
-  diseno_visible:'',filtros_campos:[],columnas:[],acciones:[],pasos_proceso:[],validaciones:[],
-  paquete:'PROPERTY_MANAGEMENT',modulo:'Email',impacto_datos_contables:'',pruebas_ids:[],
 }
 const bankDepositEntryScreen:ScreenSpec={
   id:'AI-BANK-DEPOSIT-ENTRY-001',titulo_original:'Ingreso de Depósito',texto_original:'Ingreso de Depósito',
@@ -243,6 +233,10 @@ function customizeCatalog(data:Catalog):Catalog{
     'XLS-045':'Anticipos Proveedores',
   }
   data={...data,
+    screens:data.screens.filter(screen=>screen.modulo!=='Administración Inmuebles'),
+    menu:data.menu.filter(node=>node.breadcrumb[0]!=='Administración Inmuebles'),
+  }
+  data={...data,
     screens:data.screens.map(screen=>renamedLoadScreens[screen.id]
       ? {...screen,titulo_original:renamedLoadScreens[screen.id],texto_original:renamedLoadScreens[screen.id],ruta_original:[...screen.ruta_original.split(' > ').slice(0,-1),renamedLoadScreens[screen.id]].join(' > ')}
       : screen.id==='XLS-086'
@@ -281,7 +275,6 @@ function customizeCatalog(data:Catalog):Catalog{
   const financialVoucherChildren=financialVouchersNode?data.menu.filter(node=>node.parent_id===financialVouchersNode.node_id):[]
   const lastFinancialVoucherOrder=financialVoucherChildren.length?Math.max(...financialVoucherChildren.map(node=>node.order))+1:1
   const generalConfigurationNode=data.menu.find(node=>node.level===0&&node.label==='Configuración General')
-  const emailNode=data.menu.find(node=>node.level===0&&node.label==='Email')
   const cxcReportsNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='CxC > Reportes')
   const banksNode=data.menu.find(node=>node.level===0&&node.label==='Bancos')
   const bankDepositsNode=data.menu.find(node=>node.type==='group'&&node.breadcrumb.join(' > ')==='Bancos > Depósitos')
@@ -293,7 +286,6 @@ function customizeCatalog(data:Catalog):Catalog{
   const lastCxcReportOrder=cxcReportChildren.length?Math.max(...cxcReportChildren.map(node=>node.order))+1:0
   const bankDepositChildren=bankDepositsNode?data.menu.filter(node=>node.parent_id===bankDepositsNode.node_id):[]
   const firstBankDepositOrder=bankDepositChildren.length?Math.min(...bankDepositChildren.map(node=>node.order))-1:0
-  const extraordinaryExpenseEmailNode=data.menu.find(node=>node.parent_id===emailNode?.node_id&&node.screen_id==='XLS-013')
   const companyNode=data.menu.find(node=>node.parent_id===generalConfigurationNode?.node_id&&node.screen_id==='SEC-004')
   const permissionsNode=data.menu.find(node=>node.parent_id===generalConfigurationNode?.node_id&&node.screen_id==='SEC-003')
   const firstConfigurationOrder=generalConfigurationNode?Math.min(...data.menu.filter(node=>node.parent_id===generalConfigurationNode.node_id).map(node=>node.order))-1:0
@@ -337,12 +329,6 @@ function customizeCatalog(data:Catalog):Catalog{
     breadcrumb:structureTypesScreen.ruta_original.split(' > '),type:'screen',screen_id:structureTypesScreen.id,
     route:structureTypesScreen.ruta_react,package:'SECURITY',
   }]:[]
-  const waterExpenseEmailTemplateMenu:MenuNode[]=emailNode?[{
-    node_id:'CUSTOM-AI-EMAIL-WATER-001',label:waterExpenseEmailTemplateScreen.titulo_original,level:emailNode.level+1,
-    parent_id:emailNode.node_id,order:(extraordinaryExpenseEmailNode?.order??emailNode.order)+.5,
-    breadcrumb:waterExpenseEmailTemplateScreen.ruta_original.split(' > '),type:'screen',screen_id:waterExpenseEmailTemplateScreen.id,
-    route:waterExpenseEmailTemplateScreen.ruta_react,package:'PROPERTY_MANAGEMENT',
-  }]:[]
   const bankDepositEntryMenu:MenuNode[]=bankDepositsNode?[{
     node_id:'CUSTOM-AI-BANK-DEPOSIT-ENTRY-001',label:bankDepositEntryScreen.titulo_original,level:bankDepositsNode.level+1,
     parent_id:bankDepositsNode.node_id,order:firstBankDepositOrder,breadcrumb:bankDepositEntryScreen.ruta_original.split(' > '),
@@ -370,8 +356,8 @@ function customizeCatalog(data:Catalog):Catalog{
     route:documentSequencesScreen.ruta_react,package:'ACCOUNTING_CORE',
   }]:[]
   return {...data,
-    screens:[...data.screens.filter(screen=>!hiddenScreenIds.has(screen.id)).map(screen=>{let moved=['XLS-039','XLS-040'].includes(screen.id)?{...screen,modulo:'CxP',ruta_original:`CxP > Caja Chica > ${screen.titulo_original}`}:screen;if(screen.ruta_original.startsWith('Tributación > '))moved={...moved,modulo:'Contabilidad',ruta_original:`Contabilidad > ${screen.ruta_original}`};return moved.id==='XLS-001'?{...moved,titulo_original:structureScreenTitle,texto_original:structureScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),structureScreenTitle].join(' > ')}:moved.id==='XLS-006'?{...moved,titulo_original:ownerSummaryScreenTitle,texto_original:ownerSummaryScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),ownerSummaryScreenTitle].join(' > ')}:moved}),...additionalScreens,advanceTypesScreen,accountingAccountAssignmentScreen,vatConfigurationScreen,structureTypesScreen,waterExpenseEmailTemplateScreen,bankDepositEntryScreen,cxcTrackingScreen,checkDesignScreen,accountingVoucherSummaryScreen,documentSequencesScreen],
-    menu:[...data.menu.filter(node=>node.node_id!==legacyDocumentSequencesNode?.node_id&&(!node.screen_id||!hiddenScreenIds.has(node.screen_id))).map(node=>{let moved=node;if(companyNode&&node.node_id===companyNode.node_id)moved={...moved,order:firstConfigurationOrder};if(financialPlanNode&&financialVouchersNode&&node.node_id===financialVouchersNode.node_id)moved={...moved,order:financialPlanNode.order-.5};if(cxcReportsNode&&node.parent_id===cxcReportsNode.node_id&&node.screen_id==='XLS-081')moved={...moved,order:firstCxcReportOrder};if(bankExpensesNode&&bankChecksNode&&node.node_id===bankExpensesNode.node_id)moved={...moved,order:bankChecksNode.order-.5};if(cxpNode&&pettyCashNode&&node.node_id===pettyCashNode.node_id)moved={...node,parent_id:cxpNode.node_id,level:1,order:(advancesNode?.order??71)+.5,breadcrumb:['CxP','Caja Chica']};else if(pettyCashNode&&node.breadcrumb[0]==='Caja Chica')moved={...node,level:node.level+1,breadcrumb:['CxP',...node.breadcrumb]};if(accountingNode&&taxationNode&&node.node_id===taxationNode.node_id)moved={...moved,parent_id:accountingNode.node_id,level:1,order:taxationOrder,breadcrumb:['Contabilidad','Tributación']};else if(taxationNode&&node.breadcrumb[0]==='Tributación')moved={...moved,level:node.level+1,breadcrumb:['Contabilidad',...node.breadcrumb]};return moved.screen_id==='XLS-001'?{...moved,label:structureScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),structureScreenTitle]}:moved.screen_id==='XLS-006'?{...moved,label:ownerSummaryScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),ownerSummaryScreenTitle]}:moved}),...additionalMenu,...advanceTypesMenu,...accountingAccountAssignmentMenu,...vatConfigurationMenu,...documentSequencesMenu,...structureTypesMenu,...waterExpenseEmailTemplateMenu,...bankDepositEntryMenu,...cxcTrackingMenu,...checkDesignMenu,...accountingVoucherSummaryMenu],
+    screens:[...data.screens.filter(screen=>!hiddenScreenIds.has(screen.id)).map(screen=>{let moved=['XLS-039','XLS-040'].includes(screen.id)?{...screen,modulo:'CxP',ruta_original:`CxP > Caja Chica > ${screen.titulo_original}`}:screen;if(screen.ruta_original.startsWith('Tributación > '))moved={...moved,modulo:'Contabilidad',ruta_original:`Contabilidad > ${screen.ruta_original}`};return moved.id==='XLS-001'?{...moved,titulo_original:structureScreenTitle,texto_original:structureScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),structureScreenTitle].join(' > ')}:moved.id==='XLS-006'?{...moved,titulo_original:ownerSummaryScreenTitle,texto_original:ownerSummaryScreenTitle,ruta_original:[...moved.ruta_original.split(' > ').slice(0,-1),ownerSummaryScreenTitle].join(' > ')}:moved}),advanceTypesScreen,accountingAccountAssignmentScreen,vatConfigurationScreen,structureTypesScreen,bankDepositEntryScreen,cxcTrackingScreen,checkDesignScreen,accountingVoucherSummaryScreen,documentSequencesScreen],
+    menu:[...data.menu.filter(node=>node.node_id!==legacyDocumentSequencesNode?.node_id&&(!node.screen_id||!hiddenScreenIds.has(node.screen_id))).map(node=>{let moved=node;if(companyNode&&node.node_id===companyNode.node_id)moved={...moved,order:firstConfigurationOrder};if(financialPlanNode&&financialVouchersNode&&node.node_id===financialVouchersNode.node_id)moved={...moved,order:financialPlanNode.order-.5};if(cxcReportsNode&&node.parent_id===cxcReportsNode.node_id&&node.screen_id==='XLS-081')moved={...moved,order:firstCxcReportOrder};if(bankExpensesNode&&bankChecksNode&&node.node_id===bankExpensesNode.node_id)moved={...moved,order:bankChecksNode.order-.5};if(cxpNode&&pettyCashNode&&node.node_id===pettyCashNode.node_id)moved={...node,parent_id:cxpNode.node_id,level:1,order:(advancesNode?.order??71)+.5,breadcrumb:['CxP','Caja Chica']};else if(pettyCashNode&&node.breadcrumb[0]==='Caja Chica')moved={...node,level:node.level+1,breadcrumb:['CxP',...node.breadcrumb]};if(accountingNode&&taxationNode&&node.node_id===taxationNode.node_id)moved={...moved,parent_id:accountingNode.node_id,level:1,order:taxationOrder,breadcrumb:['Contabilidad','Tributación']};else if(taxationNode&&node.breadcrumb[0]==='Tributación')moved={...moved,level:node.level+1,breadcrumb:['Contabilidad',...node.breadcrumb]};return moved.screen_id==='XLS-001'?{...moved,label:structureScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),structureScreenTitle]}:moved.screen_id==='XLS-006'?{...moved,label:ownerSummaryScreenTitle,breadcrumb:[...moved.breadcrumb.slice(0,-1),ownerSummaryScreenTitle]}:moved}),...additionalMenu,...advanceTypesMenu,...accountingAccountAssignmentMenu,...vatConfigurationMenu,...documentSequencesMenu,...structureTypesMenu,...bankDepositEntryMenu,...cxcTrackingMenu,...checkDesignMenu,...accountingVoucherSummaryMenu],
   }
 }
 
@@ -398,6 +384,7 @@ function normalizeMenuSearch(value:string){return value.normalize('NFD').replace
 export default function App(){
   const catalog=useQuery({queryKey:['catalog'],queryFn:api.catalog,select:customizeCatalog})
   const context=useQuery({queryKey:['context'],queryFn:api.context})
+  const residentAlarm=useQuery({queryKey:['resident-alarm',context.data?.company.id],queryFn:api.activeResidentAlarm,enabled:Boolean(context.data),refetchInterval:3000})
   const companies=useQuery({queryKey:['platform-companies'],queryFn:api.companies,enabled:Boolean(context.data?.actor.platformAdmin||context.data?.actor.groupAdmin)})
   const location=useLocation()
   const navigate=useNavigate()
@@ -489,15 +476,16 @@ export default function App(){
     </aside>
     {mobileOpen&&<button className="security-scrim" aria-label="Cerrar navegación" onClick={()=>setMobileOpen(false)}/>} 
     <main className="workspace">
-      <header className="workspace-bar">
+      <header className={`workspace-bar ${residentAlarm.data?'alarm-active':''}`}>
         <button className="hamburger" onClick={()=>setMobileOpen(true)}><Menu/></button>
         <CompanySwitcher context={context.data} companies={companies.data??[]} onSelect={switchCompany} onAdmin={()=>navigate('/plataforma/empresas')}/>
-        <div className="workspace-actions"><div className="period-chip"><i/>Periodo {context.data.company.period} abierto</div><button className="bar-button"><Search/></button><button className="bar-button"><Bell/><b/></button><div className="actor">JM</div></div>
+        {residentAlarm.data&&<div className="workspace-alarm-message" role="alert">{residentAlarm.data.message}</div>}
+        <div className="workspace-actions"><div className="period-chip"><i/>Periodo {context.data.company.period} abierto</div><button className="bar-button"><Search/></button><button className={`bar-button alarm-bell ${residentAlarm.data?'active':''}`} aria-label={residentAlarm.data?'Alarma activa':'Notificaciones'}><Bell/><b/></button><div className="actor">JM</div></div>
       </header>
       {!platformActive&&<WorkspaceTabs screens={openScreens} activeScreenId={currentScreen?.id} homeActive={location.pathname==='/'} onActivate={route=>navigate(route)} onClose={closeWorkspaceTab}/>}
       <div className="workspace-views">
         {platformActive?<div className="workspace-view"><PlatformAdminPage onOpenCompany={switchCompany} platformAdmin={context.data.actor.platformAdmin}/></div>:<><div className="workspace-view" hidden={location.pathname!=='/'}><OverviewPage catalog={catalog.data} favorites={favoriteIds} billsWater={billsWater} onToggleFavorite={toggleFavorite}/></div>
-        {openScreens.map(screen=><div className="workspace-view" key={screen.id} hidden={currentScreen?.id!==screen.id}><ScreenWorkspace screen={screen}>{screen.id.startsWith('SEC-')?<SecurityConfigurationPage screen={screen} catalog={catalog.data}/>:screen.id.startsWith('PI-')?<PersonalInformationPage screen={screen}/>:screen.id.startsWith('HR-')?<HumanTalentPage screen={screen}/>:<ScreenPage screen={screen} billingType={billingType} billsWater={billsWater}/>}</ScreenWorkspace></div>)}
+        {openScreens.map(screen=>{const active=currentScreen?.id===screen.id;return <div className="workspace-view" key={screen.id} hidden={!active}><ScreenWorkspace screen={screen}>{screen.id.startsWith('SEC-')?<SecurityConfigurationPage screen={screen} catalog={catalog.data}/>:screen.id.startsWith('CLI-')||screen.id.startsWith('PI-')||screen.id.startsWith('HR-')?(active?<Suspense fallback={<div className="payroll-loading">Cargando proceso de Seguridad…</div>}><PayrollSuite route={screen.ruta_react}/></Suspense>:null):<ScreenPage screen={screen} billingType={billingType} billsWater={billsWater}/>}</ScreenWorkspace></div>})}
         {location.pathname!=='/'&&!currentScreen&&<div className="workspace-view"><NotFound/></div>}</>}
       </div>
     </main>
@@ -597,7 +585,7 @@ function ScreenPage({screen,billingType,billsWater}:{screen:ScreenSpec;billingTy
   if(screen.id===documentSequencesScreen.id)return <DocumentSequencesPage screen={screen}/>
   if(screen.id===checkDesignScreen.id)return <CheckDesignPage screen={screen}/>
   if(screen.id===cxcTrackingScreen.id)return <CxcTrackingReportPage screen={screen}/>
-  return screen.id===bankDepositEntryScreen.id?<BankDepositEntryPage screen={screen}/>:screen.id==='XLS-087'?<BankDepositAnnulmentPage screen={screen}/>:screen.id===advanceTypesScreen.id?<AdvanceTypesPage screen={screen}/>:screen.id===accountingAccountAssignmentScreen.id?<AccountingAccountAssignmentPage screen={screen}/>:screen.id==='AI-CFG-IVA-001'?<VatConfigurationPage screen={screen}/>:screen.id===structureTypesScreen.id?<StructureTypesPage screen={screen}/>:screen.id==='XLS-016'?<AccountingVoucherTypesPage screen={screen}/>:screen.id==='XLS-085'?<BankAccountsPage screen={screen}/>:screen.id==='XLS-081'?<CustomerPortfolioReportPage screen={screen}/>:screen.id==='XLS-075'?<DebtCollectionCampaignPage screen={screen}/>:screen.id==='XLS-061'?<CollectionEntryPage screen={screen}/>:screen.id==='XLS-062'?<CollectionReprintPage screen={screen}/>:screen.id==='AI-EXP-001'?<AutomaticExpenseGenerationPage screen={screen} recurrence="NORMAL"/>:screen.id==='AI-EXP-002'?<IndividualExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-008'?<AutomaticExpenseGenerationPage screen={screen} recurrence="EXTRAORDINARIA"/>:screen.id==='AI-EXP-004'?<ExpenseEmailSendingPage screen={screen}/>:screen.id===waterMeterReadingScreenId?<WaterMeterReadingPage screen={screen}/>:screen.id===automaticWaterExpenseScreenId?<AutomaticWaterExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-005'?<ExpenseGeneralConsultationPage screen={screen}/>:screen.id==='AI-EXP-006'?<PreExpenseGenerationPage screen={screen} billsWater={billsWater}/>:screen.id==='AI-EXP-007'?<ExpenseDesignPage screen={screen}/>:screen.id==='AI-EXP-009'?<MassExpenseVoidPage screen={screen}/>:screen.id==='AI-FAC-004'?<PreInvoiceGenerationPage screen={screen} billsWater={billsWater}/>:screen.id.startsWith('AI-EXP-')||screen.id.startsWith('AI-FAC-')?<AddedPropertyScreen screen={screen}/>:screen.id==='XLS-001'?<PropertyTypePage screen={screen}/>:screen.id==='XLS-003'?<SectionPage screen={screen}/>:screen.id==='XLS-004'?<ExpenseItemsPage screen={screen}/>:screen.id==='XLS-005'?<PropertyDetailPageV2 screen={screen}/>:screen.id==='XLS-006'?<PropertyOwnerSummaryPage screen={screen}/>:screen.id==='XLS-007'?<PropertyImportPage screen={screen}/>:screen.id==='XLS-008'?<PropertyOwnerHistoryPage screen={screen}/>:screen.id==='XLS-009'?<RecipientConfigurationPage screen={screen}/>:screen.id==='XLS-010'?<EmailCenterPage screen={screen}/>:screen.id==='XLS-011'?<BulletinPage screen={screen}/>:['XLS-012','XLS-013','XLS-014','XLS-015',waterExpenseEmailTemplateScreen.id].includes(screen.id)?<EmailTemplatePage key={screen.id} screen={screen}/>:screen.id==='XLS-025'?<AccountPlanPage screen={screen}/>:screen.id==='XLS-026'?<AccountPlanMigrationPage screen={screen}/>:screen.id==='XLS-027'?<AccountingVoucherPage screen={screen}/>:screen.id==='XLS-038'?<AccountingClosurePage screen={screen}/>:screen.id==='XLS-041'?<SupplierGroupPage screen={screen}/>:['XLS-043','XLS-060'].includes(screen.id)?<ContactImportPage screen={screen}/>:screen.id==='XLS-059'?<CustomerRegistryPage screen={screen}/>:screen.id==='XLS-042'?<ProviderRegistryPage screen={screen}/>:<GenericScreenPage screen={screen}/>
+  return screen.id===bankDepositEntryScreen.id?<BankDepositEntryPage screen={screen}/>:screen.id==='XLS-087'?<BankDepositAnnulmentPage screen={screen}/>:screen.id===advanceTypesScreen.id?<AdvanceTypesPage screen={screen}/>:screen.id===accountingAccountAssignmentScreen.id?<AccountingAccountAssignmentPage screen={screen}/>:screen.id==='AI-CFG-IVA-001'?<VatConfigurationPage screen={screen}/>:screen.id===structureTypesScreen.id?<StructureTypesPage screen={screen}/>:screen.id==='XLS-016'?<AccountingVoucherTypesPage screen={screen}/>:screen.id==='XLS-085'?<BankAccountsPage screen={screen}/>:screen.id==='XLS-081'?<CustomerPortfolioReportPage screen={screen}/>:screen.id==='XLS-075'?<DebtCollectionCampaignPage screen={screen}/>:screen.id==='XLS-061'?<CollectionEntryPage screen={screen}/>:screen.id==='XLS-062'?<CollectionReprintPage screen={screen}/>:screen.id==='AI-EXP-001'?<AutomaticExpenseGenerationPage screen={screen} recurrence="NORMAL"/>:screen.id==='AI-EXP-002'?<IndividualExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-008'?<AutomaticExpenseGenerationPage screen={screen} recurrence="EXTRAORDINARIA"/>:screen.id==='AI-EXP-004'?<ExpenseEmailSendingPage screen={screen}/>:screen.id===waterMeterReadingScreenId?<WaterMeterReadingPage screen={screen}/>:screen.id===automaticWaterExpenseScreenId?<AutomaticWaterExpenseGenerationPage screen={screen}/>:screen.id==='AI-EXP-005'?<ExpenseGeneralConsultationPage screen={screen}/>:screen.id==='AI-EXP-006'?<PreExpenseGenerationPage screen={screen} billsWater={billsWater}/>:screen.id==='AI-EXP-007'?<ExpenseDesignPage screen={screen}/>:screen.id==='AI-EXP-009'?<MassExpenseVoidPage screen={screen}/>:screen.id==='AI-FAC-004'?<PreInvoiceGenerationPage screen={screen} billsWater={billsWater}/>:screen.id.startsWith('AI-EXP-')||screen.id.startsWith('AI-FAC-')?<AddedPropertyScreen screen={screen}/>:screen.id==='XLS-001'?<PropertyTypePage screen={screen}/>:screen.id==='XLS-003'?<SectionPage screen={screen}/>:screen.id==='XLS-004'?<ExpenseItemsPage screen={screen}/>:screen.id==='XLS-005'?<PropertyDetailPageV2 screen={screen}/>:screen.id==='XLS-006'?<PropertyOwnerSummaryPage screen={screen}/>:screen.id==='XLS-007'?<PropertyImportPage screen={screen}/>:screen.id==='XLS-008'?<PropertyOwnerHistoryPage screen={screen}/>:screen.id==='XLS-009'?<RecipientConfigurationPage screen={screen}/>:screen.id==='XLS-010'?<EmailCenterPage screen={screen}/>:screen.id==='XLS-011'?<BulletinPage screen={screen}/>:['XLS-014','XLS-015'].includes(screen.id)?<EmailTemplatePage key={screen.id} screen={screen}/>:screen.id==='XLS-025'?<AccountPlanPage screen={screen}/>:screen.id==='XLS-026'?<AccountPlanMigrationPage screen={screen}/>:screen.id==='XLS-027'?<AccountingVoucherPage screen={screen}/>:screen.id==='XLS-038'?<AccountingClosurePage screen={screen}/>:screen.id==='XLS-041'?<SupplierGroupPage screen={screen}/>:['XLS-043','XLS-060'].includes(screen.id)?<ContactImportPage screen={screen}/>:screen.id==='XLS-059'?<CustomerRegistryPage screen={screen}/>:screen.id==='XLS-042'?<ProviderRegistryPage screen={screen}/>:<GenericScreenPage screen={screen}/>
 }
 
 function DisabledBillingModulePage({screen,billingType}:{screen:ScreenSpec;billingType:CompanyBillingType}){const enabled=billingType==='EXPENSAS'?'Expensas':'Facturas';const disabled=enabled==='Expensas'?'Facturas':'Expensas';return <div className="page screen-page billing-disabled-page"><div className="breadcrumbs">{screen.ruta_original.split(' > ').map((part,index,all)=><span key={`${part}-${index}`}>{part}{index<all.length-1&&<ChevronRight/>}</span>)}</div><section><LockKeyhole/><span>Submódulo deshabilitado</span><h1>{disabled} no está disponible</h1><p>La compañía tiene configurado el Tipo de Cobro <strong>{enabled}</strong>. Para utilizar estas pantallas, cambia el Tipo de Cobro en Configuración General → Compañía.</p></section></div>}
